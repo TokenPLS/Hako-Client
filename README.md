@@ -7,6 +7,11 @@
 基于 Hako 内核的规则代理客户端，支持 iOS、iPadOS、tvOS 和 macOS。
 当前为预发布源码，尚不代表正式发行版本。
 
+### 官网与下载
+
+- [官方网站](https://clash.md/)
+- [在 App Store 下载官方客户端](https://apps.apple.com/app/id6794257189)
+
 ### 仓库结构
 
 - `apple/HakoClient`：各平台应用与扩展
@@ -61,6 +66,11 @@ python3 scripts/configure.py --bundle-base org.yourname.clash --team YOURTEAMID
 
 A rule-based proxy client for iOS, iPadOS, tvOS and macOS, powered by Hako.
 This is a pre-release source distribution, not a formal product release.
+
+### Website and download
+
+- [Official website](https://clash.md/)
+- [Download the official client on the App Store](https://apps.apple.com/app/id6794257189)
 
 ### Source layout
 
