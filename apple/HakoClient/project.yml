@@ -1,0 +1,678 @@
+name: HakoClient
+options:
+  bundleIdPrefix: org.example.hako
+  deploymentTarget:
+    iOS: '15.0'
+    macOS: '13.0'
+    tvOS: '17.0'
+settings:
+  base:
+    HAKO_BUNDLE_BASE: org.example.hako
+    HAKO_APP_GROUP: group.$(HAKO_BUNDLE_BASE)
+    HAKO_ICLOUD_CONTAINER: iCloud.$(HAKO_BUNDLE_BASE)
+    HAKO_DEVELOPMENT_TEAM: ''
+    SWIFT_VERSION: '5.9'
+    GENERATE_INFOPLIST_FILE: true
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 1.0.4
+    HAKO_SOURCE_REVISION: source-build
+    OTHER_LDFLAGS:
+    - -lresolv
+packages:
+  HakoClientKit:
+    path: ../HakoClientKit
+  HakoClientUI:
+    path: ../HakoClientUI
+  HakoMacClient:
+    path: ../HakoMacClient
+targets:
+  HakoClient:
+    type: application
+    platform: iOS
+    sources:
+    - path: Sources
+      excludes:
+      - Mac
+      - TV
+    - Shared
+    - Assets.xcassets
+    - Resources/Branding/SharedSymbols.xcassets
+    - path: Resources/Branding/AppIcon/AppIcon.icon
+      buildPhase: resources
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    - path: Resources/Legal
+      buildPhase: resources
+    - path: Resources/BundledGeoData/GeoIP.dat
+      buildPhase: resources
+    - path: Resources/BundledGeoData/GeoSite.dat
+      buildPhase: resources
+    - path: Resources/BundledGeoData/geoip.metadb
+      buildPhase: resources
+    - path: Resources/BundledGeoData/ASN.mmdb
+      buildPhase: resources
+    - path: Resources/BundledGeoData/BundledGeoDataManifest.json
+      buildPhase: resources
+    - path: Resources/BundledGeoData/LICENSE.meta-rules-dat.txt
+      buildPhase: resources
+    - path: ../../Vendor/HakoAdapter/Sources/HakoAdapter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE)
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_USER_SCRIPT_SANDBOXING: false
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Clash
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        HakoSourceRevision: $(HAKO_SOURCE_REVISION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+        - UIInterfaceOrientationPortrait
+        - UIInterfaceOrientationPortraitUpsideDown
+        - UIInterfaceOrientationLandscapeLeft
+        - UIInterfaceOrientationLandscapeRight
+        NSCameraUsageDescription: Scan a subscription QR code to import a profile.
+        NSLocalNetworkUsageDescription: Test DNS servers on your network, and let
+          other devices use this device's proxy.
+        CFBundleURLTypes:
+        - CFBundleTypeRole: Editor
+          CFBundleURLSchemes:
+          - clash
+          - clashmeta
+          - flclash
+          - hako
+        CFBundleDocumentTypes:
+        - CFBundleTypeName: YAML Configuration
+          CFBundleTypeRole: Viewer
+          LSHandlerRank: Alternate
+          LSItemContentTypes:
+          - public.yaml
+        LSSupportsOpeningDocumentsInPlace: true
+        BGTaskSchedulerPermittedIdentifiers:
+        - $(HAKO_BUNDLE_BASE).refresh
+        UIBackgroundModes:
+        - fetch
+        - processing
+        NSUbiquitousContainers:
+          iCloud.com.hako.network:
+            NSUbiquitousContainerIsDocumentScopePublic: true
+            NSUbiquitousContainerName: Clash
+            NSUbiquitousContainerSupportedFolderLevels: Any
+    entitlements:
+      path: HakoClient.entitlements
+      properties:
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+        com.apple.developer.networking.networkextension:
+        - packet-tunnel-provider
+        - dns-settings
+        com.apple.developer.icloud-services:
+        - CloudDocuments
+        com.apple.developer.icloud-container-identifiers:
+        - $(HAKO_ICLOUD_CONTAINER)
+        com.apple.developer.ubiquity-container-identifiers:
+        - $(HAKO_ICLOUD_CONTAINER)
+    dependencies:
+    - package: HakoClientKit
+    - package: HakoClientUI
+    - framework: ../../Hako.xcframework
+      embed: false
+    - target: HakoClientExtension
+      embed: true
+    - target: HakoControlsExtension
+      embed: true
+    - target: HakoShareExtension
+      embed: true
+  HakoClientExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+    - path: Extension
+      excludes: []
+    - Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetSnapshot.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetMailbox.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetInterfaceAccounting.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Tunnel/HakoTunnelRouteShaping.swift
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    - path: ../../Vendor/HakoAdapter/Sources/HakoAdapter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE).extension
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+    entitlements:
+      path: Extension/Extension.entitlements
+      properties:
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+        com.apple.developer.networking.networkextension:
+        - packet-tunnel-provider
+    info:
+      path: Extension/Info.plist
+      properties:
+        CFBundleDisplayName: Clash by Hako
+        CFBundleShortVersionString: '1.0'
+        CFBundleVersion: '1'
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PacketTunnelProvider
+    dependencies:
+    - framework: ../../Hako.xcframework
+      embed: false
+    - sdk: NetworkExtension.framework
+  HakoControlsExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+    - ControlsExtension
+    - WidgetsShared
+    - path: Sources/SystemIntegration/HakoSystemRoute.swift
+    - path: Sources/SystemIntegration/HakoVPNControlIntent.swift
+    - path: Shared/HakoLogStore.swift
+      group: Sources/SystemIntegration
+    - path: Shared/HakoAppGroupContainer.swift
+      group: Sources/SystemIntegration
+    - path: Shared/HakoAppIdentifiers.swift
+    - path: Shared/HakoDeviceModel.swift
+      group: Sources/SystemIntegration
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetSnapshot.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetMailbox.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetFormat.swift
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoThroughputFormatter.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetViews.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoCopy.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoRegionalFlag.swift
+      group: Shared
+    - path: Sources/AppArchitecture/AppLocalization
+      excludes:
+      - '**/InfoPlist.strings'
+    - path: Resources/Branding/SharedSymbols.xcassets
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE).controls
+        IPHONEOS_DEPLOYMENT_TARGET: '17.0'
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+        APPLICATION_EXTENSION_API_ONLY: true
+    entitlements:
+      path: ControlsExtension/ControlsExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+    info:
+      path: ControlsExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Clash Controls
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    dependencies:
+    - sdk: AppIntents.framework
+    - sdk: WidgetKit.framework
+  HakoShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+    - ShareExtension
+    - path: Sources/SystemIntegration/ProfileShareInbox.swift
+    - path: Shared/HakoAppIdentifiers.swift
+    - path: Shared/HakoDeviceModel.swift
+      group: Sources/SystemIntegration
+    - path: Shared/HakoAppGroupContainer.swift
+      group: Sources/SystemIntegration
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE).share
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+        APPLICATION_EXTENSION_API_ONLY: true
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Import to Clash
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule: SUBQUERY(extensionItems, $extensionItem, $extensionItem.attachments.@count
+              == 1 AND SUBQUERY($extensionItem.attachments, $attachment, ANY $attachment.registeredTypeIdentifiers
+              UTI-CONFORMS-TO "public.yaml").@count == 1).@count == 1
+  HakoMac:
+    type: application
+    platform: macOS
+    productName: Clash
+    sources:
+    - path: Sources
+      excludes:
+      - TV
+      - HakoClientApp.swift
+      - HakoNavigationLab.swift
+      - HakoPushClockTouchProbe.swift
+      - VPNController.swift
+      - HakoComponents.swift
+      - OverviewComponents.swift
+      - OverviewContent.swift
+      - OverviewDetailCards.swift
+      - OverviewPrimaryCards.swift
+      - HomeView.swift
+      - NodesView.swift
+      - ConfigUI/GoldenFlowHomeView.swift
+      - ConfigUI/TunnelSettingsView.swift
+    - Shared
+    - Assets.xcassets
+    - Resources/Branding/SharedSymbols.xcassets
+    - path: Resources/Branding/AppIcon/AppIcon.icon
+      buildPhase: resources
+    - path: Resources/Branding/AppIcon/macOS/HakoAppIcon.icns
+      buildPhase: resources
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    - path: Resources/Legal
+      buildPhase: resources
+    - path: Resources/BundledGeoData/GeoIP.dat
+      buildPhase: resources
+    - path: Resources/BundledGeoData/GeoSite.dat
+      buildPhase: resources
+    - path: Resources/BundledGeoData/geoip.metadb
+      buildPhase: resources
+    - path: Resources/BundledGeoData/ASN.mmdb
+      buildPhase: resources
+    - path: Resources/BundledGeoData/BundledGeoDataManifest.json
+      buildPhase: resources
+    - path: Resources/BundledGeoData/LICENSE.meta-rules-dat.txt
+      buildPhase: resources
+    - path: ../../Vendor/HakoAdapter/Sources/HakoAdapter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE)
+        PRODUCT_NAME: Clash
+        MARKETING_VERSION: 1.0.8
+        CURRENT_PROJECT_VERSION: '44'
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_USER_SCRIPT_SANDBOXING: false
+        ASSETCATALOG_COMPILER_APPICON_NAME: ''
+    info:
+      path: Resources/macOS/HakoMacInfo.plist
+      properties:
+        CFBundleDisplayName: Clash
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        CFBundleIconName: AppIcon
+        CFBundleIconFile: HakoAppIcon
+        CFBundleURLTypes:
+        - CFBundleTypeRole: Editor
+          CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER).install-config
+          CFBundleURLSchemes:
+          - clash
+          - clashmeta
+          - flclash
+          - hako
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        HakoSourceRevision: $(HAKO_SOURCE_REVISION)
+        ITSAppUsesNonExemptEncryption: false
+        LSApplicationCategoryType: public.app-category.utilities
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+    entitlements:
+      path: Resources/macOS/HakoMac.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+        com.apple.developer.networking.networkextension:
+        - packet-tunnel-provider
+        com.apple.developer.icloud-services:
+        - CloudDocuments
+        com.apple.developer.icloud-container-identifiers:
+        - $(HAKO_ICLOUD_CONTAINER)
+        com.apple.developer.ubiquity-container-identifiers:
+        - $(HAKO_ICLOUD_CONTAINER)
+    dependencies:
+    - package: HakoClientKit
+    - package: HakoClientUI
+    - package: HakoMacClient
+    - framework: ../../Hako.xcframework
+      embed: false
+    - target: HakoMacExtension
+      embed: true
+    - target: HakoMacWidgets
+      embed: true
+    - sdk: NetworkExtension.framework
+  HakoMacWidgets:
+    type: app-extension
+    platform: macOS
+    sources:
+    - path: MacWidgets
+      excludes:
+      - Info.plist
+      - MacWidgets.entitlements
+    - path: WidgetsShared
+    - path: Sources/SystemIntegration/HakoSystemRoute.swift
+    - path: Sources/SystemIntegration/HakoVPNControlIntent.swift
+    - path: Shared/HakoLogStore.swift
+      group: Sources/SystemIntegration
+    - path: Shared/HakoAppGroupContainer.swift
+      group: Sources/SystemIntegration
+    - path: Shared/HakoAppIdentifiers.swift
+    - path: Shared/HakoDeviceModel.swift
+      group: Sources/SystemIntegration
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetSnapshot.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetMailbox.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetFormat.swift
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoThroughputFormatter.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetViews.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoCopy.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoRegionalFlag.swift
+      group: Shared
+    - path: Sources/AppArchitecture/AppLocalization
+      excludes:
+      - '**/InfoPlist.strings'
+    - path: Resources/Branding/SharedSymbols.xcassets
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE).widgets
+        MACOSX_DEPLOYMENT_TARGET: '14.0'
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+        APPLICATION_EXTENSION_API_ONLY: true
+    entitlements:
+      path: MacWidgets/MacWidgets.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+        com.apple.developer.networking.networkextension:
+        - packet-tunnel-provider
+    info:
+      path: MacWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Clash
+        HakoSourceRevision: $(HAKO_SOURCE_REVISION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+  HakoMacExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+    - path: Extension
+      excludes:
+      - Extension.entitlements
+      - Info.plist
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetSnapshot.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetMailbox.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Widgets/HakoWidgetInterfaceAccounting.swift
+      group: Shared
+    - Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Tunnel/HakoTunnelRouteShaping.swift
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    - path: ../../Vendor/HakoAdapter/Sources/HakoAdapter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE).packet-tunnel
+        PRODUCT_NAME: HakoMacExtension
+        MARKETING_VERSION: 1.0.8
+        CURRENT_PROJECT_VERSION: '44'
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+    entitlements:
+      path: Resources/macOS/HakoMacExtension.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.server: true
+        com.apple.security.network.client: true
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+        com.apple.developer.networking.networkextension:
+        - packet-tunnel-provider
+    info:
+      path: Resources/macOS/HakoMacExtensionInfo.plist
+      properties:
+        CFBundleDisplayName: Clash by Hako
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        HakoSourceRevision: $(HAKO_SOURCE_REVISION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PacketTunnelProvider
+    dependencies:
+    - framework: ../../Hako.xcframework
+      embed: false
+    - sdk: NetworkExtension.framework
+  HakoTV:
+    type: application
+    platform: tvOS
+    sources:
+    - path: Sources/TV
+    - path: Shared/ConfigResourceStore.swift
+    - path: Shared/HakoAppIdentifiers.swift
+    - path: Shared/HakoDeviceModel.swift
+      group: Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Rules/HakoRulesSnapshot.swift
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Proxies/HakoProbeFailureCopy.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Components/InheritedValue.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Components/InheritedList.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/DNS/HakoDNSSnapshot.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Proxies/HakoProxiesSnapshot.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Proxies/HakoProxiesRuntime.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Proxies/HakoProxyGroupIcon.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Activity/HakoActivitySnapshot.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Activity/HakoActivityProjectionMemo.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Profiles/HakoProfilesSnapshot.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Home/HakoConnectionDuration.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Home/HakoHomeStatusLine.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Home/HakoHomeSnapshot.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Home/HakoHomeCatalog.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Home/HakoStartupExplanation.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoCopy.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoAccentRole.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoSymbol.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoSurfaceRole.swift
+      group: SharedFacts
+    - path: ../HakoClientUI/Sources/HakoClientUI/Design/HakoThroughputFormatter.swift
+      group: SharedFacts
+    - path: Sources/ConfigStore/ConfigTransforms.swift
+    - path: Sources/ConfigStore/InvalidDomainSites.swift
+    - path: Sources/ConfigStore/OrderedJSON.swift
+    - path: Sources/ConfigStore/PreflightService.swift
+    - path: Sources/ConfigStore/BundledGeodataProvisioner.swift
+    - path: Sources/ConfigStore/GeoSiteCompiler.swift
+    - path: Sources/ConfigStore/GeoIPCompiler.swift
+    - path: Sources/ConfigStore/ProviderStagingPublisher.swift
+    - path: Sources/AppArchitecture/UDPFallbackGuard.swift
+    - path: Sources/AppArchitecture/ProxyBrowsingVisibility.swift
+    - path: Shared/LocalNetworkPermission.swift
+    - path: Sources/ConfigStore/CoreLogExcerpt.swift
+    - path: Sources/ProxyShareModel.swift
+    - path: Sources/ConfigStore/CredentialStore.swift
+    - path: Sources/ConfigUI/ClientUserAgent.swift
+    - path: Shared/HakoLogStore.swift
+      group: Shared
+    - path: Shared/HakoAppGroupContainer.swift
+      group: Shared
+    - path: Resources/BundledGeoData/GeoIP.dat
+      buildPhase: resources
+    - path: Resources/BundledGeoData/GeoSite.dat
+      buildPhase: resources
+    - path: Resources/BundledGeoData/geoip.metadb
+      buildPhase: resources
+    - path: Resources/BundledGeoData/ASN.mmdb
+      buildPhase: resources
+    - path: Resources/BundledGeoData/BundledGeoDataManifest.json
+      buildPhase: resources
+    - path: Resources/BundledGeoData/LICENSE.meta-rules-dat.txt
+      buildPhase: resources
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    - path: Resources/Branding/AppIcon/tvOS/HakoTVAssets.xcassets
+      buildPhase: resources
+    - path: Resources/Branding/SharedSymbols.xcassets
+      buildPhase: resources
+    - path: Resources/tvOS/Localization
+      buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE)
+        PRODUCT_NAME: HakoTV
+        MARKETING_VERSION: 1.0.9
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: HakoTV
+        ENABLE_USER_SCRIPT_SANDBOXING: false
+    info:
+      path: Resources/tvOS/HakoTVInfo.plist
+      properties:
+        CFBundleDisplayName: Clash
+        NSLocalNetworkUsageDescription: Let other devices on your network use this
+          Apple TV's proxy.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        HakoSourceRevision: $(HAKO_SOURCE_REVISION)
+        UILaunchScreen: {}
+    entitlements:
+      path: Resources/tvOS/HakoTV.entitlements
+      properties:
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+        com.apple.developer.networking.networkextension:
+        - packet-tunnel-provider
+    dependencies:
+    - package: HakoClientKit
+    - framework: ../../Hako.xcframework
+      embed: false
+    - target: HakoTVExtension
+      embed: true
+    - sdk: NetworkExtension.framework
+  HakoTVExtension:
+    type: app-extension
+    platform: tvOS
+    sources:
+    - path: Extension
+      excludes:
+      - Extension.entitlements
+      - Info.plist
+    - Shared
+    - path: ../HakoClientUI/Sources/HakoClientUI/Features/Tunnel/HakoTunnelRouteShaping.swift
+    - path: Resources/PrivacyInfo.xcprivacy
+      buildPhase: resources
+    - path: ../../Vendor/HakoAdapter/Sources/HakoAdapter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE).tvextension
+        PRODUCT_NAME: HakoTVExtension
+        MARKETING_VERSION: 1.0.9
+        DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
+        CODE_SIGN_STYLE: Automatic
+    entitlements:
+      path: Resources/tvOS/HakoTVExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+        - $(HAKO_APP_GROUP)
+        com.apple.developer.networking.networkextension:
+        - packet-tunnel-provider
+    info:
+      path: Resources/tvOS/HakoTVExtensionInfo.plist
+      properties:
+        CFBundleDisplayName: Clash by Hako
+        UIRequiredDeviceCapabilities:
+        - arm64
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        HakoSourceRevision: $(HAKO_SOURCE_REVISION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PacketTunnelProvider
+    dependencies:
+    - framework: ../../Hako.xcframework
+      embed: false
+    - sdk: NetworkExtension.framework
+schemes:
+  HakoClient:
+    build:
+      targets:
+        HakoClient: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  HakoTV:
+    build:
+      targets:
+        HakoTV: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  HakoMac:
+    build:
+      targets:
+        HakoMac: all
+    run:
+      config: Debug
+    archive:
+      config: Release

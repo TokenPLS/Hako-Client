@@ -1,96 +1,115 @@
 # Clash for Apple Platforms
 
-**Rule-based proxy utility · powered by Hako**
+[中文](#中文) · [English](#english)
 
-[Website](https://clash.md/) ·
-[TestFlight](https://testflight.apple.com/join/QJWrVrxT) ·
-[Hako Core](https://github.com/TokenPLS/Hako) ·
-[Telegram](https://t.me/clashbyhako)
+## 中文
 
-## Available now
+基于 Hako 内核的规则代理客户端，支持 iOS、iPadOS、tvOS 和 macOS。
+当前为预发布源码，尚不代表正式发行版本。
 
-The Clash beta for iPhone and iPad is available now through
-[TestFlight](https://testflight.apple.com/join/QJWrVrxT).
+### 仓库结构
 
-The [Hako core](https://github.com/TokenPLS/Hako) used by Clash is already fully
-open source. Hako is built on the open-source mihomo project, and its source code
-is publicly available for inspection, discussion, and independent security
-audits.
+- `apple/HakoClient`：各平台应用与扩展
+- `apple/HakoClientKit`：共享配置与档案模型
+- `apple/HakoClientUI`：共享界面组件
+- `apple/HakoMacClient`：macOS 组件
 
-## Client source status
+[内核](https://github.com/TokenPLS/Hako)与 [Adapter](https://github.com/TokenPLS/Hako-Adapter)
+的公开源码版本固定在 `Dependencies.lock.json`。
 
-Clash for iPhone and iPad is currently going through its first App Store review.
-The client is still receiving substantial changes as we respond to review
-feedback and refine the release build.
+### 构建
 
-The complete Apple client source will be published in this repository. We are
-waiting until the review build and its architecture have stabilized, so the
-first public source release corresponds to the application users can actually
-install instead of a short-lived snapshot that quickly becomes outdated.
+准备 macOS、Xcode 26.6、XcodeGen、Git、Go，以及安装了 PyYAML 的 Python 3。
 
-This is a temporary delay to the client source release, not a change to our
-open-source commitment. Once the first review cycle settles, this repository
-will include:
+```sh
+python3 scripts/bootstrap.py
+python3 scripts/configure.py
+```
 
-- The complete Apple client source
-- Build and development instructions
-- Open-source licensing information
-- Contribution guidelines
-- Versioned releases corresponding to published builds
+首次运行会拉取固定版本的公开依赖并构建 SDK。
+打开 `apple/HakoClient/HakoClient.xcodeproj`，选择对应 Scheme：
 
-macOS and tvOS versions are in development.
+| 平台 | Scheme |
+| --- | --- |
+| iOS / iPadOS | `HakoClient` |
+| tvOS | `HakoTV` |
+| macOS | `HakoMac` |
 
-## Links
+例如，不签名编译 iOS 模拟器版本：
 
-- TestFlight: https://testflight.apple.com/join/QJWrVrxT
-- Website: https://clash.md/
-- Hako core: https://github.com/TokenPLS/Hako
-- Telegram: https://t.me/clashbyhako
-- Privacy Policy: https://clash.md/privacy
-- Terms of Use: https://clash.md/terms
+```sh
+xcodebuild -project apple/HakoClient/HakoClient.xcodeproj \
+  -scheme HakoClient -configuration Release \
+  -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+```
 
----
+### 真机签名
 
-## 中文说明
+使用你自己的 Bundle ID 和 Apple Developer Team ID：
 
-Clash 是一款由 Hako 驱动、面向 Apple 平台的基于规则的网络代理工具。
+```sh
+python3 scripts/configure.py --bundle-base org.yourname.clash --team YOURTEAMID
+```
 
-## 现在可以使用
+在 Xcode 中配置相应的签名与应用能力。仓库不包含证书或描述文件。
 
-iPhone 与 iPad 测试版本已经开放下载，可以立即通过
-[TestFlight](https://testflight.apple.com/join/QJWrVrxT) 安装。
+### 许可证
 
-Clash 使用的 [Hako 内核](https://github.com/TokenPLS/Hako)已经完整开源。
-Hako 基于开源 mihomo 项目构建，其源代码已经公开，任何人都可以检查、讨论
-并进行独立安全审计。
+见 [LICENSE](LICENSE)。第三方资源的许可证随资源保留。
 
-## 客户端源码状态
+## English
 
-Clash 的 iPhone 与 iPad 版本正在进行首次 App Store 审核。为了回应审核反馈
-并完善正式发布版本，Apple 客户端目前仍在进行较大调整。
+A rule-based proxy client for iOS, iPadOS, tvOS and macOS, powered by Hako.
+This is a pre-release source distribution, not a formal product release.
 
-完整的 Apple 客户端源代码将在本仓库发布。我们计划等首次审核版本及其架构
-稳定后，再发布第一份公开源码，使公开仓库对应用户实际能够安装的版本，而不是
-一份很快就会过时、与正式版本产生差异的临时快照。
+### Source layout
 
-这只是暂缓客户端源码的首次发布，并不代表我们改变了完整开源的承诺。首次审核
-周期稳定后，本仓库将提供：
+- `apple/HakoClient`: platform applications and extensions
+- `apple/HakoClientKit`: shared configuration and profile models
+- `apple/HakoClientUI`: shared interface components
+- `apple/HakoMacClient`: macOS components
 
-- 完整的 Apple 客户端源代码
-- 构建与开发说明
-- 开源许可信息
-- 贡献指南
-- 与公开版本对应的版本记录
+Public [Kernel](https://github.com/TokenPLS/Hako) and
+[Adapter](https://github.com/TokenPLS/Hako-Adapter) revisions are pinned in
+`Dependencies.lock.json`.
 
-macOS 与 tvOS 版本仍在开发中。
+### Build
 
-## 相关链接
+Requirements: macOS, Xcode 26.6, XcodeGen, Git, Go, and Python 3 with PyYAML.
 
-- TestFlight：https://testflight.apple.com/join/QJWrVrxT
-- 官方网站：https://clash.md/zh/
-- Hako 内核：https://github.com/TokenPLS/Hako
-- Telegram：https://t.me/clashbyhako
-- 隐私政策：https://clash.md/zh/privacy
-- 使用条款：https://clash.md/zh/terms
+```sh
+python3 scripts/bootstrap.py
+python3 scripts/configure.py
+```
 
-Copyright © 2026 The Clash & Hako Team
+The first run fetches pinned public dependencies and builds the SDK.
+Open `apple/HakoClient/HakoClient.xcodeproj` and select a scheme:
+
+| Platform | Scheme |
+| --- | --- |
+| iOS / iPadOS | `HakoClient` |
+| tvOS | `HakoTV` |
+| macOS | `HakoMac` |
+
+For example, build for the iOS Simulator without signing:
+
+```sh
+xcodebuild -project apple/HakoClient/HakoClient.xcodeproj \
+  -scheme HakoClient -configuration Release \
+  -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+```
+
+### Device signing
+
+Use your own bundle identifier and Apple Developer Team ID:
+
+```sh
+python3 scripts/configure.py --bundle-base org.yourname.clash --team YOURTEAMID
+```
+
+Configure signing and the required capabilities in Xcode. Certificates and
+provisioning profiles are not included.
+
+### License
+
+See [LICENSE](LICENSE). Third-party resource licenses remain with their resources.

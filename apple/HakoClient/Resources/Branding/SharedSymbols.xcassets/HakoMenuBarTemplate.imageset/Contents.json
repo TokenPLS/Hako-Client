@@ -1,0 +1,20 @@
+{
+  "images" : [
+    {
+      "filename" : "HakoMenuBarTemplate.png",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "template-rendering-intent" : "template"
+    },
+    {
+      "filename" : "HakoMenuBarTemplate@2x.png",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "template-rendering-intent" : "template"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "images" : [
+    { "filename" : "HakoTVBackground.png", "idiom" : "tv", "scale" : "1x" },
+    { "filename" : "HakoTVBackground@2x.png", "idiom" : "tv", "scale" : "2x" }
+  ],
+  "info" : { "author" : "com.hako.network", "version" : 1 }
+}

@@ -1,0 +1,13 @@
+.DS_Store
+.build/
+.swiftpm/
+Vendor/
+Hako.xcframework
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+# Generated from project.yml by XcodeGen.
+apple/HakoClient/**/*.plist
+apple/HakoClient/**/*.entitlements
+apple/HakoClient/Info.plist
+apple/HakoClient/HakoClient.entitlements

@@ -1,0 +1,8 @@
+{
+  "layers" : [
+    { "filename" : "Foreground.imagestacklayer" },
+    { "filename" : "Background.imagestacklayer" }
+  ],
+  "info" : { "author" : "com.hako.network", "version" : 1 },
+  "properties" : { "canvasSize" : { "height" : 240, "width" : 400 } }
+}

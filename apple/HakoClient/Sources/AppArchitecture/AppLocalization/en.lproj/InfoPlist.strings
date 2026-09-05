@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "Scan a subscription QR code to import a profile.";
+"NSLocalNetworkUsageDescription" = "Test DNS servers on your network, and let other devices use this device's proxy.";

@@ -1,0 +1,18 @@
+{
+  "images" : [
+    {
+      "filename" : "HakoTVTopShelfWide.png",
+      "idiom" : "tv",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "HakoTVTopShelfWide@2x.png",
+      "idiom" : "tv",
+      "scale" : "2x"
+    }
+  ],
+  "info" : {
+    "author" : "com.hako.network",
+    "version" : 1
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "upstreamRepository": "https://github.com/MetaCubeX/meta-rules-dat",
+  "upstreamRevision": "4178770badecb1b349fbcd62c737e0d7a2079729",
+  "releaseTag": "latest",
+  "publishedAt": "2026-08-20T22:55:13Z",
+  "licenseFile": "LICENSE.meta-rules-dat.txt",
+  "resources": [
+    {
+      "kind": "geoip",
+      "fileName": "GeoIP.dat",
+      "sourceAsset": "GeoIP.dat",
+      "downloadURL": "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat",
+      "size": 17185495,
+      "sha256": "8ebcb11333f7deed4bf2740f2ce3249aa8997ef03d437150c7ae373c011cd72a"
+    },
+    {
+      "kind": "geosite",
+      "fileName": "GeoSite.dat",
+      "sourceAsset": "GeoSite.dat",
+      "downloadURL": "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat",
+      "size": 4246414,
+      "sha256": "e501fa4171f5b382f9b2b0e47ebdcd81f8bf052b32f682eaa16783830597507f"
+    },
+    {
+      "kind": "mmdb",
+      "fileName": "geoip.metadb",
+      "sourceAsset": "geoip.metadb",
+      "downloadURL": "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb",
+      "size": 8593535,
+      "sha256": "9d500c84613994153b531de7153b3602f2b9adde253a28307c74dba1bea1a957"
+    },
+    {
+      "kind": "asn",
+      "fileName": "ASN.mmdb",
+      "sourceAsset": "ASN.mmdb",
+      "downloadURL": "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb",
+      "size": 12061149,
+      "sha256": "82abcabdf4d0ecb34da45e4f0f9bc30bf933cfbfec446b89a2215fae5b1fdbdc"
+    }
+  ]
+}

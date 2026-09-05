@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "kernel": {"repository": "https://github.com/TokenPLS/Hako.git", "revision": "187d44170b2ecef2519588b7fc0da18be3f47c85"},
+  "adapter": {"repository": "https://github.com/TokenPLS/Hako-Adapter.git", "revision": "664dfb0665204f3e19af90e822939a1dc0b92934"},
+  "gomobile": "github.com/sagernet/gomobile/cmd/gomobile@v0.1.13",
+  "gobind": "github.com/sagernet/gomobile/cmd/gobind@v0.1.13"
+}
