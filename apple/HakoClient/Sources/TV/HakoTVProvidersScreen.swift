@@ -26,7 +26,7 @@ import SwiftUI
 struct HakoTVProvidersScreen: View {
     @Binding var state: HakoTVProductState
 
-    @State private var explained: HakoTVProviderCatalog.Entry?
+    @State private var explainedID: String?
 
     var body: some View {
         let rows = Self.rows(state.providers)
@@ -56,7 +56,7 @@ struct HakoTVProvidersScreen: View {
                                 .truncationMode(.middle)
                         }
                     }
-                    .onHakoTVFocus { explained = entry }
+                    .onHakoTVFocus { explainedID = entry.id }
                     .accessibilityIdentifier("tvos.providers.\(entry.id)")
                 }
             }
@@ -65,7 +65,7 @@ struct HakoTVProvidersScreen: View {
             .frame(maxWidth: .infinity)
 
             VStack(alignment: .leading, spacing: 16) {
-                if let entry = explained ?? rows.first {
+                if let entry = rows.first(where: { $0.id == explainedID }) ?? rows.first {
                     Text(Self.kindWord(for: entry))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
@@ -81,7 +81,7 @@ struct HakoTVProvidersScreen: View {
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .animation(.easeOut(duration: 0.18), value: explained)
+            .animation(.easeOut(duration: 0.18), value: explainedID)
         }
          
     }
@@ -106,7 +106,7 @@ struct HakoTVProvidersScreen: View {
      
      
     static func status(for entry: HakoTVProviderCatalog.Entry) -> String {
-        entry.failure ?? String(localized: "Ready")
+        entry.failure ?? (entry.pending == true ? String(localized: "Waiting") : String(localized: "Ready"))
     }
 
      
@@ -116,7 +116,8 @@ struct HakoTVProvidersScreen: View {
     }
 
     static func updatedWords(for entry: HakoTVProviderCatalog.Entry) -> String {
-        HakoTVSubscriptionUpdatedWords.text(updatedAt: entry.updatedAt)
+        entry.pending == true ? String(localized: "Waiting")
+            : HakoTVSubscriptionUpdatedWords.text(updatedAt: entry.updatedAt)
     }
 
     static func vacancy(_ entries: [HakoTVProviderCatalog.Entry]) -> String? {

@@ -135,6 +135,11 @@ final class HakoTVTunnelController: ObservableObject {
     private var observedIPCSession: ObjectIdentifier?
     private var controlRevision: UInt64 = 0
     private var activeObservationGeneration: UInt64?
+    private var ruleProbePointer: ActiveConfigurationPointer?
+    private var ruleProbeGeneration: HakoTVIPCGeneration?
+    private var nextRuleProbeAt = Date.distantPast
+    private var ruleProbeBackoff: TimeInterval = 3
+    private var ruleRecoveryPending = false
 
     private func replaceIPCGeneration(active: Bool) {
         ipcGeneration.invalidate()
@@ -241,6 +246,21 @@ final class HakoTVTunnelController: ObservableObject {
                 state.pipelinePhase = .downloading
                 defer { state.pipelinePhase = nil }
                 try await activate(subscription) { [weak self] phase in self?.state.pipelinePhase = phase }
+            }
+             
+             
+            if let container, let store = try? ConfigResourceStore(containerURL: container),
+               let expected = try? store.activeIdentity() {
+                do {
+                    _ = try await HakoTVConfigPipeline(container: container, session: session).recoverRules(expected: expected)
+                    loadActiveConfigurationFacts()
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {
+                     
+                     
+                    HakoLogStore.shared.append("tv startup rule recovery: \(error.localizedDescription)", stream: .app, level: .warning)
+                }
             }
             try Task.checkCancellation()
             try await start()
@@ -1111,8 +1131,70 @@ final class HakoTVTunnelController: ObservableObject {
             guard accepts(context) else { return }
             state.outboundMode = mode
             state.observations.mode.accept(observationClock())
+            await refreshRuleProviders(force: false)
         } catch {
             readFailed(error, context: context, fields: [\.mode])
+        }
+    }
+
+     
+    func refreshRuleProviders(force: Bool = true, now: Date = Date()) async {
+        let context = readContext()
+        guard accepts(context), let container,
+              let store = try? ConfigResourceStore(containerURL: container),
+              let expected = try? store.activeIdentity() else { return }
+        let newIdentity = ruleProbePointer != expected || ruleProbeGeneration !== ipcGeneration
+        let pending = ruleRecoveryPending || state.providers.contains { $0.kind == "rule" && $0.pending == true }
+        let visible = presentation.active && presentation.page == .providers
+        guard force || newIdentity || ((pending || visible) && now >= nextRuleProbeAt) else { return }
+        if newIdentity { ruleProbeBackoff = 3 }
+        ruleProbePointer = expected
+        ruleProbeGeneration = ipcGeneration
+        nextRuleProbeAt = now.addingTimeInterval(visible ? 10 : ruleProbeBackoff)
+        ruleProbeBackoff = min(60, ruleProbeBackoff * 2)
+        let directory = store.providersDirectory(profileID: expected.profileID, revision: expected.revision)
+        let record = directory.flatMap { HakoTVRuleRecovery.read(from: $0) }
+        ruleRecoveryPending = record?.hasUnexpandedRoutes ?? false
+         
+         
+        guard state.providers.contains(where: { $0.kind == "rule" }) else { return }
+        do {
+            let reply = try await send(["cmd": "ruleProviders"], cancellableRead: true)
+            let providers = try HakoTVKernelSnapshots.ruleProviders(from: reply)
+            guard accepts(context), try store.activeIdentity() == expected else { return }
+            state.providers = state.providers.map { entry in
+                guard entry.kind == "rule", let provider = providers[entry.name] else { return entry }
+                return .init(kind: entry.kind, name: entry.name,
+                             updatedAt: provider.updatedAt ?? entry.updatedAt,
+                             failure: provider.loaded ? nil : entry.failure,
+                             pending: provider.loaded ? false : (record == nil ? entry.pending : true))
+            }
+            state.ruleProvidersLoaded = HakoTVProviderCatalog(entries: state.providers).readyCount
+            guard record != nil else { return }
+            let loadedHashes = providers.filter { $0.value.loaded }.mapValues(\.contentHash)
+            let pipeline = HakoTVConfigPipeline(container: container, session: session)
+            let recovered = try await pipeline.recoverRules(expected: expected, loadedHashes: loadedHashes) { [weak self] hashes in
+                guard let self, self.accepts(context), try store.activeIdentity() == expected else { return false }
+                let second = try HakoTVKernelSnapshots.ruleProviders(from:
+                    await self.send(["cmd": "ruleProviders"], cancellableRead: true))
+                guard self.accepts(context), try store.activeIdentity() == expected else { return false }
+                return hashes.allSatisfy { key, hash in
+                    let name = String(key.dropFirst("rule:".count))
+                    return second[name]?.loaded == true && second[name]?.contentHash == hash
+                }
+            }
+            if let recovered, accepts(context) {
+                ruleProbePointer = .init(profileID: recovered.profileID, revision: recovered.revision)
+                if let directory = store.providersDirectory(profileID: recovered.profileID, revision: recovered.revision) {
+                    ruleRecoveryPending = HakoTVRuleRecovery.read(from: directory)?.hasUnexpandedRoutes ?? false
+                }
+            }
+        } catch {
+             
+             
+            guard !(error is CancellationError), accepts(context),
+                  (try? store.activeIdentity()) == expected else { return }
+            HakoLogStore.shared.append("tv rule recovery: \(error.localizedDescription)", stream: .app, level: .warning)
         }
     }
 
@@ -1504,7 +1586,7 @@ final class HakoTVResumeOnce: @unchecked Sendable {
 
 
 enum HakoTVPollingPage: Equatable, Sendable {
-    case home, nodes, outboundMode, connections, connectionDetail, diagnostics, configuration
+    case home, nodes, outboundMode, connections, connectionDetail, diagnostics, configuration, providers
 
      
      

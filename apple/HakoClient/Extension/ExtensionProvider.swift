@@ -781,6 +781,7 @@ final class ExtensionProvider: NSObject {
      
      
      
+     
     func handleMessage(_ data: Data) async -> (reply: Data, afterReply: (() -> Void)?) {
         let followUp = MessageFollowUp()
         let reply = await respond(to: data, followUp: followUp)
@@ -859,6 +860,9 @@ final class ExtensionProvider: NSObject {
         case "traffic": return Data(HakoTrafficJSON().utf8)
         case "connections": return Data(HakoConnectionsJSON().utf8)
         case "proxies": return Data(HakoProxiesJSON().utf8)
+        case "ruleProviders":
+            guard currentService != nil else { return jsonError("service not running") }
+            return Data(HakoRuleProvidersJSON().utf8)
         case "logs": return Data(HakoRecentLogsJSON().utf8)
         case "setMode":
             guard let mode = req["mode"] as? String else { return jsonError("missing mode") }

@@ -600,6 +600,7 @@ struct HakoTVShell: View {
         switch top {
         case .nodes: return .nodes
         case .outboundMode: return .outboundMode
+        case .providers: return .providers
         case .connectionDetail: return .connectionDetail
         case .utilities:
             switch utilities {

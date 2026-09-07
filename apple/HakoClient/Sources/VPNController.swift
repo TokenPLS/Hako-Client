@@ -886,6 +886,9 @@ final class VPNController: ObservableObject, DNSOnlyTunnelControlling {
             try await activationCoordinator(store: store, container: container)
                 .activate(profile: profile, sourceYAML: sourceYAML)
         }
+        #if !os(tvOS)
+        try await ProviderFirstLoadRetry.recoverCoreOwnedRoutesBeforeStart(container: container)
+        #endif
         let preparation = try await ActiveRevisionMigrator(
             store: store,
             rebuild: { [weak self] pointer in

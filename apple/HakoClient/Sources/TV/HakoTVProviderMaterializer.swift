@@ -8,21 +8,6 @@ import Hako
  
  
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 enum HakoTVProviderMaterializer {
     struct Outcome: Equatable {
          
@@ -40,7 +25,6 @@ enum HakoTVProviderMaterializer {
          
         let readPaths: [String: String]
         let warnings: [String]
-         
          
          
          
@@ -137,6 +121,8 @@ enum HakoTVProviderMaterializer {
          
          
         ageSecretKeys: [String: String] = [:],
+        ruleSnapshots: [String: Data] = [:],
+        existingProxyDirectory: URL? = nil,
         now: @escaping () -> Date = Date.init
     ) async throws -> Outcome {
         var paths: [String: String] = [:]
@@ -155,24 +141,34 @@ enum HakoTVProviderMaterializer {
         var downloads: [DownloadKey: Result<Data, Error>] = [:]
         for provider in plan.providers {
             let key = Self.resourceKey(for: provider)
+             
+             
+            if provider.kind == "rule" {
+                let payload = ruleSnapshots[key]
+                if let payload {
+                    let target = candidate.stagingProvidersDirectory.appendingPathComponent(provider.path)
+                    try payload.write(to: target, options: .atomic)
+                    readPaths[key] = target.path
+                     
+                }
+                entries.append(.init(kind: provider.kind, name: provider.name,
+                                     updatedAt: now(), failure: nil, pending: payload == nil))
+                continue
+            }
             let target = candidate.stagingProvidersDirectory.appendingPathComponent(provider.path)
             try FileManager.default.createDirectory(
                 at: target.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
             let published = candidate.publishedProvidersDirectory.appendingPathComponent(provider.path).path
-             
-             
-             
-             
-             
-             
             let payload: Data
             var failure: String?
             do {
                 let downloadKey = DownloadKey(provider)
                 let rawPayload: Data
-                if let shared = downloads[downloadKey] {
+                if let existingProxyDirectory {
+                    rawPayload = try Data(contentsOf: existingProxyDirectory.appendingPathComponent(provider.path))
+                } else if let shared = downloads[downloadKey] {
                     rawPayload = try shared.get()
                 } else {
                     do {
@@ -186,15 +182,14 @@ enum HakoTVProviderMaterializer {
                         throw error
                     }
                 }
-                payload = Self.slimmedForRuntime(
+                let bytes = Self.slimmedForRuntime(
                     kind: provider.kind,
                     payload: try Self.unsealed(rawPayload, provider: provider, ageSecretKeys: ageSecretKeys)
                 )
+                payload = bytes
                 do {
-                    try inspect(provider.kind, provider.behavior, provider.format, payload)
+                    try inspect(provider.kind, provider.behavior, provider.format, bytes)
                 } catch {
-                     
-                     
                      
                      
                     warnings.append("\(provider.name): \(error.localizedDescription)")
@@ -213,15 +208,7 @@ enum HakoTVProviderMaterializer {
                 } else {
                     failureReason = error.localizedDescription
                 }
-                guard provider.kind == "rule" else {
-                    throw MaterializeError.proxyProviderUnavailable(
-                        name: provider.name,
-                        reason: failureReason
-                    )
-                }
-                warnings.append("\(provider.name): download failed: \(failureReason)")
-                failure = String(localized: "download failed: \(failureReason)")
-                payload = Data()
+                throw MaterializeError.proxyProviderUnavailable(name: provider.name, reason: failureReason)
             }
             try payload.write(to: target, options: .atomic)
             paths[key] = published

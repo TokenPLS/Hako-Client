@@ -34,6 +34,8 @@ struct HakoTVProviderCatalog: Codable, Equatable {
          
          
         let failure: String?
+         
+        var pending: Bool? = nil
 
          
          
@@ -46,7 +48,7 @@ struct HakoTVProviderCatalog: Codable, Equatable {
 
     static let fileName = "providers.json"
 
-    var readyCount: Int { entries.filter { $0.failure == nil }.count }
+    var readyCount: Int { entries.filter { $0.failure == nil && $0.pending != true }.count }
 
     func write(to directory: URL) throws {
         let encoder = JSONEncoder()
@@ -67,7 +69,7 @@ struct HakoTVProviderCatalog: Codable, Equatable {
      
      
     static func isSidecar(_ path: String) -> Bool {
-        (path as NSString).lastPathComponent == fileName
+        (path as NSString).lastPathComponent == fileName || (path as NSString).lastPathComponent == HakoTVRuleRecovery.fileName
     }
 
     static func providerFileCount(in paths: [String]) -> Int {

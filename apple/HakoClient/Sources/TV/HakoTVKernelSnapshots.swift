@@ -213,6 +213,34 @@ enum HakoTVKernelSnapshots {
         return NSDecimalNumber(decimal: integral).int64Value
     }
 
+    struct RuleProvider: Equatable {
+        let loaded: Bool
+        let contentHash: String
+        let updatedAt: Date?
+    }
+
+    static func ruleProviders(from data: Data) throws -> [String: RuleProvider] {
+        let root = try object(data, what: "rule providers")
+        guard let providers = root["providers"] as? [String: [String: Any]] else {
+            throw DecodingError.notAnObject("rule providers")
+        }
+        let dates = ISO8601DateFormatter()
+        dates.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return try providers.mapValues { value in
+            if value["vehicleType"] as? String == "Inline", value["loaded"] as? Bool == true {
+                return RuleProvider(loaded: true, contentHash: "", updatedAt: nil)
+            }
+            guard let loaded = value["loaded"] as? Bool,
+                  let hash = value["contentHash"] as? String,
+                  value["algorithm"] as? String == "md5",
+                  !loaded || (hash.count == 32 && hash.allSatisfy { $0.isHexDigit }) else {
+                throw DecodingError.notAnObject("rule provider")
+            }
+            let date = (value["updatedAt"] as? String).flatMap { dates.date(from: $0) ?? ISO8601DateFormatter().date(from: $0) }
+            return RuleProvider(loaded: loaded, contentHash: hash.lowercased(), updatedAt: date)
+        }
+    }
+
     static func status(from data: Data) throws -> Status {
         let root = try object(data, what: "status")
         guard let status = root["status"] as? String else { throw DecodingError.notAnObject("status") }

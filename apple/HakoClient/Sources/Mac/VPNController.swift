@@ -299,6 +299,27 @@ final class VPNController: ObservableObject, DNSOnlyTunnelControlling {
 
     @discardableResult
     func start() async -> Bool {
+        let startGeneration = stopGeneration
+        do {
+            try Task.checkCancellation()
+             
+             
+             
+             
+            if let container = HakoMacAppGroupAccess.readableContainer() {
+                Self.ensureCoreSetup(container: container)
+                try await ProviderFirstLoadRetry.recoverCoreOwnedRoutesBeforeStart(
+                    container: container
+                )
+            }
+            try Task.checkCancellation()
+        } catch is CancellationError {
+            return false
+        } catch {
+            fail(error)
+            return false
+        }
+        guard stopGeneration == startGeneration else { return false }
          
          
          
@@ -316,6 +337,8 @@ final class VPNController: ObservableObject, DNSOnlyTunnelControlling {
             )
             try await saveToPreferences(manager)
             try await loadFromPreferences(manager)
+            try Task.checkCancellation()
+            guard stopGeneration == startGeneration else { return false }
             try manager.connection.startVPNTunnel()
             self.manager = manager
             updateStatus(manager.connection.status)

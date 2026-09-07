@@ -341,6 +341,11 @@ struct ProviderCatalog: Codable, Equatable {
         }
     }
     var entries: [Entry]
+     
+     
+    var routeSetProviders: Set<String>? = nil
+     
+    var coreFetchedProviders: Set<String>? = nil
 
      
      
@@ -366,9 +371,10 @@ struct ProviderCatalog: Codable, Equatable {
         subscriptionInfo: [String: SubscriptionInfo] = [:],
         lastUpdatedAt: [String: Date] = [:],
         loadFailures: [String: String] = [:],
-        payloadSourceURLs: [String: String] = [:]
+        payloadSourceURLs: [String: String] = [:],
+        routeSetProviders: Set<String> = []
     ) -> ProviderCatalog {
-        ProviderCatalog(entries: plan.providers.map {
+        let entries = plan.providers.map {
             Entry(
                 name: $0.name,
                 kind: $0.kind,
@@ -385,6 +391,15 @@ struct ProviderCatalog: Codable, Equatable {
                  
                 payloadURL: payloadSourceURLs[$0.path]
             )
-        })
+        }
+        return ProviderCatalog(
+            entries: entries,
+            routeSetProviders: Set(plan.providers.filter {
+                $0.kind == "rule" && $0.behavior.lowercased() == "ipcidr"
+                    && routeSetProviders.contains($0.name)
+            }.map(\.name)),
+            coreFetchedProviders: Set(plan.providers.filter {
+                ProviderFetchedByCore.applies(toProxy: $0.proxy)
+            }.map(\.name)))
     }
 }

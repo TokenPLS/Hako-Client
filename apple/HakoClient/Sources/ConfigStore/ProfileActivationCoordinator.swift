@@ -52,9 +52,8 @@ private struct ProfilePublicationResult {
     let pointer: ActiveConfigurationPointer
     let runtimeUpdates: [String: ProviderRuntimeUpdate]
      
-     
-     
     var firstLoadPending: [String] = []
+    var publishedRouteNames: Set<String> = []
 }
 
  
@@ -881,7 +880,6 @@ final class ProfileActivationCoordinator {
              
              
              
-             
             fetchBudget: activationFetchBudget
         ).pointer
         ProviderFirstLoadRetry.noteActivation(
@@ -1027,11 +1025,61 @@ final class ProfileActivationCoordinator {
      
      
      
+     
+     
+     
+     
+    func providerRetryCatalog(profile: Profile) throws -> ProviderCatalog {
+        let raw = try String(contentsOf: sidecarURL(profileID: profile.id), encoding: .utf8)
+        let merged = try prepareConfig(raw: raw, profile: profile)
+        let plan = try ConfigTransforms.planResources(mergedYAML: merged)
+        guard plan.errors.isEmpty else { throw PipelineError.planRejected(plan.errors) }
+        return ProviderCatalog.from(plan: plan,
+            routeSetProviders: try ConfigTransforms.routeSetProviderNames(mergedYAML: merged))
+    }
+
+     
+     
+    func coreOwnedRouteRecoveryNames(profile: Profile, current: ActiveConfigurationPointer) throws -> Set<String> {
+        guard current.profileID == profile.id,
+              let directory = store.providersDirectory(profileID: current.profileID, revision: current.revision) else { return [] }
+        if let catalog = ProviderCatalog.load(providersDir: directory),
+           let routes = catalog.routeSetProviders, let coreFetched = catalog.coreFetchedProviders,
+           routes.isDisjoint(with: coreFetched) { return [] }
+        let raw = try String(contentsOf: sidecarURL(profileID: profile.id), encoding: .utf8)
+        let merged = try prepareConfig(raw: raw, profile: profile)
+        let plan = try ConfigTransforms.planResources(mergedYAML: merged)
+        let names = try ConfigTransforms.routeSetProviderNames(mergedYAML: merged)
+        let cache = try CoreOwnedRouteCache(mergedYAML: merged, plan: plan, routeSetProviders: names,
+            profileID: profile.id, workingDirectory: coreHomeDir)
+        guard !cache.paths.isEmpty else { return [] }
+        let yaml = try store.loadConfiguration(profileID: current.profileID, revision: current.revision).text ?? ""
+        let json = try ConfigTransforms.yamlToJSON(yaml)
+        let root = try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] ?? [:]
+        let definitions = root["rule-providers"] as? [String: [String: Any]] ?? [:]
+        return Set(plan.providers.compactMap { provider -> String? in
+            guard let path = cache.paths[provider.name], provider.kind == "rule" else { return nil }
+             
+             
+            if definitions[provider.name]?["type"] as? String == "file" { return nil }
+            if definitions[provider.name]?["path"] as? String != path { return provider.name }
+            guard let bytes = cache.snapshots[provider.name] else { return nil }
+            let old = try? Data(contentsOf: directory.appendingPathComponent(provider.path))
+            return old == bytes ? nil : provider.name
+        })
+    }
+
     func refreshPendingProviders(
-        profile: Profile, names: [String], fetchBudget: ProviderFetchBudget
+        profile: Profile, names: [String], fetchBudget: ProviderFetchBudget,
+        expectedActive: ActiveConfigurationPointer? = nil
     ) async throws -> (pointer: ActiveConfigurationPointer,
                        runtimeUpdates: [String: ProviderRuntimeUpdate],
-                       stillPending: [String]) {
+                       stillPending: [String], publishedRouteNames: Set<String>) {
+        guard let current = try store.activePointer(), current.profileID == profile.id,
+              expectedActive == nil || current == expectedActive else {
+            throw ConfigResourceStoreError.activeConfigurationChanged
+        }
+        let expected = expectedActive ?? current
         guard let raw = try? String(contentsOf: sidecarURL(profileID: profile.id),
                                     encoding: .utf8) else {
             throw PipelineError.sourceUnavailable(
@@ -1039,21 +1087,24 @@ final class ProfileActivationCoordinator {
         }
         try ConfigTransforms.validateSource(raw)
         let merged = try prepareConfig(raw: raw, profile: profile)
-        var reuseDir: URL?
-        if let pointer = try? store.activePointer(), pointer.profileID == profile.id {
-            reuseDir = try? store.activeProvidersDirectory()
-        }
+        let reuseDir = try store.providersDirectory(profileID: expected.profileID, revision: expected.revision)
         let publication = try await buildPublishActivate(
             profile: profile, merged: merged,
             reuseDir: reuseDir,
+            replacing: expected,
             fetchBudget: fetchBudget,
+            fetchOnly: Set(names),
             capturePayloads: Set(names))
-        var updated = profile
-        updated.activeRevision = publication.pointer.revision
-        try? profileStore.upsert(updated)
+         
+         
+        if var current = profileStore.load().first(where: { $0.id == profile.id }) {
+            current.activeRevision = publication.pointer.revision
+            try? profileStore.upsert(current)
+        }
         return (publication.pointer,
                 publication.runtimeUpdates.filter { names.contains($0.key) },
-                publication.firstLoadPending.filter { names.contains($0) })
+                publication.firstLoadPending.filter { names.contains($0) },
+                publication.publishedRouteNames.intersection(names))
     }
 
      
@@ -1283,11 +1334,14 @@ final class ProfileActivationCoordinator {
          
          
          
+        fetchOnly: Set<String>? = nil,
         capturePayloads: Set<String> = []
     ) async throws -> ProfilePublicationResult {
         let candidate = try store.beginCandidate(profileID: profile.id)
         let previous: ActiveConfigurationPointer?
         var runtimeUpdates: [String: ProviderRuntimeUpdate] = [:]
+        var firstLoadPending: [String] = []
+        var publishedRouteNames: Set<String> = []
         do {
             let materializedMerged = try ProfileExternalResourceMaterializer.materialize(
                 yaml: merged,
@@ -1302,10 +1356,32 @@ final class ProfileActivationCoordinator {
             let ageSecretKeys = try Self.providerAgeSecretKeys(in: materializedMerged)
              
              
-             
             let routeSetProviders = try ConfigTransforms.routeSetProviderNames(
                 mergedYAML: materializedMerged
             )
+            let coreRouteCache = try CoreOwnedRouteCache(
+                mergedYAML: materializedMerged, plan: plan, routeSetProviders: routeSetProviders,
+                profileID: profile.id, workingDirectory: coreHomeDir)
+            var reusedCoreFilePaths: Set<String> = []
+            if fetchOnly != nil, plan.providers.contains(where: { ProviderFetchedByCore.applies(toProxy: $0.proxy) }),
+               let previousRuntime, let reuseDir,
+               let previousYAML = try store.loadConfiguration(
+                    profileID: previousRuntime.profileID, revision: previousRuntime.revision).text {
+                let json = try ConfigTransforms.yamlToJSON(previousYAML)
+                let root = try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] ?? [:]
+                 
+                 
+                 
+                reusedCoreFilePaths = Set(plan.providers.compactMap { provider in
+                    guard ProviderFetchedByCore.applies(toProxy: provider.proxy) else { return nil }
+                    let section = provider.kind == "rule" ? "rule-providers" : "proxy-providers"
+                    let definition = (root[section] as? [String: [String: Any]])?[provider.name]
+                    guard definition?["type"] as? String == "file",
+                          definition?["path"] as? String == reuseDir.appendingPathComponent(provider.path).path
+                    else { return nil }
+                    return provider.path
+                })
+            }
              
              
              
@@ -1338,9 +1414,17 @@ final class ProfileActivationCoordinator {
                     fallback: ClientUserAgent.resolved(profile: profile)
                 ),
                 routeSetProviders: routeSetProviders,
+                coreRouteSnapshots: coreRouteCache.snapshots,
+                reusedCoreFilePaths: reusedCoreFilePaths,
+                fetchOnly: fetchOnly,
                 fetchBudget: fetchBudget
             )
-            firstLoadPendingOfLastPublication = materialized.firstLoadPending
+            firstLoadPending = materialized.firstLoadPending
+            firstLoadPendingOfLastPublication = firstLoadPending
+            publishedRouteNames = Set(plan.providers.filter {
+                $0.kind == "rule" && $0.behavior.lowercased() == "ipcidr"
+                    && routeSetProviders.contains($0.name) && materialized.readPaths[$0.name] != nil
+            }.map(\.name))
             let providerPaths = materialized.paths
             let providerKinds = Dictionary(
                 uniqueKeysWithValues: plan.providers.map { ($0.name, $0.kind) }
@@ -1402,7 +1486,8 @@ final class ProfileActivationCoordinator {
                     materialized.validationWarnings.map { ($0.provider, $0.reason) },
                     uniquingKeysWith: { first, _ in first }
                 ),
-                payloadSourceURLs: materialized.payloadSourceURLs
+                payloadSourceURLs: materialized.payloadSourceURLs,
+                routeSetProviders: routeSetProviders
             ).write(providersDir: candidate.stagingProvidersDirectory)
             stages.mark(
                 "providers",
@@ -1425,7 +1510,7 @@ final class ProfileActivationCoordinator {
 
             stages.mark("geodata")
             let finalYAML = try ConfigTransforms.finalize(
-                mergedYAML: materializedMerged,
+                mergedYAML: coreRouteCache.runtimeYAML,
                 providerPaths: providerPaths,
                 providerReadPaths: providerReadPaths)
 
@@ -1522,7 +1607,9 @@ final class ProfileActivationCoordinator {
                 profileID: profile.id,
                 revision: candidate.revision
             ),
-            runtimeUpdates: runtimeUpdates
+            runtimeUpdates: runtimeUpdates,
+            firstLoadPending: firstLoadPending,
+            publishedRouteNames: publishedRouteNames
         )
     }
 

@@ -306,6 +306,7 @@
 "Valid traffic rates were not included in the reply." = "回覆未包含有效的流量速率。";
 "Version" = "版本";
 "Version %@" = "版本 %@";
+"Waiting" = "等待載入";
 "Waiting for runtime confirmation" = "等待確認執行狀態";
 "Waiting for update · Last read %@" = "等待更新 · 上次讀取 %@";
 "What happens" = "會發生什麼";

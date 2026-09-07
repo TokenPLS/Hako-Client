@@ -306,6 +306,7 @@
 "Valid traffic rates were not included in the reply." = "Valid traffic rates were not included in the reply.";
 "Version" = "Version";
 "Version %@" = "Version %@";
+"Waiting" = "Waiting";
 "Waiting for runtime confirmation" = "Waiting for runtime confirmation";
 "Waiting for update · Last read %@" = "Waiting for update · Last read %@";
 "What happens" = "What happens";

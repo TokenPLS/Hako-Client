@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import Hako
 
 enum MaterializeError: Error, Equatable {
@@ -80,9 +81,6 @@ enum ProviderFetchBudget: Equatable {
     case patient
      
     case quick
-     
-     
-     
      
      
      
@@ -395,6 +393,11 @@ final class ProviderMaterializer {
          
          
         routeSetProviders: Set<String> = [],
+        coreRouteSnapshots: [String: Data] = [:],
+        reusedCoreFilePaths: Set<String> = [],
+         
+         
+        fetchOnly: Set<String>? = nil,
         fetchBudget: ProviderFetchBudget = .patient
     ) async throws -> ProviderMaterializationResult {
         var mapping: [String: String] = [:]
@@ -405,7 +408,8 @@ final class ProviderMaterializer {
          
          
         let isRouteSet: (RemoteResourcePlan.Provider) -> Bool = {
-            $0.kind == "rule" && routeSetProviders.contains($0.name)
+            $0.kind == "rule" && $0.behavior.lowercased() == "ipcidr"
+                && routeSetProviders.contains($0.name)
         }
         var refreshedNames: Set<String> = []
         var refreshedPayloads: [String: Data] = [:]
@@ -478,6 +482,16 @@ final class ProviderMaterializer {
                 continue
             }
             if ProviderFetchedByCore.applies(toProxy: provider.proxy) {
+                 
+                 
+                if reusedCoreFilePaths.contains(provider.path), let reuseDir {
+                    let source = reuseDir.appendingPathComponent(provider.path)
+                    if let bytes = try? Data(contentsOf: source), bytes.count <= maxBytesEach {
+                        onHand[index] = AcquiredPayload(data: bytes, reusedFrom: source,
+                            refreshed: false, subscriptionUserInfo: nil, failure: nil)
+                        continue
+                    }
+                }
                  
                  
                 onHand[index] = AcquiredPayload(
@@ -570,7 +584,7 @@ final class ProviderMaterializer {
             onHand: onHand,
             maxBytesEach: maxBytesEach,
             budget: fetchBudget,
-            routeSetProviders: routeSetProviders
+            fetchOnly: fetchOnly
         )
         var firstLoadPendingNames: [String] = []
 
@@ -593,7 +607,23 @@ final class ProviderMaterializer {
                  
                  
                  
-                 
+                if isRouteSet(provider), let bytes = coreRouteSnapshots[provider.name] {
+                    var count = 0
+                    var error: NSError?
+                    if HakoInspectProviderForIOS(provider.kind, provider.behavior, provider.format,
+                                                bytes, &count, &error) {
+                        let target = providersDir.appendingPathComponent(provider.path)
+                        try bytes.write(to: target, options: Self.writeOptions)
+                        readPaths[provider.name] = target.path
+                        entryCounts[provider.name] = count
+                        payloadSourceURLs[provider.path] = provider.url
+                        let previous = reuseDir.flatMap { try? Data(contentsOf: $0.appendingPathComponent(provider.path)) }
+                        if previous != bytes { refreshedNames.insert(provider.name) }
+                        reusedCount += 1
+                        continue
+                    }
+                }
+                if isRouteSet(provider) { firstLoadPendingNames.append(provider.name) }
                 validationWarnings.append(ProviderValidationWarning(
                     provider: provider.name,
                     reason: failure.underlying.localizedDescription
@@ -643,9 +673,6 @@ final class ProviderMaterializer {
                         } ?? "download failed: \(failure.underlying.localizedDescription)"
                 ))
                 if isRouteSet(provider) {
-                     
-                     
-                     
                      
                      
                      
@@ -845,7 +872,7 @@ final class ProviderMaterializer {
         onHand: [Int: AcquiredPayload],
         maxBytesEach: Int,
         budget: ProviderFetchBudget = .patient,
-        routeSetProviders: Set<String> = []
+        fetchOnly: Set<String>? = nil
     ) async throws -> [Int: AcquiredPayload] {
         let fetcher: HTTPFetching = budget == .patient ? downloader : quickDownloader
         var acquired = onHand
@@ -862,17 +889,8 @@ final class ProviderMaterializer {
             let cap = provider.maximumBytes > 0
                 ? Int(clamping: provider.maximumBytes)
                 : maxBytesEach
-            if budget == .activation,
-               !(provider.kind == "rule" && routeSetProviders.contains(provider.name)) {
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                 
+            let excludedFromRound = fetchOnly.map { !$0.contains(provider.name) } ?? false
+            if budget == .activation || excludedFromRound {
                  
                  
                  
@@ -1044,5 +1062,70 @@ final class ProviderMaterializer {
             }
             request.setValue(values.joined(separator: ", "), forHTTPHeaderField: name)
         }
+    }
+}
+
+ 
+ 
+struct CoreOwnedRouteCache {
+    static let maximumBytes = 16 * 1024 * 1024  
+    let runtimeYAML: String
+    let snapshots: [String: Data]
+    let paths: [String: String]
+
+    init(mergedYAML: String, plan: RemoteResourcePlan, routeSetProviders: Set<String>,
+         profileID: String, workingDirectory: URL) throws {
+        let providers = plan.providers.filter {
+            $0.kind == "rule" && $0.behavior.lowercased() == "ipcidr"
+                && routeSetProviders.contains($0.name) && ProviderFetchedByCore.applies(toProxy: $0.proxy)
+        }
+        guard !providers.isEmpty else {
+            runtimeYAML = mergedYAML; snapshots = [:]; paths = [:]; return
+        }
+        let json = try ConfigTransforms.yamlToJSON(mergedYAML)
+        let root = try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] ?? [:]
+        let definitions = root["rule-providers"] as? [String: [String: Any]] ?? [:]
+        let directory = workingDirectory.appendingPathComponent("tv-rule-cache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var paths: [String: [String: String]] = [:]
+        var bytes: [String: Data] = [:]
+        for provider in providers {
+            var definition = definitions[provider.name] ?? [:]
+            definition.removeValue(forKey: "path")
+            let identity: [String: Any] = ["profile": profileID, "kind": "rule", "name": provider.name,
+                "definition": definition, "globalUA": root["global-ua"] ?? ""]
+            let identityData = try JSONSerialization.data(withJSONObject: identity, options: [.sortedKeys])
+            let hash = SHA256.hash(data: identityData).map { String(format: "%02x", $0) }.joined()
+            let url = directory.appendingPathComponent(hash)
+            paths[provider.name] = ["path": url.path]
+            let cap = provider.maximumBytes > 0 ? min(Self.maximumBytes, Int(clamping: provider.maximumBytes)) : Self.maximumBytes
+            if let data = Self.stableBytes(at: url, maximumBytes: cap) {
+                var count = 0
+                var error: NSError?
+                if HakoInspectProviderForIOS(provider.kind, provider.behavior, provider.format, data, &count, &error) {
+                    bytes[provider.name] = data
+                }
+            }
+        }
+        let patch = try JSONSerialization.data(withJSONObject: ["patch": ["rule-providers": paths]], options: [.sortedKeys])
+        runtimeYAML = try ConfigTransforms.mergeOverride(raw: mergedYAML, overrideJSON: String(decoding: patch, as: UTF8.self))
+        snapshots = bytes
+        self.paths = paths.mapValues { $0["path"]! }
+    }
+
+    private static func stableBytes(at url: URL, maximumBytes: Int) -> Data? {
+        let descriptor = open(url.path, O_RDONLY | O_NOFOLLOW)
+        guard descriptor >= 0 else { return nil }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? file.close() }
+        var before = stat()
+        guard fstat(descriptor, &before) == 0, before.st_mode & S_IFMT == S_IFREG,
+              before.st_size > 0, before.st_size <= maximumBytes,
+              let data = try? file.read(upToCount: maximumBytes + 1), data.count == before.st_size else { return nil }
+        var after = stat()
+        guard fstat(descriptor, &after) == 0, before.st_size == after.st_size,
+              before.st_mtimespec.tv_sec == after.st_mtimespec.tv_sec,
+              before.st_mtimespec.tv_nsec == after.st_mtimespec.tv_nsec else { return nil }
+        return data
     }
 }
