@@ -1078,6 +1078,7 @@
 "Format" = "格式";
 "Forward Mode" = "转发模式";
 "From" = "来自";
+"From %@" = "来自 %@";
 "From File…" = "从文件导入…";
 "From URL…" = "从 URL 导入…";
 "From profile" = "来自配置";

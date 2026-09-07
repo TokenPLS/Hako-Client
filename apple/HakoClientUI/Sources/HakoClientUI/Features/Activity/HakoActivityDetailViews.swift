@@ -28,6 +28,123 @@ enum HakoActivityByteFormatter {
     }
 }
 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+struct HakoActivityRowText: Equatable, Sendable {
+     
+    let from: String?
+     
+    let traffic: String
+     
+    let lastSeen: String?
+}
+
+ 
+struct HakoActivityConnectionRowModel: Identifiable, Equatable, Sendable {
+    let connection: HakoActivityConnectionSnapshot
+    let text: HakoActivityRowText
+    var id: String { connection.id }
+}
+
+ 
+ 
+ 
+ 
+enum HakoActivityRowTextFactory {
+    static func bytesFormatter() -> ByteCountFormatter {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .binary
+        formatter.includesUnit = true
+        return formatter
+    }
+
+    static func timeStyle(locale: Locale) -> Date.FormatStyle {
+        Date.FormatStyle(date: .omitted, time: .standard, locale: locale)
+    }
+
+    static func text(
+        for connection: HakoActivityConnectionSnapshot,
+        lastSeen: Date?,
+        locale: Locale,
+        bytes: ByteCountFormatter,
+        time: Date.FormatStyle
+    ) -> HakoActivityRowText {
+        HakoActivityRowText(
+            from: connection.source.isEmpty
+                ? nil
+                : HakoCopy.format("From %@", locale: locale, connection.source),
+            traffic: "↑ \(bytes.string(fromByteCount: connection.upload))"
+                + "  ↓ \(bytes.string(fromByteCount: connection.download))",
+            lastSeen: lastSeen.map { time.format($0) }
+        )
+    }
+
+    static func rows(
+        _ connections: [HakoActivityConnectionSnapshot],
+        locale: Locale
+    ) -> [HakoActivityConnectionRowModel] {
+        let bytes = bytesFormatter()
+        let time = timeStyle(locale: locale)
+        return connections.map {
+            HakoActivityConnectionRowModel(
+                connection: $0,
+                text: text(for: $0, lastSeen: nil, locale: locale, bytes: bytes, time: time)
+            )
+        }
+    }
+}
+
+ 
+ 
+ 
+@MainActor
+final class HakoActivityRowTextCache {
+    private struct Key: Equatable {
+        let upload: Int64
+        let download: Int64
+        let lastSeen: Date?
+        let source: String
+        let locale: Locale
+    }
+
+    private var entries: [String: (key: Key, text: HakoActivityRowText)] = [:]
+    private let bytes = HakoActivityRowTextFactory.bytesFormatter()
+    private var time: (locale: Locale, style: Date.FormatStyle)?
+     
+    private(set) var builds = 0
+
+    func text(for entry: HakoActivityRequestSnapshot, locale: Locale) -> HakoActivityRowText {
+        let connection = entry.connection
+        let key = Key(
+            upload: connection.upload, download: connection.download,
+            lastSeen: entry.lastSeen, source: connection.source, locale: locale
+        )
+        if let cached = entries[entry.id], cached.key == key { return cached.text }
+        if time?.locale != locale {
+            time = (locale, HakoActivityRowTextFactory.timeStyle(locale: locale))
+        }
+        builds += 1
+        let text = HakoActivityRowTextFactory.text(
+            for: connection, lastSeen: entry.lastSeen, locale: locale,
+            bytes: bytes, time: time?.style ?? HakoActivityRowTextFactory.timeStyle(locale: locale)
+        )
+        entries[entry.id] = (key, text)
+        return text
+    }
+
+     
+     
+    func retain(_ ids: Set<String>) {
+        guard entries.count > ids.count else { return }
+        entries = entries.filter { ids.contains($0.key) }
+    }
+}
+
 public struct HakoConnectionsView<Icon: View>: View {
     private let snapshot: AppleClientSnapshot
     private let actions: AppleClientActions
@@ -53,7 +170,9 @@ public struct HakoConnectionsView<Icon: View>: View {
      
      
      
-    @State private var prepared: [HakoActivityConnectionSnapshot] = []
+    @State private var prepared: [HakoActivityConnectionRowModel] = []
+     
+    @Environment(\.locale) private var locale
      
      
     @State private var preparedTotal = 0
@@ -146,9 +265,11 @@ public struct HakoConnectionsView<Icon: View>: View {
                 }
             }
 
-            ForEach(visibleConnections) { connection in
+            ForEach(visibleConnections) { row in
+                let connection = row.connection
                 HakoActivityConnectionRow(
                     connection: connection,
+                    text: row.text,
                     detailTitle: "Connection Details",
                     actions: actions,
                     snapshot: snapshot,
@@ -231,7 +352,7 @@ public struct HakoConnectionsView<Icon: View>: View {
     }
 
     private var visibleConnections:
-        [HakoActivityConnectionSnapshot]
+        [HakoActivityConnectionRowModel]
     { prepared }
 
     private struct ConnectionsPreparationKey: Equatable {
@@ -273,11 +394,13 @@ public struct HakoConnectionsView<Icon: View>: View {
         let query = query
         let sort = sort
         let keywords = keywords
+        let locale = locale
+         
          
          
         let result = await Task.detached(priority: .userInitiated) {
             () -> (
-                rows: [HakoActivityConnectionSnapshot],
+                rows: [HakoActivityConnectionRowModel],
                 total: Int,
                 summaries: [HakoActivityChainSummary]
             ) in
@@ -286,8 +409,9 @@ public struct HakoConnectionsView<Icon: View>: View {
                 limit: nil
             )
             return (
-                rows: Array(
-                    full.prefix(HakoActivityProjection.connectionRenderCap)
+                rows: HakoActivityRowTextFactory.rows(
+                    Array(full.prefix(HakoActivityProjection.connectionRenderCap)),
+                    locale: locale
                 ),
                 total: full.count,
                 summaries: HakoActivityProjection.chainSummaries(full)
@@ -472,6 +596,9 @@ public struct HakoRequestsView<Icon: View>: View {
     private let isShown: Bool
     @State private var keywords: Set<String> = []
     @State private var autoScrollToNewest = true
+     
+    @State private var rowTexts = HakoActivityRowTextCache()
+    @Environment(\.locale) private var rowLocale
     @State private var selected:
         HakoActivityConnectionSnapshot?
 
@@ -560,6 +687,7 @@ public struct HakoRequestsView<Icon: View>: View {
                 ForEach(entries) { entry in
                     HakoActivityRequestRow(
                         entry: entry,
+                        text: rowTexts.text(for: entry, locale: rowLocale),
                         detailTitle: "Request Details",
                         actions: actions,
                         snapshot: snapshot,
@@ -577,6 +705,11 @@ public struct HakoRequestsView<Icon: View>: View {
                     )
                 }
             }
+         
+         
+        .task(id: entries.count) {
+            rowTexts.retain(Set(entries.map(\.id)))
+        }
             .hakoGroupedList()
             .hakoListRetainsRowSelection()
             .hakoActivityListCanvas(palette.canvas)
@@ -1023,6 +1156,7 @@ private extension View {
 
 private struct HakoActivityConnectionRow: View {
     let connection: HakoActivityConnectionSnapshot
+    let text: HakoActivityRowText
     let detailTitle: String
     let actions: AppleClientActions
     let snapshot: AppleClientSnapshot
@@ -1066,8 +1200,8 @@ private struct HakoActivityConnectionRow: View {
                     }
                 }
 
-                if !connection.source.isEmpty {
-                    Text("From \(connection.source)")
+                if let from = text.from {
+                    Text(verbatim: from)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -1130,9 +1264,7 @@ private struct HakoActivityConnectionRow: View {
                         .lineLimit(2)
                 }
 
-                Text(
-                    "↑ \(HakoActivityByteFormatter.count(connection.upload))  ↓ \(HakoActivityByteFormatter.count(connection.download))"
-                )
+                Text(verbatim: text.traffic)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
             }
@@ -1164,6 +1296,7 @@ private struct HakoActivityConnectionRow: View {
 
 private struct HakoActivityRequestRow: View {
     let entry: HakoActivityRequestSnapshot
+    let text: HakoActivityRowText
     let detailTitle: String
     let actions: AppleClientActions
     let snapshot: AppleClientSnapshot
@@ -1261,16 +1394,9 @@ private struct HakoActivityRequestRow: View {
                 alignment: .firstTextBaseline,
                 spacing: HakoTheme.Spacing.compact
             ) {
-                Text(
-                    entry.lastSeen.formatted(
-                        date: .omitted,
-                        time: .standard
-                    )
-                )
+                Text(verbatim: text.lastSeen ?? "")
                 Spacer(minLength: HakoTheme.Spacing.compact)
-                Text(
-                    "↑ \(HakoActivityByteFormatter.count(connection.upload))  ↓ \(HakoActivityByteFormatter.count(connection.download))"
-                )
+                Text(verbatim: text.traffic)
             }
             .font(.caption.monospacedDigit())
             .foregroundStyle(.secondary)

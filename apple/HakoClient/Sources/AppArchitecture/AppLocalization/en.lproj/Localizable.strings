@@ -1078,6 +1078,7 @@
 "Format" = "Format";
 "Forward Mode" = "Forward Mode";
 "From" = "From";
+"From %@" = "From %@";
 "From File…" = "From File…";
 "From URL…" = "From URL…";
 "From profile" = "From profile";
