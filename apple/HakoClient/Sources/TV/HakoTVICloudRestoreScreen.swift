@@ -44,7 +44,9 @@ struct HakoTVICloudRestoreScreen: View {
      
     let service: HakoTVICloudRestore?
     @Binding var store: HakoTVSubscriptionStore
-    @Environment(\.dismiss) private var dismiss
+     
+     
+    var onDone: () -> Void = {}
 
     @State private var availability: HakoTVICloudRestore.Availability?
     @State private var plan: HakoTVICloudRestore.Plan?
@@ -131,7 +133,7 @@ struct HakoTVICloudRestoreScreen: View {
         guard let service else { return }
         do {
             _ = try service.apply(plan, to: &store)
-            dismiss()
+            onDone()
         } catch {
             failure = error.localizedDescription
         }

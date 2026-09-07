@@ -1083,7 +1083,13 @@ final class NodesModel: ObservableObject {
         shouldCloseConnectionsOnSwitch: @escaping () -> Bool = {
             NodeSwitchSettings.autoCloseOnSwitch()
         },
-        runtimeRestartGrace: TimeInterval = 20
+        runtimeRestartGrace: TimeInterval = 20,
+        memorySentryNow: @escaping @Sendable () -> UInt64 = {
+            DispatchTime.now().uptimeNanoseconds
+        },
+        memorySentrySleep: @escaping @Sendable (UInt64) async throws -> Void = {
+            try await Task.sleep(nanoseconds: $0)
+        }
     ) {
         self.preferences = preferences
         self.protocolDetailsLoader = protocolDetailsLoader
@@ -1095,6 +1101,8 @@ final class NodesModel: ObservableObject {
         self.shouldCloseConnectionsOnSwitch =
             shouldCloseConnectionsOnSwitch
         self.runtimeRestartGrace = runtimeRestartGrace
+        self.memorySentryNow = memorySentryNow
+        self.memorySentrySleep = memorySentrySleep
     }
 
      
@@ -1102,6 +1110,8 @@ final class NodesModel: ObservableObject {
      
      
     private let runtimeRestartGrace: TimeInterval
+    private let memorySentryNow: @Sendable () -> UInt64
+    private let memorySentrySleep: @Sendable (UInt64) async throws -> Void
      
      
     private var runtimeRestartRequestedAt: Date?
@@ -1476,6 +1486,15 @@ final class NodesModel: ObservableObject {
     }
 
     func cancelLatencyTests(reason: LatencyProbeCancellationReason) async {
+        await cancelLatencyTests(reason: reason, expectedOperation: nil)
+    }
+
+    private func cancelLatencyTests(
+        reason: LatencyProbeCancellationReason,
+        expectedOperation: MemorySentryOperation?
+    ) async {
+        if let expectedOperation,
+           !isCurrentMemorySentry(expectedOperation) { return }
         if isTestingLatency {
             HakoLogStore.shared.append(
                 "sweep interrupted  reason=\(reason)  completed=\(sweepCompleted)/\(latencyTotalCount)",
@@ -1484,7 +1503,18 @@ final class NodesModel: ObservableObject {
             )
         }
         latencyRunID &+= 1
-        await latencyCancellation?.cancel(reason: reason)
+        let cancellationRunID = latencyRunID
+        func stillOwnsCancellation() -> Bool {
+            guard let expectedOperation else { return true }
+             
+             
+             
+            return latencyRunID == cancellationRunID
+                && latencyCancellation === expectedOperation.cancellation
+        }
+        let ownedCancellation = expectedOperation?.cancellation ?? latencyCancellation
+        await ownedCancellation?.cancel(reason: reason)
+        guard stillOwnsCancellation() else { return }
         latencyTask?.cancel()
          
          
@@ -1494,6 +1524,7 @@ final class NodesModel: ObservableObject {
             subscriptionHealth = nil
             await health.cancel()
         }
+        guard stillOwnsCancellation() else { return }
          
          
         let completed = sweepCompleted
@@ -1584,6 +1615,117 @@ final class NodesModel: ObservableObject {
         )
     }
 
+    private struct MemorySentryOperation: Sendable {
+        let cancellation: LatencyProbeCancellation
+        let runID: UInt64
+    }
+
+    private func isCurrentMemorySentry(_ operation: MemorySentryOperation) -> Bool {
+        !Task.isCancelled && latencyRunID == operation.runID
+            && latencyCancellation === operation.cancellation
+    }
+
+    private func readMemorySentryFootprint(
+        command: NodesCommanding, operation: MemorySentryOperation
+    ) async -> Int64? {
+        guard isCurrentMemorySentry(operation) else { return nil }
+        let value = await command.extensionFootprintBytes()
+         
+         
+        guard isCurrentMemorySentry(operation) else { return nil }
+        return value
+    }
+
+     
+     
+    func startMemorySentry(cancellation: LatencyProbeCancellation) -> Task<Void, Never> {
+        latencyCancellation = cancellation
+        let operation = MemorySentryOperation(cancellation: cancellation, runID: latencyRunID)
+        let clockNow = memorySentryNow
+        let sentrySleep = memorySentrySleep
+        return Task { [weak self] in
+             
+             
+             
+             
+             
+             
+             
+             
+            let pauseAtBytes: Int64 = 42_500_000
+            let resumeAtBytes: Int64 = 41_000_000
+            let maxPauseNanoseconds: UInt64 = 20_000_000_000
+            var pauses = 0
+            var blindTicks = 0
+            while !Task.isCancelled {
+                do {
+                    try await sentrySleep(1_000_000_000)
+                } catch { return }
+                guard !Task.isCancelled else { return }
+                guard let self else { return }
+                guard let command = await MainActor.run(body: { self.command }) else { continue }
+                guard let footprint = await self.readMemorySentryFootprint(
+                    command: command, operation: operation
+                ) else { return }
+                if footprint <= 0 {
+                     
+                     
+                     
+                    blindTicks += 1
+                    if blindTicks == 10 {
+                        HakoLogStore.shared.append(
+                            "sweep sentry blind  no footprint after \(blindTicks)s; pause/resume disabled for this run",
+                            stream: .app, level: .warning)
+                    }
+                    continue
+                }
+                guard footprint >= pauseAtBytes else { continue }
+
+                pauses += 1
+                let progress = await MainActor.run {
+                    "\(self.sweepCompleted)/\(self.latencyTotalCount)"
+                }
+                guard self.isCurrentMemorySentry(operation) else { return }
+                await cancellation.pause()
+                guard self.isCurrentMemorySentry(operation) else { return }
+                HakoLogStore.shared.append(
+                    "sweep paused  reason=memoryPressure  pause=#\(pauses)  completed=\(progress)  footprint=\(footprint)",
+                    stream: .app, level: .warning)
+                let pausedAt = clockNow()
+                var recovered = false
+                while self.isCurrentMemorySentry(operation),
+                      clockNow() &- pausedAt < maxPauseNanoseconds {
+                    do {
+                        try await sentrySleep(1_000_000_000)
+                    } catch { return }
+                    guard !Task.isCancelled else { return }
+                    guard let now = await self.readMemorySentryFootprint(
+                        command: command, operation: operation
+                    ) else { return }
+                    if now > 0, now <= resumeAtBytes {
+                        recovered = true
+                        HakoLogStore.shared.append(
+                            "sweep resumed  after=\((clockNow() &- pausedAt) / 1_000_000_000)s  pause=#\(pauses)  footprint=\(now)",
+                            stream: .app, level: .info)
+                        break
+                    }
+                }
+                guard self.isCurrentMemorySentry(operation) else { return }
+                if recovered {
+                    await cancellation.resume()
+                } else {
+                    HakoLogStore.shared.append(
+                        "sweep interrupted  reason=memoryPressure  pause=#\(pauses) never recovered in 20s",
+                        stream: .app, level: .warning)
+                    await self.cancelLatencyTests(
+                        reason: .memoryPressure, expectedOperation: operation
+                    )
+                    return
+                }
+            }
+        }
+    }
+
     private func runLatencyTest(plan: LatencyProbePlan) async {
         guard let command, command.isConnected else { return }
 
@@ -1636,7 +1778,6 @@ final class NodesModel: ObservableObject {
         guard totalCount > 0 else { return }
         logSweepCoverage(planned: orderedNames)
         let cancellation = LatencyProbeCancellation()
-        latencyCancellation = cancellation
          
          
          
@@ -1648,82 +1789,7 @@ final class NodesModel: ObservableObject {
          
          
          
-        let memorySentry = Task { [weak self] in
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-            let pauseAtBytes: Int64 = 42_500_000
-            let resumeAtBytes: Int64 = 41 * 1_048_576
-            let maxPauseNanoseconds: UInt64 = 20_000_000_000
-            var pauses = 0
-            var blindTicks = 0
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                guard let self else { return }
-                guard let command = await MainActor.run(body: { self.command }) else { continue }
-                let footprint = await command.extensionFootprintBytes()
-                if footprint <= 0 {
-                     
-                     
-                     
-                    blindTicks += 1
-                    if blindTicks == 10 {
-                        HakoLogStore.shared.append(
-                            "sweep sentry blind  no footprint after \(blindTicks)s; pause/resume disabled for this run",
-                            stream: .app, level: .warning)
-                    }
-                    continue
-                }
-                guard footprint >= pauseAtBytes else { continue }
-
-                pauses += 1
-                let progress = await MainActor.run {
-                    "\(self.sweepCompleted)/\(self.latencyTotalCount)"
-                }
-                await cancellation.pause()
-                HakoLogStore.shared.append(
-                    "sweep paused  reason=memoryPressure  pause=#\(pauses)  completed=\(progress)  footprint=\(footprint)",
-                    stream: .app, level: .warning)
-                let pausedAt = DispatchTime.now().uptimeNanoseconds
-                var recovered = false
-                while !Task.isCancelled,
-                      DispatchTime.now().uptimeNanoseconds &- pausedAt < maxPauseNanoseconds {
-                    try? await Task.sleep(nanoseconds: 1_000_000_000)
-                    let now = await command.extensionFootprintBytes()
-                    if now > 0, now <= resumeAtBytes {
-                        recovered = true
-                        HakoLogStore.shared.append(
-                            "sweep resumed  after=\((DispatchTime.now().uptimeNanoseconds &- pausedAt) / 1_000_000_000)s  pause=#\(pauses)  footprint=\(now)",
-                            stream: .app, level: .info)
-                        break
-                    }
-                }
-                if recovered {
-                    await cancellation.resume()
-                } else {
-                    HakoLogStore.shared.append(
-                        "sweep interrupted  reason=memoryPressure  pause=#\(pauses) never recovered in 20s",
-                        stream: .app, level: .warning)
-                    await self.cancelLatencyTests(reason: .memoryPressure)
-                    return
-                }
-            }
-        }
+        let memorySentry = startMemorySentry(cancellation: cancellation)
         defer { memorySentry.cancel() }
         latencyCompletedCount = 0
         latencyTotalCount = totalCount

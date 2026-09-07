@@ -57,6 +57,7 @@ private struct PhysicalPathEvent {
 
 final class ExtensionProvider: NSObject {
     private let tunnelProvider: NEPacketTunnelProvider
+    private let startupMemorySampler: StartupMemorySampler
 #if os(iOS) || os(macOS)
      
      
@@ -69,6 +70,7 @@ final class ExtensionProvider: NSObject {
     )
 #endif
     private var service: HakoBoxService?
+    private var startupSamplingToken: StartupMemorySampler.Token?
     private var networkSettings: NEPacketTunnelNetworkSettings?
      
      
@@ -141,10 +143,12 @@ final class ExtensionProvider: NSObject {
 
     init(
         tunnelProvider: NEPacketTunnelProvider,
+        startupMemorySampler: StartupMemorySampler = .shared,
         physicalPathMonitorFactory: @escaping () -> any PhysicalPathMonitoring =
             ExtensionProvider.makeDefaultPhysicalPathMonitor
     ) {
         self.tunnelProvider = tunnelProvider
+        self.startupMemorySampler = startupMemorySampler
         self.physicalPathMonitorFactory = physicalPathMonitorFactory
         super.init()
     }
@@ -309,11 +313,12 @@ final class ExtensionProvider: NSObject {
 
     func start() async throws {
         await operationGate.enter()
+        var samplingToken: StartupMemorySampler.Token?
         do {
             try lifecycle.beginStart()
-            try await start0()
+            try await start0(samplingToken: &samplingToken)
             try lifecycle.didStart()
-            StartupMemorySampler.shared.mark("tunnel-up")
+            startupMemorySampler.mark("tunnel-up", token: samplingToken)
             await operationGate.leave()
         } catch {
              
@@ -346,6 +351,7 @@ final class ExtensionProvider: NSObject {
              
              
             let reason = String(describing: error)
+            finishStartupSampling(token: samplingToken, reason: .failed(reason))
             log.error("tunnel start failed: \(reason, privacy: .public)")
             HakoLogStore.shared.append(
                 "tunnel start failed: \(reason)",
@@ -359,7 +365,7 @@ final class ExtensionProvider: NSObject {
         }
     }
 
-    private func start0() async throws {
+    private func start0(samplingToken outputSamplingToken: inout StartupMemorySampler.Token?) async throws {
          
          
          
@@ -372,7 +378,10 @@ final class ExtensionProvider: NSObject {
 
          
          
-        StartupMemorySampler.shared.begin(container: container)
+        let startupMemorySampler = self.startupMemorySampler
+        let samplingToken = startupMemorySampler.begin(container: container)
+        outputSamplingToken = samplingToken
+        withStateLock { startupSamplingToken = samplingToken }
 
          
          
@@ -382,7 +391,7 @@ final class ExtensionProvider: NSObject {
          
         let gateStartedAt = DispatchTime.now().uptimeNanoseconds
         let pathGeneration = startPathMonitor()
-        StartupMemorySampler.shared.mark("path-monitor-started")
+        startupMemorySampler.mark("path-monitor-started", token: samplingToken)
 
          
          
@@ -406,10 +415,10 @@ final class ExtensionProvider: NSObject {
             "system resolvers before the tunnel: \(systemResolverLines.isEmpty ? "none" : systemResolverLines.split(separator: "\n").joined(separator: " "))",
             stream: .app
         )
-        preapplyTunnelSettingsIfKnown(container: container)
+        preapplyTunnelSettingsIfKnown(container: container, samplingToken: samplingToken)
 
         let options = HakoSetupOptions()
-        StartupMemorySampler.shared.mark("options-allocated")
+        startupMemorySampler.mark("options-allocated", token: samplingToken)
         options.basePath = container.path
         options.workingPath = container.appendingPathComponent("working").path
         options.tempPath = container.appendingPathComponent("temp").path
@@ -477,7 +486,7 @@ final class ExtensionProvider: NSObject {
          
          
          
-        StartupMemorySampler.shared.mark("cert-store-read")
+        startupMemorySampler.mark("cert-store-read", token: samplingToken)
         packetFlowConfiguration = .default
 
 
@@ -505,14 +514,14 @@ final class ExtensionProvider: NSObject {
         options.includeAllNetworks = includeAllNetworks
         log.info("include all networks=\(includeAllNetworks)")
         options.systemDNSServerLines = systemResolverLines
-        StartupMemorySampler.shared.mark("options-built")
+        startupMemorySampler.mark("options-built", token: samplingToken)
         var error: NSError?
         HakoSetup(options, &error)
         if let error { throw error }
-        StartupMemorySampler.shared.mark("setup-done")
+        startupMemorySampler.mark("setup-done", token: samplingToken)
          
          
-        StartupMemorySampler.shared.note(HakoLogStore.shared.composition())
+        startupMemorySampler.note(HakoLogStore.shared.composition(), token: samplingToken)
 
          
          
@@ -545,10 +554,10 @@ final class ExtensionProvider: NSObject {
 
 
 
-        guard let service = HakoNewService(self, &error) else {
+        guard let service = HakoNewService(StartupPlatformInterface(provider: self, samplingToken: samplingToken), &error) else {
             throw error ?? ExtensionError.serviceUnavailable("NewService returned nil")
         }
-        StartupMemorySampler.shared.mark("service-created")
+        startupMemorySampler.mark("service-created", token: samplingToken)
         withStateLock { self.service = service }
          
          
@@ -573,22 +582,23 @@ final class ExtensionProvider: NSObject {
          
          
          
-        StartupMemorySampler.shared.note(
-            "config bytes=\(yaml.utf8.count) revision=\(storedConfiguration?.revision ?? "none")"
+        startupMemorySampler.note(
+            "config bytes=\(yaml.utf8.count) revision=\(storedConfiguration?.revision ?? "none")",
+            token: samplingToken
         )
-        StartupMemorySampler.shared.mark("config-read")
+        startupMemorySampler.mark("config-read", token: samplingToken)
         try await waitForPhysicalPath(pathGeneration)
         let gateElapsedMilliseconds =
             (DispatchTime.now().uptimeNanoseconds - gateStartedAt) / 1_000_000
         log.info("physical path gate ready after \(gateElapsedMilliseconds, privacy: .public) ms; Core start permitted")
-        StartupMemorySampler.shared.mark("path-gate-ready")
+        startupMemorySampler.mark("path-gate-ready", token: samplingToken)
          
          
          
          
-        StartupMemorySampler.shared.mark("pre-core-start")
+        startupMemorySampler.mark("pre-core-start", token: samplingToken)
         try service.start(yaml)
-        StartupMemorySampler.shared.mark("core-started")
+        startupMemorySampler.mark("core-started", token: samplingToken)
          
          
          
@@ -629,7 +639,7 @@ final class ExtensionProvider: NSObject {
                      
                     log.error("configuration store could not mark startup success: \(error.localizedDescription, privacy: .private)")
                 }
-                StartupMemorySampler.shared.mark("lkg-marked")
+                startupMemorySampler.mark("lkg-marked", token: samplingToken)
             }
         }
         log.info("hako core \(HakoVersion(), privacy: .public) status=\(service.status(), privacy: .public) tz=\(HakoTZProbe(), privacy: .private)")
@@ -664,6 +674,9 @@ final class ExtensionProvider: NSObject {
          
          
         let summary = hakoStopReasonSummary(reason)
+        finishStartupSampling(
+            token: withStateLock { startupSamplingToken }, reason: .stopped(summary)
+        )
         log.info("stopping packet tunnel, \(summary, privacy: .public)")
         HakoLogStore.shared.append(
             "tunnel stopping  \(summary)",
@@ -674,6 +687,17 @@ final class ExtensionProvider: NSObject {
         await teardownResources(policy: .systemStop)
         lifecycle.didStop()
         await operationGate.leave()
+    }
+
+    private func finishStartupSampling(
+        token: StartupMemorySampler.Token?, reason: StartupMemorySampler.FinishReason
+    ) {
+        withStateLock {
+            if startupSamplingToken == token { startupSamplingToken = nil }
+        }
+         
+         
+        startupMemorySampler.finish(token: token, reason: reason)
     }
 
     private func teardownResources(policy: ProviderTeardownPolicy) async {
@@ -1035,6 +1059,15 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
      
      
     func openTun(_ options: (any HakoTunOptionsProtocol)?, ret0_: UnsafeMutablePointer<Int32>?) throws {
+         
+         
+        try openTun(options, ret0_: ret0_, samplingToken: nil)
+    }
+
+    fileprivate func openTun(
+        _ options: (any HakoTunOptionsProtocol)?, ret0_: UnsafeMutablePointer<Int32>?,
+        samplingToken: StartupMemorySampler.Token?
+    ) throws {
         guard let options else {
             throw ExtensionError.serviceUnavailable("OpenTun: nil options")
         }
@@ -1048,7 +1081,7 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
         let fd: Int32
         do {
             fd = try runBlocking { [self] in
-                try await openTun0(options, session: session)
+                try await openTun0(options, session: session, samplingToken: samplingToken)
             }
         } catch {
             tunnelSessionLease.invalidate()
@@ -1059,9 +1092,10 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
 
     private func openTun0(
         _ options: any HakoTunOptionsProtocol,
-        session: ProviderTunnelSessionLease.Session
+        session: ProviderTunnelSessionLease.Session,
+        samplingToken: StartupMemorySampler.Token?
     ) async throws -> Int32 {
-        StartupMemorySampler.shared.note("tun: open-entered")
+        startupMemorySampler.note("tun: open-entered", token: samplingToken)
         let settings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: "127.0.0.1")
         let effectiveMTU = options.getMTU()
         guard (1_280...9_000).contains(Int(effectiveMTU)) else {
@@ -1185,8 +1219,8 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
          
          
          
-        if let claimed = try await claimPreappliedTunnel(matching: requested) {
-            StartupMemorySampler.shared.note("tun: pre-applied claimed")
+        if let claimed = try await claimPreappliedTunnel(matching: requested, samplingToken: samplingToken) {
+            startupMemorySampler.note("tun: pre-applied claimed", token: samplingToken)
             let published = tunnelSessionLease.commitIfCurrent(session) {
                 HakoLogStore.shared.markTunnelEstablished()
             }
@@ -1212,9 +1246,9 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
          
          
          
-        StartupMemorySampler.shared.note("tun: settings-built")
+        startupMemorySampler.note("tun: settings-built", token: samplingToken)
         try await tunnelProvider.setTunnelNetworkSettings(settings)
-        StartupMemorySampler.shared.note("tun: settings-applied")
+        startupMemorySampler.note("tun: settings-applied", token: samplingToken)
 
 
         currentPacketFlowBridge?.stop()
@@ -1271,7 +1305,7 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
             "packet bridge started  fd=\(bridgeFD) \(remembered)",
             stream: .app
         )
-        StartupMemorySampler.shared.note("tun: bridge-up")
+        startupMemorySampler.note("tun: bridge-up", token: samplingToken)
         return bridgeFD
     }
 
@@ -1313,7 +1347,7 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
      
      
      
-    private func preapplyTunnelSettingsIfKnown(container: URL) {
+    private func preapplyTunnelSettingsIfKnown(container: URL, samplingToken: StartupMemorySampler.Token?) {
 
 
         guard let stored = try? ConfigResourceStore(containerURL: container).loadCurrent()
@@ -1337,8 +1371,9 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
          
          
          
-        StartupMemorySampler.shared.note(
-            "tun: preapply key=\(fingerprint.prefix(12)) cached=\(known != nil)"
+        startupMemorySampler.note(
+            "tun: preapply key=\(fingerprint.prefix(12)) cached=\(known != nil)",
+            token: samplingToken
         )
         guard let known else { return }
         let provider = tunnelProvider
@@ -1368,7 +1403,7 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
             preappliedTunnel = task
             preappliedDescriptor = known
         }
-        StartupMemorySampler.shared.mark("tun-preapply-dispatched")
+        startupMemorySampler.mark("tun-preapply-dispatched", token: samplingToken)
     }
 
      
@@ -1460,7 +1495,8 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
      
      
     private func claimPreappliedTunnel(
-        matching requested: PreappliedTunnelDescriptor
+        matching requested: PreappliedTunnelDescriptor,
+        samplingToken: StartupMemorySampler.Token?
     ) async throws -> Int32? {
         let (task, applied) = withStateLock {
             (preappliedTunnel, preappliedDescriptor)
@@ -1477,7 +1513,7 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
              
             _ = try? await task.value
             currentPacketFlowBridge?.stop()
-            StartupMemorySampler.shared.note("tun: pre-applied discarded (settings changed)")
+            startupMemorySampler.note("tun: pre-applied discarded (settings changed)", token: samplingToken)
             return nil
         }
         do {
@@ -1485,7 +1521,7 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
         } catch {
              
              
-            StartupMemorySampler.shared.note("tun: pre-applied failed, applying normally")
+            startupMemorySampler.note("tun: pre-applied failed, applying normally", token: samplingToken)
             return nil
         }
     }
@@ -1692,4 +1728,37 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
     func underNetworkExtension() -> Bool {
         true
     }
+}
+
+ 
+ 
+ 
+private final class StartupPlatformInterface: NSObject, HakoPlatformInterfaceProtocol {
+    private weak var provider: ExtensionProvider?
+    private let samplingToken: StartupMemorySampler.Token
+
+    init(provider: ExtensionProvider, samplingToken: StartupMemorySampler.Token) {
+        self.provider = provider
+        self.samplingToken = samplingToken
+    }
+
+    private func owner() throws -> ExtensionProvider {
+        guard let provider else { throw ExtensionError.serviceUnavailable("provider released") }
+        return provider
+    }
+
+    func writeLog(_ message: String?) { provider?.writeLog(message) }
+    func openTun(_ options: (any HakoTunOptionsProtocol)?, ret0_: UnsafeMutablePointer<Int32>?) throws {
+        try owner().openTun(options, ret0_: ret0_, samplingToken: samplingToken)
+    }
+    func usePlatformAutoDetectControl() -> Bool { true }
+    func autoDetectControl(_ fd: Int32) throws { try owner().autoDetectControl(fd) }
+    func startDefaultInterfaceMonitor(_ listener: (any HakoInterfaceUpdateListenerProtocol)?) throws {
+        try owner().startDefaultInterfaceMonitor(listener)
+    }
+    func closeDefaultInterfaceMonitor(_ listener: (any HakoInterfaceUpdateListenerProtocol)?) throws {
+        try owner().closeDefaultInterfaceMonitor(listener)
+    }
+    func getInterfaces() throws -> any HakoNetworkInterfaceIteratorProtocol { try owner().getInterfaces() }
+    func underNetworkExtension() -> Bool { true }
 }

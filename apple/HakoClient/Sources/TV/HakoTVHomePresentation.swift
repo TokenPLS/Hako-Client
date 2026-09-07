@@ -73,7 +73,7 @@ struct HakoTVHomePresentation: Equatable {
         )
     }
 
-    static func make(state: HakoTVProductState) -> HakoTVHomePresentation {
+    static func make(state: HakoTVProductState, now: Date = Date()) -> HakoTVHomePresentation {
         if let phase = state.pipelinePhase {
             let line: String = switch phase {
             case .downloading: String(localized: "Downloading configuration…")
@@ -105,7 +105,7 @@ struct HakoTVHomePresentation: Equatable {
             }
             return HakoTVHomePresentation(
                 buttonTitle: word(presentation),
-                statusLine: connectedLine(state),
+                statusLine: connectedLine(state, now: now),
                 tone: .connected
             )
         case .connecting:
@@ -167,8 +167,8 @@ struct HakoTVHomePresentation: Equatable {
      
      
      
-    static func connectedLine(_ state: HakoTVProductState) -> String {
-        let seconds = state.connectedSince.map { Int(Date().timeIntervalSince($0)) } ?? 0
+    static func connectedLine(_ state: HakoTVProductState, now: Date = Date()) -> String {
+        let seconds = state.connectedSince.map { Int(now.timeIntervalSince($0)) } ?? 0
         return String(localized: "Connected · \(duration(secondsElapsed: seconds)) · \(HakoTVBytes.text(state.sessionBytes)) this session · \(state.connectionCount) connections")
     }
 

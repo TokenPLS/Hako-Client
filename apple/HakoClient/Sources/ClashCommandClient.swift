@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import Darwin
 import HakoClientUI
 import os
 import Hako
@@ -123,7 +124,7 @@ struct RuntimeRouteContext: Equatable, Sendable {
     let coreStartTimeUnix: Int64
     let mode: String
 
-    fileprivate var generationKey: String {
+    var generationKey: String {
         [
             profileID,
             profileRevision,
@@ -229,7 +230,8 @@ final class RuntimeRouteEvidenceProjector {
 
     func project(
         connections: [HakoConnection],
-        context: RuntimeRouteContext
+        context: RuntimeRouteContext,
+        observedAt: Date = Date()
     ) -> [RuntimeRouteEvidence] {
         if runtimeGenerationKey != context.generationKey {
             runtimeGenerationKey = context.generationKey
@@ -257,6 +259,7 @@ final class RuntimeRouteEvidenceProjector {
             evidence.append(
                 RuntimeRouteEvidence(
                     kind: .trafficRouteObserved,
+                    timestamp: observedAt,
                     profilePointerID: Self.sanitize(context.profileID),
                     profilePointerRevision:
                         Self.sanitize(context.profileRevision),
@@ -439,7 +442,18 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
     private(set) var streamDisconnectCount = 0
      
      
-    @Published private(set) var memoryFootprintBytes: Int64 = 0
+     
+    private var memoryState = MemoryState(inuse: 0, footprint: nil)
+    private var isPublishingMemory = false
+    private var lastMemorySequence: UInt64 = 0
+    var memoryFootprintBytes: Int64 {
+        guard let sample = memoryState.footprint,
+              sample.generation == generation else { return 0 }
+        let now = memoryNow()
+        guard now >= sample.receivedAt,
+              now - sample.receivedAt < 3_000_000_000 else { return 0 }
+        return sample.bytes
+    }
     @Published private(set) var memoryBytes: Int64 = 0 {
         didSet { HakoPerf.count("pub.cmd.memory") }
     }
@@ -468,14 +482,15 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
     private var providerSession: NETunnelProviderSession?
     private var clientHandler: HandlerProxy?
     private var connectTask: Task<Void, Never>?
+    private var nativeConnectTask: Task<Void, Never>?
+    private var nativeCleanup: Task<Void, Never>?
+    private var connectionDiagnosticsLease: ConnectionSourceLease?
     private var logBatchTask: Task<Void, Never>?
     private var pendingLogs: [String] = []
     private var trafficReducer = ClashTrafficReducer()
-    private let routeEvidenceProjector = RuntimeRouteEvidenceProjector()
-    private let routeEvidenceJournal = RuntimeRouteEvidenceJournal(
-        fileURL: RuntimeRouteEvidenceJournal.defaultFileURL()
-    )
+    private let routeEvidenceJournal = ConnectionRuntimeFeed.shared.routeJournal
     private var lastConfirmedRuntimeEvidenceKey = ""
+    private var runtimeConfirmedAt: UInt64 = 0
     private var generation: UInt64 = 0
     private var wantsConnection = false
     private var isConnecting = false
@@ -483,6 +498,20 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
     private var uiTestProxyShareStatus = ProxyShareStatus.disabled
 
 
+
+    deinit {
+        connectTask?.cancel()
+        logBatchTask?.cancel()
+        let oldClient = client
+        let connecting = nativeConnectTask
+        let previous = nativeCleanup
+        Task.detached {
+            await previous?.value
+            oldClient?.close()
+            await connecting?.value
+            oldClient?.close()
+        }
+    }
 
      
      
@@ -506,7 +535,17 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
         servesProxyShareFixture ? true : client != nil
     }
 
-    init() {
+    private let memoryNow: @Sendable () -> UInt64
+    private let enqueueMemory: ClashMemoryDelivery
+
+    init(
+        memoryNow: @escaping @Sendable () -> UInt64 = ClashMemoryClock.now,
+        enqueueMemory: @escaping ClashMemoryDelivery = { action in
+            Task { @MainActor in action() }
+        }
+    ) {
+        self.memoryNow = memoryNow
+        self.enqueueMemory = enqueueMemory
 return 
 
     }
@@ -600,23 +639,11 @@ return
             )
         }
         if !preserveIntent { wantsConnection = false }
-        generation &+= 1
         connectTask?.cancel()
         connectTask = nil
         isConnecting = false
-        let oldClient = client
-        client = nil
-        clientHandler = nil
+        closeNativeControlAttempt()
         isConnected = false
-         
-         
-         
-         
-         
-         
-         
-         
-         
          
          
          
@@ -624,7 +651,7 @@ return
         if !preserveIntent {
             trafficReducer = ClashTrafficReducer()
             traffic = ClashTrafficSnapshot()
-            memoryBytes = 0
+            publishMemory(MemoryState(inuse: 0, footprint: nil))
             peerSchemaVersion = 0
             peerCoreVersion = "—"
             peerCapabilities = []
@@ -645,7 +672,30 @@ return
              
             mode = "—"
         }
-        Task.detached { oldClient?.close() }
+    }
+
+     
+     
+    private func closeNativeControlAttempt() {
+         
+        generation &+= 1
+        memoryState = MemoryState(inuse: memoryState.inuse, footprint: nil)
+        lastMemorySequence = 0
+        connectionDiagnosticsLease?.release()
+        connectionDiagnosticsLease = nil
+        let oldClient = client
+        let connecting = nativeConnectTask
+        let previous = nativeCleanup
+        client = nil
+        clientHandler = nil
+        nativeConnectTask = nil
+        guard oldClient != nil || connecting != nil else { return }
+        nativeCleanup = Task.detached {
+            await previous?.value
+            oldClient?.close()
+            await connecting?.value
+            oldClient?.close()
+        }
     }
 
     func clearLogs() {
@@ -1116,18 +1166,22 @@ return
 
     func refreshRuntimeDiagnostics() async {
         guard let providerSession else { return }
+        let token = generation
         do {
             let diagnostics =
                 try await HakoClient(
                     session: providerSession
                 ).runtimeDiagnostics()
+            guard token == generation else { return }
             runtimeDiagnostics = diagnostics
+            runtimeConfirmedAt = DispatchTime.now().uptimeNanoseconds
             let context = currentRouteContext()
             if context.generationKey != lastConfirmedRuntimeEvidenceKey {
                 lastConfirmedRuntimeEvidenceKey = context.generationKey
                 recordRouteControl(kind: .runtimeCoreConfirmed)
             }
         } catch {
+            guard token == generation else { return }
             lastError = error.localizedDescription
         }
     }
@@ -1765,6 +1819,8 @@ return
         }
 
         generation &+= 1
+        memoryState = MemoryState(inuse: memoryState.inuse, footprint: nil)
+        lastMemorySequence = 0
          
          
         runtimeIdentityCache.invalidate()
@@ -1773,6 +1829,7 @@ return
         connectTask = Task { [weak self] in
             do {
                 let hello = try await HakoClient(session: providerSession).hello()
+                await self?.nativeCleanup?.value
                 guard !Task.isCancelled else { return }
                 self?.openNativeClient(
                     socketPath: container.appendingPathComponent("clash.sock").path,
@@ -1785,10 +1842,19 @@ return
         }
     }
 
+    private func makeCommandHandler() -> HandlerProxy {
+        HandlerProxy(owner: self, token: generation, now: memoryNow, enqueueMemory: enqueueMemory)
+    }
+
+     
+    func memoryHandlerForTesting() -> HakoClashAPIClientHandlerProtocol {
+        makeCommandHandler()
+    }
+
     private func openNativeClient(socketPath: String, hello: HakoCommandHello, token: UInt64) {
         guard token == generation, wantsConnection else { return }
         connectTask = nil
-        let handler = HandlerProxy(owner: self, token: token)
+        let handler = makeCommandHandler()
         let options = Self.makeOptions(
             onlyStatisticsProxy: TrafficStatisticsSettings.onlyProxy()
         )
@@ -1815,26 +1881,36 @@ return
         peerCapabilities = hello.capabilities
         clientHandler = handler
         client = newClient
-        connectTask = Task.detached { [weak self] in
+        nativeConnectTask = Task.detached { [weak self] in
             do {
                 try newClient.connect()
+                await self?.reconcileTrafficScopeAfterConnect(
+                    newClient, token: token
+                )
             } catch {
                 await self?.connectFailed(error, token: token)
             }
         }
     }
 
+     
+     
+     
+     
+    private func reconcileTrafficScopeAfterConnect(
+        _ connectedClient: HakoClashAPIClient, token: UInt64
+    ) {
+        guard token == generation, wantsConnection, client === connectedClient else { return }
+        applyTrafficStatisticsPreference()
+    }
+
     static func makeOptions(onlyStatisticsProxy: Bool) -> HakoClashAPIClientOptions {
         let options = HakoClashAPIClientOptions()
-         
-         
-         
          
          
         options.statusInterval = 250
         options.addCommand(HakoCommandStatus)
         options.addCommand(HakoCommandLog)
-        options.addCommand(HakoCommandConnections)
          
          
          
@@ -1949,14 +2025,13 @@ return
         guard token == generation else { return }
         isConnecting = false
         connectTask = nil
-        client = nil
-        clientHandler = nil
+        closeNativeControlAttempt()
         isConnected = false
         lastError = error.localizedDescription
          
          
         isReopeningControlSession = false
-        scheduleReconnect(token: token)
+        scheduleReconnect(token: generation)
     }
 
     private func handleConnected(token: UInt64) {
@@ -1964,6 +2039,15 @@ return
         isConnecting = false
         connectTask = nil
         isConnected = true
+        if connectionDiagnosticsLease == nil {
+            connectionDiagnosticsLease = ConnectionRuntimeFeed.shared.acquireDiagnostics(
+                context: { [weak self] in
+                    guard let self, self.isConnected, self.runtimeDiagnostics != nil else { return nil }
+                    return ConnectionDiagnosticContext(route: self.currentRouteContext(), confirmedAt: self.runtimeConfirmedAt)
+                },
+                receive: { [weak self] lines in self?.enqueueLogLines(lines) }
+            )
+        }
          
          
          
@@ -1989,18 +2073,17 @@ return
          
          
         modeStreamSettler.cancel()
-        client = nil
-        clientHandler = nil
+        closeNativeControlAttempt()
         isConnected = false
         trafficReducer = ClashTrafficReducer()
         traffic = ClashTrafficSnapshot()
-        memoryBytes = 0
+        publishMemory(MemoryState(inuse: 0, footprint: nil))
         peerSchemaVersion = 0
         peerCoreVersion = "—"
         peerCapabilities = []
         runtimeDiagnostics = nil
         if !message.isEmpty { lastError = message }
-        scheduleReconnect(token: token)
+        scheduleReconnect(token: generation)
     }
 
     private func scheduleReconnect(token: UInt64) {
@@ -2029,22 +2112,36 @@ return
         peakDownloadBytesPerSecond = max(peakDownloadBytesPerSecond, traffic.download)
     }
 
-    private func handleMemory(_ payload: MemoryPayload, token: UInt64) {
-        guard token == generation, payload.inuse > 0 else { return }
-        memoryBytes = payload.inuse
-        memoryFootprintBytes = max(0, payload.footprint ?? 0)
+    private func handleMemory(
+        _ payload: MemoryPayload, receipt: MemoryReceipt, token: UInt64
+    ) {
+         
+         
+        guard token == generation, receipt.sequence > lastMemorySequence else { return }
+        lastMemorySequence = receipt.sequence
+        let footprint: MemoryFootprintSample? = payload.footprint.flatMap { bytes in
+            guard bytes > 0 else { return nil }
+            return MemoryFootprintSample(
+                bytes: bytes, receivedAt: receipt.receivedAt, generation: token
+            )
+        }
+        publishMemory(MemoryState(inuse: max(0, payload.inuse), footprint: footprint))
     }
 
-    private func handleConnections(
-        _ connections: [HakoConnection],
-        token: UInt64
-    ) {
-        guard token == generation else { return }
-        let evidence = routeEvidenceProjector.project(
-            connections: connections,
-            context: currentRouteContext()
-        )
-        recordRouteEvidence(evidence)
+    private func publishMemory(_ state: MemoryState) {
+         
+         
+         
+        memoryState = state
+        guard !isPublishingMemory else { return }
+        isPublishingMemory = true
+        defer { isPublishingMemory = false }
+        repeat {
+            memoryBytes = memoryState.inuse
+             
+             
+             
+        } while memoryBytes != memoryState.inuse
     }
 
     private func handleLog(_ payload: LogPayload, token: UInt64) {
@@ -2156,12 +2253,7 @@ return
      
      
      
-    private static let runtimeIdentityTTL: TimeInterval = 5
-    private lazy var runtimeIdentityCache = RuntimeIdentityCache(
-        ttl: Self.runtimeIdentityTTL
-    ) {
-        NodesRuntimeIdentity.load()
-    }
+    private var runtimeIdentityCache: RuntimeIdentityCache { ConnectionRuntimeFeed.shared.runtimeIdentityCache }
 
     private func currentRouteContext() -> RuntimeRouteContext {
         let identity = runtimeIdentityCache.current()
@@ -2286,11 +2378,37 @@ private extension ClashCommandClient {
         let downTotal: Int64
     }
 
+    struct MemoryState {
+        let inuse: Int64
+        let footprint: MemoryFootprintSample?
+    }
+
+    struct MemoryFootprintSample {
+        let bytes: Int64
+        let receivedAt: UInt64
+        let generation: UInt64
+    }
+
+    struct MemoryReceipt {
+        let receivedAt: UInt64
+        let sequence: UInt64
+    }
+
     struct MemoryPayload: Decodable {
         let inuse: Int64
-         
-         
         let footprint: Int64?
+        private enum CodingKeys: String, CodingKey { case inuse, footprint }
+
+        init(from decoder: Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+             
+             
+            inuse = (try? values.decode(Int64.self, forKey: .inuse)) ?? 0
+            footprint = try? values.decode(Int64.self, forKey: .footprint)
+        }
+
+        private init() { inuse = 0; footprint = nil }
+        static let unknown = MemoryPayload()
     }
 
     struct LogPayload: Decodable {
@@ -2302,9 +2420,25 @@ private extension ClashCommandClient {
         weak var owner: ClashCommandClient?
         let token: UInt64
 
-        init(owner: ClashCommandClient, token: UInt64) {
+        let now: @Sendable () -> UInt64
+        let enqueueMemory: ClashMemoryDelivery
+        private let memoryReceiptLock = NSLock()
+        private var memorySequence: UInt64 = 0
+
+        private func nextMemoryReceipt() -> MemoryReceipt {
+            memoryReceiptLock.lock()
+            defer { memoryReceiptLock.unlock() }
+            memorySequence &+= 1
+            return MemoryReceipt(receivedAt: now(), sequence: memorySequence)
+        }
+
+        init(owner: ClashCommandClient, token: UInt64,
+             now: @escaping @Sendable () -> UInt64,
+             enqueueMemory: @escaping ClashMemoryDelivery) {
             self.owner = owner
             self.token = token
+            self.now = now
+            self.enqueueMemory = enqueueMemory
         }
 
         func connected() {
@@ -2323,10 +2457,15 @@ private extension ClashCommandClient {
         }
 
         func writeMemory(_ message: String?) {
-            guard let data = message?.data(using: .utf8),
-                  let payload = try? JSONDecoder().decode(MemoryPayload.self, from: data)
-            else { return }
-            Task { @MainActor [weak owner] in owner?.handleMemory(payload, token: token) }
+             
+             
+            let receipt = nextMemoryReceipt()
+            let payload = message?.data(using: .utf8).flatMap {
+                try? JSONDecoder().decode(MemoryPayload.self, from: $0)
+            } ?? .unknown
+            enqueueMemory { [weak owner, token] in
+                owner?.handleMemory(payload, receipt: receipt, token: token)
+            }
         }
 
         func writeLogs(_ message: String?) {
@@ -2336,20 +2475,31 @@ private extension ClashCommandClient {
             Task { @MainActor [weak owner] in owner?.handleLog(payload, token: token) }
         }
 
-        func writeConnections(_ message: String?) {
-            guard let message else { return }
-            let connections = ConnectionsParser.parse(message)
-            Task { @MainActor [weak owner] in
-                owner?.handleConnections(
-                    connections,
-                    token: token
-                )
-            }
-        }
+        func writeConnections(_: String?) {}
 
         func writeMode(_ message: String?) {
             guard let message else { return }
             Task { @MainActor [weak owner] in owner?.handleMode(message, token: token) }
         }
+    }
+}
+
+
+ 
+ 
+typealias ClashMemoryDelivery = @Sendable (@escaping @MainActor @Sendable () -> Void) -> Void
+
+enum ClashMemoryClock {
+    private static let scale: mach_timebase_info_data_t = {
+        var value = mach_timebase_info_data_t()
+        mach_timebase_info(&value)
+        return value
+    }()
+
+    static func now() -> UInt64 {
+        let ticks = mach_continuous_time()
+        let numerator = UInt64(scale.numer)
+        let denominator = UInt64(scale.denom)
+        return (ticks / denominator) * numerator + (ticks % denominator) * numerator / denominator
     }
 }

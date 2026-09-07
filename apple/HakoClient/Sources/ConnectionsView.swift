@@ -101,7 +101,8 @@ enum HakoActivityIOSAdapter {
                 connection: entry.connection,
                 firstSeen: entry.firstSeen,
                 lastSeen: entry.lastSeen,
-                closedAt: entry.closedAt
+                closedAt: entry.closedAt,
+                observationID: entry.id
             )
         } ?? []
         let phase = phase(

@@ -1010,14 +1010,11 @@ struct AppShellView: View {
         isForeground: Bool? = nil,
         isConnected: Bool? = nil
     ) {
-        if ConnectionsRecordingPolicy.shouldRecord(
-            isForeground: isForeground ?? (scenePhase == .active),
-            isConnected: isConnected ?? command.isConnected
-        ) {
-            connections.sync(true)
-        } else {
-            connections.stop()
-        }
+        connections.syncScene(
+            isConnected: isConnected ?? command.isConnected,
+            isActive: isForeground ?? (scenePhase == .active),
+            isBackground: isForeground == nil ? scenePhase == .background : isForeground == false
+        )
     }
 
     private func checkSharedImports() {

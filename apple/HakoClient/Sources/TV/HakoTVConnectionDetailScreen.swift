@@ -73,6 +73,11 @@ struct HakoTVConnectionDetailScreen: View {
     let seed: HakoActivityConnectionSnapshot
 
     @State private var model: Model
+    @State private var clockNow = Date()
+    @Environment(\.hakoTVPollingPresentation) private var pollingPresentation
+    private var clockActive: Bool {
+        pollingPresentation.active && pollingPresentation.page == .connectionDetail
+    }
 
     init(state: Binding<HakoTVProductState>, seed: HakoActivityConnectionSnapshot) {
         _state = state
@@ -93,15 +98,10 @@ struct HakoTVConnectionDetailScreen: View {
             List {
                  
                  
-                 
-                 
-                 
-                 
-                 
-                 
-                ForEach(Self.fields(for: model.connection, now: Date())) { field in
+                ForEach(Self.fields(for: model.connection, now: clockNow)) { field in
                     LabeledContent(field.label) {
                         Text(field.value)
+                            .accessibilityIdentifier("tvos.connection.field.\(field.id)")
                             .lineLimit(2)
                             .multilineTextAlignment(.trailing)
                     }
@@ -112,6 +112,10 @@ struct HakoTVConnectionDetailScreen: View {
             .safeAreaPadding(.vertical, 20)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        .task(id: clockActive) {
+            guard clockActive else { return }
+            await HakoTVDisplayClock.run { clockNow = $0 }
+        }
         .onChange(of: state.connections) { _, connections in
             model.update(from: connections)
         }

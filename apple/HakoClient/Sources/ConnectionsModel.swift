@@ -6,11 +6,26 @@ import HakoClientUI
 typealias HakoConnection = HakoActivityConnectionSnapshot
 
 enum ConnectionsParser {
+     
+     
     static func parse(_ text: String) -> [HakoConnection] {
+        decode(text, requiresCompleteSnapshot: false) ?? []
+    }
+
+    static func parseValid(_ text: String) -> [HakoConnection]? {
+        decode(text, requiresCompleteSnapshot: true)
+    }
+
+    private static func decode(_ text: String, requiresCompleteSnapshot: Bool) -> [HakoConnection]? {
         guard let data = text.data(using: .utf8),
-              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let rows = root["connections"] as? [[String: Any]] else {
-            return []
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        let rows: [[String: Any]]
+         
+        if root["connections"] is NSNull { rows = [] }
+        else if let array = root["connections"] as? [[String: Any]] { rows = array }
+        else { return nil }
+        if requiresCompleteSnapshot {
+            guard rows.allSatisfy({ ($0["id"] as? String)?.isEmpty == false }) else { return nil }
         }
 
          
@@ -126,12 +141,16 @@ enum ConnectionsRecordingPolicy {
     }
 }
 
-protocol ConnectionsClient: AnyObject {
+protocol ConnectionsClient: ConnectionSourceTransport {
     func connect() throws
     func close()
     func getConnections() throws -> String
     func closeConnection(_ id: String) throws
     func closeConnections() throws
+}
+
+extension ConnectionsClient {
+    func snapshot() throws -> String { try getConnections() }
 }
 
 typealias ConnectionsClientFactory = (
@@ -144,7 +163,7 @@ private final class NativeConnectionsClient: ConnectionsClient {
 
     init(socketPath: String, handler: HakoClashAPIClientHandlerProtocol) throws {
         let options = HakoClashAPIClientOptions()
-        options.statusInterval = 1_000
+        options.statusInterval = 250
         options.addCommand(HakoCommandConnections)
 
         var error: NSError?
@@ -187,13 +206,13 @@ private final class NativeConnectionsClient: ConnectionsClient {
     }
 }
 
-private func defaultConnectionsSocketPath() -> String? {
+func defaultConnectionsSocketPath() -> String? {
     HakoAppIdentifiers.appGroupContainer?
     .appendingPathComponent("clash.sock")
     .path
 }
 
-private func makeNativeConnectionsClient(
+func makeNativeConnectionsClient(
     socketPath: String,
     handler: HakoClashAPIClientHandlerProtocol
 ) throws -> ConnectionsClient {
@@ -222,11 +241,11 @@ final class ConnectionsModel: ObservableObject {
 
     private var history = ConnectionHistory()
 
-    private var client: ConnectionsClient?
-    private var handler: Handler?
+    private let source: ConnectionObservationSource<[HakoConnection]>
+    private var lease: ConnectionSourceLease?
     private var generation: UInt64 = 0
-    private let socketPath: () -> String?
-    private let clientFactory: ConnectionsClientFactory
+    private var observedRuntimeIdentity: String?
+    private(set) var lastObservation: ConnectionObservation<[HakoConnection]>?
     private let usesFixtureFeed: Bool
 
 
@@ -238,8 +257,9 @@ final class ConnectionsModel: ObservableObject {
         error: String = "",
         recordsInitialSeed: Bool = false,
         usesFixtureFeed: Bool = false,
-        socketPath: @escaping () -> String? = defaultConnectionsSocketPath,
-        clientFactory: @escaping ConnectionsClientFactory = makeNativeConnectionsClient
+        socketPath: (() -> String?)? = nil,
+        clientFactory: ConnectionsClientFactory? = nil,
+        observationSource: ConnectionObservationSource<[HakoConnection]>? = nil
     ) {
         let initialSeed: [HakoConnection]
 
@@ -251,8 +271,15 @@ final class ConnectionsModel: ObservableObject {
         self.loading = loading
         self.error = error
         self.usesFixtureFeed = usesFixtureFeed
-        self.socketPath = socketPath
-        self.clientFactory = clientFactory
+        source = observationSource ?? {
+            if socketPath != nil || clientFactory != nil {
+                return ConnectionRuntimeFeed.makeSource(
+                    socketPath: socketPath ?? defaultConnectionsSocketPath,
+                    clientFactory: clientFactory ?? makeNativeConnectionsClient
+                )
+            }
+            return ConnectionRuntimeFeed.shared.source
+        }()
         if false || recordsInitialSeed {
             history.record(initialSeed, at: Date())
             requestLog = history.entries
@@ -347,85 +374,64 @@ final class ConnectionsModel: ObservableObject {
 
     func start(commandConnected: Bool) {
         if usesStaticFixtureFeed {
-            if connected != commandConnected { connected = commandConnected }
-            if loading { loading = false }
-            if !error.isEmpty { error = "" }
+            connected = commandConnected
+            loading = false
+            error = ""
             return
         }
-        guard commandConnected, client == nil else { return }
-        guard let socketPath = socketPath() else {
-            error = "App Group unavailable"
-            return
-        }
-
+        guard commandConnected, lease == nil else { return }
         generation &+= 1
         let token = generation
         loading = true
         error = ""
-
-        let proxy = Handler(owner: self, token: token)
-        handler = proxy
-
-        let newClient: ConnectionsClient
-        do {
-            newClient = try clientFactory(socketPath, proxy)
-        } catch {
-            loading = false
-            self.error = error.localizedDescription
-            handler = nil
-            return
-        }
-
-        client = newClient
-        Task.detached { [weak self] in
-            do {
-                try newClient.connect()
-            } catch {
-                await self?.failed(error, token: token)
+        lease = source.acquire { [weak self] event in
+            guard let self, token == self.generation else { return }
+            switch event {
+            case let .frame(frame):
+                self.apply(frame)
+            case let .state(connected, message):
+                self.connected = connected
+                if !message.isEmpty { self.loading = false; self.error = message }
+            case let .gap(_, reason):
+                self.error = reason
+            case .runtimeChanged:
+                self.adoptRuntime(self.source.runtimeIdentity)
+                self.activityConnections = []
             }
         }
     }
 
-    func stop() {
-        if usesStaticFixtureFeed { return }
-        let oldClient = detachNativeSubscription()
-        Task.detached { oldClient?.close() }
+     
+     
+    func syncScene(isConnected: Bool, isActive: Bool, isBackground: Bool) {
+        if !isConnected || isBackground { stop() }
+        else if isActive { start(commandConnected: true) }
     }
 
-
-
-    private func detachNativeSubscription() -> ConnectionsClient? {
+    func stop() {
+        if usesStaticFixtureFeed { return }
         generation &+= 1
-        let oldClient = client
-        client = nil
-        handler = nil
+        lease?.release()
+        lease = nil
         connected = false
         loading = false
         closing = []
         closingAll = false
         activityConnections = []
-        return oldClient
+        lastObservation = nil
     }
 
+
+
     func sync(_ commandConnected: Bool) {
-        if commandConnected {
-            start(commandConnected: true)
-        } else if connected || client != nil || loading {
-            stop()
-        }
+        if commandConnected { start(commandConnected: true) } else { stop() }
     }
 
     func refresh() async {
-        if usesStaticFixtureFeed { return }
-        guard let client, !closingAll, closing.isEmpty else { return }
+        guard !usesStaticFixtureFeed, lease != nil, !closingAll, closing.isEmpty else { return }
         let token = generation
-        do {
-            let rows = try await Task.detached {
-                ConnectionsParser.parse(try client.getConnections())
-            }.value
-            guard token == generation else { return }
-            apply(rows)
-        } catch {
+        do { try await source.refresh() }
+        catch {
             guard token == generation else { return }
             self.error = error.localizedDescription
         }
@@ -436,12 +442,12 @@ final class ConnectionsModel: ObservableObject {
             activityConnections.removeAll { $0.id == id }
             return
         }
-        guard let client, !closingAll, !closing.contains(id) else { return }
+        guard lease != nil, !closingAll, !closing.contains(id) else { return }
         let token = generation
         closing.insert(id)
-        defer { closing.remove(id) }
+        defer { if token == generation { closing.remove(id) } }
         do {
-            try await Task.detached { try client.closeConnection(id) }.value
+            try await source.close(id)
             guard token == generation else { return }
             activityConnections.removeAll { $0.id == id }
         } catch {
@@ -451,16 +457,13 @@ final class ConnectionsModel: ObservableObject {
     }
 
     func closeAll() async {
-        if usesStaticFixtureFeed {
-            activityConnections = []
-            return
-        }
-        guard let client, !closingAll, closing.isEmpty else { return }
+        if usesStaticFixtureFeed { activityConnections = []; return }
+        guard lease != nil, !closingAll, closing.isEmpty else { return }
         let token = generation
         closingAll = true
-        defer { closingAll = false }
+        defer { if token == generation { closingAll = false } }
         do {
-            try await Task.detached { try client.closeConnections() }.value
+            try await source.close(nil)
             guard token == generation else { return }
             activityConnections = []
         } catch {
@@ -469,75 +472,27 @@ final class ConnectionsModel: ObservableObject {
         }
     }
 
-    private func apply(_ value: [HakoConnection]) {
-        activityConnections = value
+    private func adoptRuntime(_ identity: String?) {
+        guard let identity, identity != observedRuntimeIdentity else { return }
+        if observedRuntimeIdentity != nil {
+            history.beginRuntime(at: Date())
+            requestLog = history.entries
+        }
+        observedRuntimeIdentity = identity
+    }
+
+    private func apply(_ frame: ConnectionObservation<[HakoConnection]>) {
+        adoptRuntime(frame.runtimeIdentity)
+        activityConnections = frame.value
+        lastObservation = frame
         loading = false
         error = ""
-        history.record(value, at: Date())
+         
+         
+        history.record(frame.value, at: frame.observedDate)
         requestLog = history.entries
     }
 
-    private func didConnect(token: UInt64) {
-        guard token == generation else { return }
-        connected = true
-    }
-
-    private func failed(_ value: Error, token: UInt64) {
-        guard token == generation else { return }
-        let oldClient = client
-        client = nil
-        handler = nil
-        connected = false
-        loading = false
-        closing = []
-        closingAll = false
-        activityConnections = []
-        error = value.localizedDescription
-        Task.detached { oldClient?.close() }
-    }
-
-    private final class Handler: NSObject, HakoClashAPIClientHandlerProtocol {
-        weak var owner: ConnectionsModel?
-        let token: UInt64
-
-        init(owner: ConnectionsModel, token: UInt64) {
-            self.owner = owner
-            self.token = token
-        }
-
-        func connected() {
-            Task { @MainActor [weak owner] in owner?.didConnect(token: token) }
-        }
-
-        func disconnected(_ message: String?) {
-            Task { @MainActor [weak owner] in
-                owner?.failed(
-                    NSError(
-                        domain: "Hako.Connections",
-                        code: 1,
-                        userInfo: [
-                            NSLocalizedDescriptionKey: message ?? "Connections stream disconnected",
-                        ]
-                    ),
-                    token: token
-                )
-            }
-        }
-
-        func writeConnections(_ message: String?) {
-            guard let message else { return }
-            let rows = ConnectionsParser.parse(message)
-            Task { @MainActor [weak owner] in
-                guard owner?.generation == token else { return }
-                owner?.apply(rows)
-            }
-        }
-
-        func writeTraffic(_: String?) {}
-        func writeMemory(_: String?) {}
-        func writeLogs(_: String?) {}
-        func writeMode(_: String?) {}
-    }
 }
 
 

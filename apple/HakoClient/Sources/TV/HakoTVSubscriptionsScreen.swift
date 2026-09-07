@@ -29,10 +29,14 @@ struct HakoTVSubscriptionsScreen: View {
     var onOpen: (HakoTVSubscription.ID) -> Void = { _ in }
      
     var onAdd: () -> Void = {}
+     
+     
+    var onRestore: () -> Void = {}
 
     private enum Explained: Hashable {
         case subscription(HakoTVSubscription.ID)
         case add
+        case restore
     }
 
     @State private var explained: Explained = .add
@@ -71,6 +75,11 @@ struct HakoTVSubscriptionsScreen: View {
                 }
                 .onHakoTVFocus { explained = .add }
                 .accessibilityIdentifier("tvos.subscriptions.add")
+                Button(action: onRestore) {
+                    LabeledContent("Restore from iCloud", value: "")
+                }
+                .onHakoTVFocus { explained = .restore }
+                .accessibilityIdentifier("tvos.subscriptions.restore")
             }
         }
         .listStyle(.grouped)
@@ -121,6 +130,7 @@ struct HakoTVSubscriptionsScreen: View {
         switch explained {
         case .subscription: String(localized: "Profile")
         case .add: String(localized: "Add a profile")
+        case .restore: String(localized: "Restore from iCloud")
         }
     }
 
@@ -130,6 +140,8 @@ struct HakoTVSubscriptionsScreen: View {
             Self.explanation(isCurrent: id == store.current?.id)
         case .add:
             Self.addExplanation
+        case .restore:
+            Self.restoreExplanation
         }
     }
 
@@ -152,6 +164,11 @@ struct HakoTVSubscriptionsScreen: View {
         isCurrent
             ? String(localized: "The profile in use. Press to see its address or remove it.")
             : String(localized: "Remembered but not in use. Press to use it instead, or to remove it.")
+    }
+
+     
+    static var restoreExplanation: String {
+        String(localized: "Bring the profiles your iPhone or Mac keeps in iCloud onto this Apple TV, and keep them current. Nothing is written back.")
     }
 
      

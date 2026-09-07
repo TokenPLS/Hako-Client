@@ -12,7 +12,8 @@ struct ConnectionHistory {
         var lastSeen: Date
         var closedAt: Date?
 
-        var id: String { connection.id }
+        var runtimeGeneration: UInt64 = 0
+        var id: String { runtimeGeneration == 0 ? connection.id : "\(runtimeGeneration):\(connection.id)" }
         var isActive: Bool { closedAt == nil }
     }
 
@@ -32,21 +33,34 @@ struct ConnectionHistory {
      
      
     private var indexByID: [String: Int] = [:]
+    private var runtimeGeneration: UInt64 = 0
+
+     
+     
+    mutating func beginRuntime(at now: Date) {
+        record([], at: now)
+        runtimeGeneration &+= 1
+    }
+
+    private func entryID(_ connectionID: String) -> String {
+        runtimeGeneration == 0 ? connectionID : "\(runtimeGeneration):\(connectionID)"
+    }
 
     mutating func record(_ live: [HakoConnection], at now: Date) {
         var liveIDs = Set<String>()
         liveIDs.reserveCapacity(live.count)
 
         for connection in live {
-            liveIDs.insert(connection.id)
-            if let position = indexByID[connection.id] {
+            let id = entryID(connection.id)
+            liveIDs.insert(id)
+            if let position = indexByID[id] {
                 entries[position].connection = connection
                 entries[position].lastSeen = now
                 entries[position].closedAt = nil
             } else {
-                indexByID[connection.id] = entries.count
+                indexByID[id] = entries.count
                 entries.append(Entry(connection: connection, firstSeen: now,
-                                     lastSeen: now, closedAt: nil))
+                                     lastSeen: now, closedAt: nil, runtimeGeneration: runtimeGeneration))
             }
         }
          

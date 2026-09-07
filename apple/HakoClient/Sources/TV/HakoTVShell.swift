@@ -25,6 +25,7 @@ struct HakoTVShell: View {
      
     var updatesOnLaunch = false
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var tab: Tab = .home
      
      
@@ -67,7 +68,10 @@ struct HakoTVShell: View {
      
     @State private var moreDoor: HakoTVMoreHub.Door?
      
+     
+     
     @State private var showsICloudRestore = false
+    @State private var iCloudRestoreFromList = false
      
      
      
@@ -112,7 +116,12 @@ struct HakoTVShell: View {
         HakoTVICloudRestoreScreen(
             state: state,
             service: live ? tunnel.iCloudRestore : nil,
-            store: $store
+            store: $store,
+            onDone: {
+                 
+                 
+                showsICloudRestore = false
+            }
         )
     }
 
@@ -168,7 +177,10 @@ struct HakoTVShell: View {
                         HakoTVWelcomeView(
                             onAddSubscription: { showsAddSubscription = true },
                             restoreLine: state.wrappedValue.iCloudRestoreLine,
-                            onRestore: { showsICloudRestore = true }
+                            onRestore: {
+                                iCloudRestoreFromList = false
+                                showsICloudRestore = true
+                            }
                         )
                     }
                 }
@@ -193,7 +205,11 @@ struct HakoTVShell: View {
                     HakoTVSubscriptionsScreen(
                         store: $store,
                         onOpen: { subscriptionDoor = $0 },
-                        onAdd: { showsAddSubscription = true }
+                        onAdd: { showsAddSubscription = true },
+                        onRestore: {
+                            iCloudRestoreFromList = true
+                            showsICloudRestore = true
+                        }
                     )
                 }
                 .navigationDestination(item: $subscriptionDoor) { id in
@@ -278,8 +294,6 @@ struct HakoTVShell: View {
                             HakoTVUserAgentScreen()
                         case .proxyShare:
                             HakoTVProxyShareScreen(state: state, tunnel: tunnel)
-                        case .iCloudRestore:
-                            iCloudRestoreScreen
                         case .diagnostics:
                             HakoTVDiagnosticsScreen(
                                 state: state,
@@ -355,6 +369,13 @@ struct HakoTVShell: View {
                 guard !Task.isCancelled else { return }
                 HakoTVConnectionsScreen.liveTick(&fixture, at: Date())
             }
+        }
+        .environment(\.hakoTVPollingPresentation, pollingPresentation)
+        .onChange(of: pollingPresentation, initial: true) { _, value in
+            if live { tunnel.updatePresentation(value) }
+        }
+        .onDisappear {
+            if live { tunnel.updatePresentation(.init(page: .configuration, active: false)) }
         }
         .onExitCommand(perform: currentTabDoor == nil ? nil : closeTopmostDoor)
         .task {
@@ -468,7 +489,7 @@ struct HakoTVShell: View {
 
      
     enum DoorPop: Equatable {
-        case edit, subscriptionDetail, addSubscription, subscriptions, nodes, outboundMode
+        case edit, subscriptionDetail, addSubscription, iCloudRestore, subscriptions, nodes, outboundMode
         case utilities, connectionDetail, more, providers
     }
 
@@ -494,7 +515,8 @@ struct HakoTVShell: View {
         tab: Tab,
         editOpen: Bool, detailOpen: Bool, addOpen: Bool,
         subscriptionsOpen: Bool, nodesOpen: Bool, outboundOpen: Bool,
-        utilitiesOpen: Bool, connectionOpen: Bool, moreOpen: Bool, providersOpen: Bool
+        utilitiesOpen: Bool, connectionOpen: Bool, moreOpen: Bool, providersOpen: Bool,
+        restoreOpen: Bool = false
     ) -> DoorPop? {
         switch tab {
         case .home:
@@ -503,6 +525,7 @@ struct HakoTVShell: View {
             if editOpen { return .edit }
             if detailOpen { return .subscriptionDetail }
             if addOpen { return .addSubscription }
+            if restoreOpen { return .iCloudRestore }
             if subscriptionsOpen { return .subscriptions }
             if nodesOpen { return .nodes }
             if outboundOpen { return .outboundMode }
@@ -548,13 +571,38 @@ struct HakoTVShell: View {
         }
     }
 
+    private var pollingPresentation: HakoTVPollingPresentation {
+        .init(page: Self.pollingPage(tab: tab, top: currentTabDoor,
+                                    utilities: utilitiesDoor, more: moreDoor),
+              active: scenePhase == .active)
+    }
+
+    static func pollingPage(tab: Tab, top: DoorPop?, utilities: HakoTVUtilitiesHub.Door?,
+                            more: HakoTVMoreHub.Door?) -> HakoTVPollingPage {
+        switch top {
+        case .nodes: return .nodes
+        case .outboundMode: return .outboundMode
+        case .connectionDetail: return .connectionDetail
+        case .utilities:
+            switch utilities {
+            case .nodes: return .nodes
+            case .connections: return .connections
+            default: return .configuration
+            }
+        case .more: return more == .diagnostics ? .diagnostics : .configuration
+        case nil: return tab == .home ? .home : .configuration
+        default: return .configuration
+        }
+    }
+
     private var currentTabDoor: DoorPop? {
         Self.doorToClose(tab: tab,
                          editOpen: editDoor != nil, detailOpen: subscriptionDoor != nil,
                          addOpen: showsAddSubscription, subscriptionsOpen: showsSubscriptions,
                          nodesOpen: showsNodes, outboundOpen: showsOutboundMode,
                          utilitiesOpen: utilitiesDoor != nil, connectionOpen: connectionDoor != nil,
-                         moreOpen: moreDoor != nil, providersOpen: showsProviders)
+                         moreOpen: moreDoor != nil, providersOpen: showsProviders,
+                         restoreOpen: showsICloudRestore)
     }
 
     private func closeTopmostDoor() {
@@ -565,6 +613,11 @@ struct HakoTVShell: View {
         case .edit: editDoor = nil
         case .subscriptionDetail: subscriptionDoor = nil
         case .addSubscription: showsAddSubscription = false
+        case .iCloudRestore:
+            showsICloudRestore = false
+             
+             
+            if iCloudRestoreFromList { showsSubscriptions = true }
         case .subscriptions: showsSubscriptions = false
         case .nodes: showsNodes = false
         case .outboundMode: showsOutboundMode = false

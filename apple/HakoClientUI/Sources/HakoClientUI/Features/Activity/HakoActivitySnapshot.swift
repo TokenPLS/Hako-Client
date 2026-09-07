@@ -142,20 +142,23 @@ public struct HakoActivityRequestSnapshot:
     public let firstSeen: Date
     public let lastSeen: Date
     public let closedAt: Date?
+    public let observationID: String?
 
     public init(
         connection: HakoActivityConnectionSnapshot,
         firstSeen: Date,
         lastSeen: Date,
-        closedAt: Date? = nil
+        closedAt: Date? = nil,
+        observationID: String? = nil
     ) {
         self.connection = connection
         self.firstSeen = firstSeen
         self.lastSeen = lastSeen
         self.closedAt = closedAt
+        self.observationID = observationID
     }
 
-    public var id: String { connection.id }
+    public var id: String { observationID ?? connection.id }
     public var isActive: Bool { closedAt == nil }
 }
 

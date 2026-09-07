@@ -32,6 +32,11 @@ struct HakoTVHomeView: View {
     var onPrimaryAction: (() -> Void)?
 
     @State private var explained: Explanation = .connect
+    @State private var clockNow = Date()
+    @Environment(\.hakoTVPollingPresentation) private var pollingPresentation
+    private var clockActive: Bool {
+        pollingPresentation.active && pollingPresentation.page == .home && isConnected
+    }
 
     enum Explanation: Hashable {
         case connect, disconnect, outbound, profile, node
@@ -65,12 +70,16 @@ struct HakoTVHomeView: View {
     }
 
     private var isConnected: Bool { state.isConnected }
-    private var presentation: HakoTVHomePresentation { HakoTVHomePresentation.make(state: state) }
+    private var presentation: HakoTVHomePresentation { HakoTVHomePresentation.make(state: state, now: clockNow) }
 
     var body: some View {
         HStack(alignment: .top, spacing: 56) {
             actions
             explanation
+        }
+        .task(id: clockActive) {
+            guard clockActive else { return }
+            await HakoTVDisplayClock.run { clockNow = $0 }
         }
         .task {
              
@@ -281,5 +290,29 @@ struct HakoTVHomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(.easeOut(duration: 0.18), value: explained)
+    }
+}
+
+
+private struct HakoTVPollingPresentationKey: EnvironmentKey {
+    static let defaultValue = HakoTVPollingPresentation(page: .configuration, active: false)
+}
+
+extension EnvironmentValues {
+    var hakoTVPollingPresentation: HakoTVPollingPresentation {
+        get { self[HakoTVPollingPresentationKey.self] }
+        set { self[HakoTVPollingPresentationKey.self] = newValue }
+    }
+}
+
+@MainActor
+enum HakoTVDisplayClock {
+    static func run(now: () -> Date = Date.init,
+                    sleep: () async throws -> Void = { try await Task.sleep(for: .seconds(1)) },
+                    publish: (Date) -> Void) async {
+        while !Task.isCancelled {
+            publish(now())
+            do { try await sleep() } catch { return }
+        }
     }
 }

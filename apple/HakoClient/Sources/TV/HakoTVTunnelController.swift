@@ -84,6 +84,21 @@ final class HakoTVTunnelController: ObservableObject {
     private var manager: (any HakoTVSystemProfile)? { coordinator.current }
     private var statusObserver: NSObjectProtocol?
     private var pollTask: Task<Void, Never>?
+    typealias MessageReader = @MainActor (Data, UInt64, Bool) async throws -> Data
+    private let messageReader: MessageReader?
+    private let pollSleep: @MainActor () async throws -> Void
+    private var presentation = HakoTVPollingPresentation(page: .configuration, active: false)
+
+    func updatePresentation(_ presentation: HakoTVPollingPresentation) {
+        guard self.presentation != presentation else { return }
+        self.presentation = presentation
+        stopPolling()
+        if presentation.active {
+             
+            statusChanged()
+            startPolling()
+        }
+    }
     private var startRequested = false
      
      
@@ -109,6 +124,16 @@ final class HakoTVTunnelController: ObservableObject {
     private var startGeneration = 0
     private var groupOrder: [String] = []
     private var lastKnownStatus: NEVPNStatus = .invalid
+    private var ipcGeneration = HakoTVIPCGeneration(active: false)
+    private var observedIPCProfile: ObjectIdentifier?
+    private var observedIPCSession: ObjectIdentifier?
+    private var controlRevision: UInt64 = 0
+
+    private func replaceIPCGeneration(active: Bool) {
+        ipcGeneration.invalidate()
+        sweepingMembers = []
+        ipcGeneration = HakoTVIPCGeneration(active: active)
+    }
 
     init(
         container: URL? = HakoTVTunnelController.defaultContainer,
@@ -116,9 +141,13 @@ final class HakoTVTunnelController: ObservableObject {
         autoConnect: HakoTVAutoConnect.Store = HakoTVAutoConnect.Store(),
         loadProfiles: @escaping ProfileLoader = { try await NETunnelProviderManager.loadAllFromPreferences() },
         makeProfile: @escaping ProfileMaker = { NETunnelProviderManager() },
-        preferencesTimeout: TimeInterval = 15
+        preferencesTimeout: TimeInterval = 15,
+        messageReader: MessageReader? = nil,
+        pollSleep: @escaping @MainActor () async throws -> Void = { try await Task.sleep(for: .seconds(1)) }
     ) {
         self.container = container
+        self.messageReader = messageReader
+        self.pollSleep = pollSleep
         self.session = session
         self.autoConnect = autoConnect
         self.coordinator = HakoTVProfileCoordinator(
@@ -238,6 +267,7 @@ final class HakoTVTunnelController: ObservableObject {
     }
 
     private func performRefresh(_ subscription: HakoTVSubscription) async {
+        let generation = ipcGeneration
         state.refresh = .updating(subscription.id, .downloading)
         do {
             try await activate(subscription) { [weak self] phase in
@@ -245,11 +275,13 @@ final class HakoTVTunnelController: ObservableObject {
             }
             state.refresh = nil
             if state.isConnected {
-                try await reloadOrRestart(subscription)
+                try await reloadOrRestart(subscription, expectedGeneration: generation)
             }
         } catch is CancellationError {
             state.refresh = nil
         } catch {
+             
+             
             state.refresh = .failed(subscription.id, error.localizedDescription)
             HakoLogStore.shared.append("tv update failed  reason=\(error.localizedDescription)", stream: .app, level: .warning)
         }
@@ -258,18 +290,25 @@ final class HakoTVTunnelController: ObservableObject {
      
      
      
-     
-    private func reloadOrRestart(_ subscription: HakoTVSubscription) async throws {
-        let reply = try? await send(["cmd": "reload"], timeout: Self.reloadTimeout)
-        if let reply, Self.isOK(reply) {
+    func reloadOrRestart(_ subscription: HakoTVSubscription, expectedGeneration: HakoTVIPCGeneration? = nil) async throws {
+        let generation = expectedGeneration ?? ipcGeneration
+        let reply = try await send(["cmd": "reload"], timeout: Self.reloadTimeout, expectedGeneration: generation)
+        guard generation === ipcGeneration, generation.isValid else { throw ControllerError.ipcReplySuperseded }
+        if Self.isOK(reply) {
             HakoLogStore.shared.append("tv reload applied", stream: .app)
             await refreshProxies()
             await refreshStatus()
             return
         }
+         
+         
+        guard case ControllerError.kernelRefused = Self.replyError(reply) else { throw ControllerError.invalidResponse }
         HakoLogStore.shared.append("tv reload refused; restarting the tunnel", stream: .app, level: .warning)
+         
+         
+        let epoch = stopEpoch + 1
         await disconnect()
-        let epoch = stopEpoch
+        guard stopEpoch == epoch else { throw CancellationError() }
         try await waitUntilDown()
          
          
@@ -284,6 +323,7 @@ final class HakoTVTunnelController: ObservableObject {
      
      
     func disconnect() async {
+        replaceIPCGeneration(active: false)
         startRequested = false
         stopRequested = true
         stopEpoch += 1
@@ -389,12 +429,18 @@ final class HakoTVTunnelController: ObservableObject {
             state.outboundMode = mode
             return
         }
+        let generation = ipcGeneration
+        controlRevision &+= 1
+        let revision = controlRevision
         do {
-            let reply = try await send(["cmd": "setMode", "mode": mode.kernelToken])
+            let reply = try await send(["cmd": "setMode", "mode": mode.kernelToken], expectedGeneration: generation)
+            guard generation.isValid, revision == controlRevision else { return }
             guard Self.isOK(reply) else { throw Self.replyError(reply) }
             state.outboundMode = mode
             state.issue = nil
         } catch {
+            HakoLogStore.shared.append("tv setMode outcome  reason=\(error.localizedDescription)", stream: .app, level: .warning)
+            guard generation.isValid, revision == controlRevision else { return }
             report(issue: error.localizedDescription)
         }
     }
@@ -404,12 +450,18 @@ final class HakoTVTunnelController: ObservableObject {
             state.pin(member: member, in: group)
             return
         }
+        let generation = ipcGeneration
+        controlRevision &+= 1
+        let revision = controlRevision
         do {
-            let reply = try await send(["cmd": "select", "group": group, "name": member])
+            let reply = try await send(["cmd": "select", "group": group, "name": member], expectedGeneration: generation)
+            guard generation.isValid, revision == controlRevision else { return }
             guard Self.isOK(reply) else { throw Self.replyError(reply) }
             state.issue = nil
             await refreshProxies()
         } catch {
+            HakoLogStore.shared.append("tv pin outcome  reason=\(error.localizedDescription)", stream: .app, level: .warning)
+            guard generation.isValid, revision == controlRevision else { return }
             report(issue: error.localizedDescription)
         }
     }
@@ -444,8 +496,19 @@ final class HakoTVTunnelController: ObservableObject {
             stream: .app
         )
         guard state.isConnected, sweepingMembers.isEmpty else { return }
+        let generation = ipcGeneration
+        let previousLatency = group.members.reduce(into: [String: HakoProxyLatencyState]()) {
+            $0[$1.name] = state.latency[$1.name]
+        }
         sweepingMembers = Set(group.members.map(\.name))
-        defer { sweepingMembers = [] }
+        defer {
+            if generation === ipcGeneration {
+                for member in group.members where state.latency[member.name] == .testing {
+                    state.latency[member.name] = previousLatency[member.name] ?? .untested
+                }
+                sweepingMembers = []
+            }
+        }
         HakoTVNodesScreen.beginTesting(group, state: &state)
          
          
@@ -458,11 +521,20 @@ final class HakoTVTunnelController: ObservableObject {
          
         var measured = 0
         for member in group.members {
-            guard state.isConnected else { return }
-            let reply = try? await send(["cmd": "urltest", "name": member.name])
-            let delay = (try? HakoTVKernelSnapshots.urlTestDelay(from: reply)) ?? -1
-            if delay > 0 { measured += 1 }
-            HakoTVNodesScreen.record(delay: delay, for: member.name, state: &state)
+            guard generation.isValid else { return }
+            do {
+                let reply = try await send(["cmd": "urltest", "name": member.name], expectedGeneration: generation)
+                guard generation.isValid else { return }
+                let delay = (try? HakoTVKernelSnapshots.urlTestDelay(from: reply)) ?? -1
+                if delay > 0 { measured += 1 }
+                HakoTVNodesScreen.record(delay: delay, for: member.name, state: &state)
+            } catch {
+                HakoLogStore.shared.append("tv url test sweep ended  reason=\(error.localizedDescription)", stream: .app, level: .warning)
+                guard generation.isValid else { return }
+                state.latency[member.name] = .failed
+                report(issue: error.localizedDescription)
+                return
+            }
         }
         HakoLogStore.shared.append(
             "url test sweep done  group=\(group.name) measured=\(measured) of \(group.members.count)",
@@ -477,16 +549,22 @@ final class HakoTVTunnelController: ObservableObject {
      
     func testOne(member: HakoProxyMemberSnapshot) async {
         guard state.isConnected, !sweepingMembers.contains(member.name) else { return }
+        let generation = ipcGeneration
         sweepingMembers.insert(member.name)
-        defer { sweepingMembers.remove(member.name) }
+        defer { if generation === ipcGeneration { sweepingMembers.remove(member.name) } }
         state.latency[member.name] = .testing
-        let reply = try? await send(["cmd": "urltest", "name": member.name])
-        let delay = (try? HakoTVKernelSnapshots.urlTestDelay(from: reply)) ?? -1
-        HakoTVNodesScreen.record(delay: delay, for: member.name, state: &state)
-        HakoLogStore.shared.append(
-            "url test one  node=\(member.name) delay=\(delay)",
-            stream: .app
-        )
+        do {
+            let reply = try await send(["cmd": "urltest", "name": member.name], expectedGeneration: generation)
+            guard generation.isValid else { return }
+            let delay = (try? HakoTVKernelSnapshots.urlTestDelay(from: reply)) ?? -1
+            HakoTVNodesScreen.record(delay: delay, for: member.name, state: &state)
+            HakoLogStore.shared.append("url test one  node=\(member.name) delay=\(delay)", stream: .app)
+        } catch {
+            HakoLogStore.shared.append("tv url test ended  reason=\(error.localizedDescription)", stream: .app, level: .warning)
+            guard generation.isValid else { return }
+            state.latency[member.name] = .failed
+            report(issue: error.localizedDescription)
+        }
     }
 
      
@@ -703,6 +781,7 @@ final class HakoTVTunnelController: ObservableObject {
          
         if stopEpoch != epoch || Task.isCancelled { throw CancellationError() }
         guard let profile = coordinator.current else { throw ControllerError.tunnelDidNotStart }
+        replaceIPCGeneration(active: false)
         startRequested = true
         startGeneration += 1
         try profile.startVPNTunnel()
@@ -748,6 +827,15 @@ final class HakoTVTunnelController: ObservableObject {
     private func statusChanged() {
         let status = manager?.status ?? .invalid
         let previous = lastKnownStatus
+        let active = status == .connected || status == .reasserting
+        let previouslyActive = previous == .connected || previous == .reasserting
+        let profileID = manager.map { ObjectIdentifier($0) }
+        let sessionID = manager?.vpnConnection.map { ObjectIdentifier($0) }
+        if active != previouslyActive || profileID != observedIPCProfile || sessionID != observedIPCSession {
+            replaceIPCGeneration(active: active)
+            observedIPCProfile = profileID
+            observedIPCSession = sessionID
+        }
         lastKnownStatus = status
         switch status {
         case .connected, .reasserting:
@@ -759,8 +847,10 @@ final class HakoTVTunnelController: ObservableObject {
                 startPolling()
             }
         case .connecting:
+            stopPolling()
             state.stage = .connecting
         case .disconnecting:
+            stopPolling()
             state.stage = .disconnecting
         case .disconnected, .invalid:
             let wasUp = state.stage == .connected || state.stage == .disconnecting
@@ -815,19 +905,23 @@ final class HakoTVTunnelController: ObservableObject {
      
 
     private func startPolling() {
-        pollTask?.cancel()
+        guard pollTask == nil, presentation.active, state.isConnected else { return }
+        let page = presentation.page
         pollTask = Task { [weak self] in
             var tick = 0
             while !Task.isCancelled {
-                guard let self else { return }
-                await self.refreshTraffic()
-                if tick % 3 == 0, !Task.isCancelled {
-                    await self.refreshProxies()
-                    await self.refreshConnections()
-                    await self.refreshStatus()
+                guard let self, self.state.isConnected else { return }
+                for command in page.commands(tick: tick) {
+                    guard !Task.isCancelled else { return }
+                    switch command {
+                    case .traffic: await self.refreshTraffic()
+                    case .proxies: await self.refreshProxies(cancellableRead: true)
+                    case .connections: await self.refreshConnections()
+                    case .status: await self.refreshStatus(cancellableRead: true)
+                    }
                 }
-                tick += 1
-                try? await Task.sleep(for: .seconds(1))
+                tick = (tick + 1) % 3
+                do { try await self.pollSleep() } catch { return }
             }
         }
     }
@@ -844,7 +938,7 @@ final class HakoTVTunnelController: ObservableObject {
     }
 
     private func refreshTraffic() async {
-        guard let reply = try? await send(["cmd": "traffic"], timeout: 2),
+        guard let reply = try? await send(["cmd": "traffic"], timeout: 2, cancellableRead: true),
               let traffic = try? HakoTVKernelSnapshots.traffic(from: reply),
               acceptsKernelReplies else { return }
         state.downloadBytesPerSecond = traffic.down
@@ -853,10 +947,11 @@ final class HakoTVTunnelController: ObservableObject {
         if traffic.memory > 0 { state.memoryBytes = traffic.memory }
     }
 
-    func refreshProxies() async {
-        guard let reply = try? await send(["cmd": "proxies"]),
+    func refreshProxies(cancellableRead: Bool = false) async {
+        let revision = controlRevision
+        guard let reply = try? await send(["cmd": "proxies"], cancellableRead: cancellableRead),
               let decoded = try? HakoTVKernelSnapshots.proxies(from: reply, groupOrder: groupOrder),
-              acceptsKernelReplies else { return }
+              revision == controlRevision, acceptsKernelReplies else { return }
         state.proxyGroups = decoded.groups
          
          
@@ -885,33 +980,41 @@ final class HakoTVTunnelController: ObservableObject {
     }
 
     private func refreshConnections() async {
-        guard let reply = try? await send(["cmd": "connections"]),
+        guard let reply = try? await send(["cmd": "connections"], cancellableRead: true),
               let rows = try? HakoTVKernelSnapshots.connections(from: reply),
               acceptsKernelReplies else { return }
         state.connections = rows
         state.connectionCount = rows.count
     }
 
-    private func refreshStatus() async {
-        guard let reply = try? await send(["cmd": "status"]),
+    private func refreshStatus(cancellableRead: Bool = false) async {
+        let revision = controlRevision
+        guard let reply = try? await send(["cmd": "status"], cancellableRead: cancellableRead),
               let status = try? HakoTVKernelSnapshots.status(from: reply),
               let mode = HakoTVOutboundMode(rawValue: status.mode.lowercased()),
-              acceptsKernelReplies else { return }
+              revision == controlRevision, acceptsKernelReplies else { return }
         state.outboundMode = mode
     }
 
      
 
-    private func send(_ object: [String: Any], timeout: TimeInterval = messageTimeout) async throws -> Data {
-        guard let session = manager?.vpnConnection as? NETunnelProviderSession else {
-            throw ControllerError.extensionUnavailable
-        }
+    private func send(_ object: [String: Any], timeout: TimeInterval = messageTimeout, cancellableRead: Bool = false, expectedGeneration: HakoTVIPCGeneration? = nil) async throws -> Data {
+        let generation = expectedGeneration ?? ipcGeneration
+        guard generation === ipcGeneration, generation.isValid else { throw ControllerError.ipcNotSent(.connectionChanged) }
         let payload = try JSONSerialization.data(withJSONObject: object)
-        return try await HakoTVIPCChannel.shared.send(
-            session: session,
-            data: payload,
-            timeoutNanoseconds: UInt64(timeout * 1_000_000_000)
-        )
+        let reply: Data
+        if let messageReader {
+            reply = try await messageReader(payload, UInt64(timeout * 1_000_000_000), cancellableRead)
+        } else {
+            guard let session = manager?.vpnConnection as? NETunnelProviderSession else {
+                throw ControllerError.ipcNotSent(.connectionChanged)
+            }
+            reply = try await HakoTVIPCChannel.shared.send(session: session, data: payload,
+                timeoutNanoseconds: UInt64(timeout * 1_000_000_000),
+                cancellableRead: cancellableRead, generation: generation)
+        }
+        guard generation === ipcGeneration, generation.isValid else { throw ControllerError.ipcReplySuperseded }
+        return reply
     }
 
     private static func isOK(_ reply: Data) -> Bool {
@@ -975,6 +1078,14 @@ final class HakoTVTunnelController: ObservableObject {
         case systemTimedOut
         case tunnelTimedOut
         case invalidResponse
+        case ipcNotSent(IPCNotSentReason)
+        case ipcResultUnknown
+        case ipcReplySuperseded
+
+        enum IPCNotSentReason {
+            case capacity, deadline, connectionChanged, unresolved, invalidRequest, unsupportedAsyncReload
+            case transport(String)
+        }
         case tunnelDidNotStart
         case tunnelStopped
         case kernelRefused(String)
@@ -982,21 +1093,37 @@ final class HakoTVTunnelController: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .appGroupUnavailable:
-                String(localized: "Clash could not open its secure shared container.")
+                return String(localized: "Clash could not open its secure shared container.")
             case .extensionUnavailable:
-                String(localized: "The Clash packet tunnel is not available.")
+                return String(localized: "The Clash packet tunnel is not available.")
             case .systemTimedOut:
-                String(localized: "The system did not answer in time.")
+                return String(localized: "The system did not answer in time.")
             case .tunnelTimedOut:
-                String(localized: "The Clash packet tunnel did not answer in time.")
+                return String(localized: "The Clash packet tunnel did not answer in time.")
+            case .ipcNotSent(let reason):
+                let detail: String
+                switch reason {
+                case .capacity: detail = String(localized: "The tunnel request queue is full.")
+                case .deadline: detail = String(localized: "The request expired while waiting.")
+                case .connectionChanged: detail = String(localized: "The connection changed while waiting.")
+                case .unresolved: detail = String(localized: "An earlier tunnel request is still unresolved.")
+                case .invalidRequest: detail = String(localized: "The tunnel request is invalid.")
+                case .unsupportedAsyncReload: detail = String(localized: "Asynchronous reload is not supported here.")
+                case .transport(let message): detail = message
+                }
+                return String(localized: "Not sent.") + " " + detail
+            case .ipcResultUnknown:
+                return String(localized: "The request was sent, but its result could not be confirmed. It will not be sent again automatically.")
+            case .ipcReplySuperseded:
+                return String(localized: "The request's reply belongs to an earlier connection.")
             case .invalidResponse:
-                String(localized: "The Clash packet tunnel returned an invalid response.")
+                return String(localized: "The Clash packet tunnel returned an invalid response.")
             case .tunnelDidNotStart:
-                String(localized: "The tunnel stopped before it came up.")
+                return String(localized: "The tunnel stopped before it came up.")
             case .tunnelStopped:
-                String(localized: "The tunnel stopped on its own. Connect again to bring it back.")
+                return String(localized: "The tunnel stopped on its own. Connect again to bring it back.")
             case .kernelRefused(let reason):
-                String(localized: "The tunnel refused: \(reason)")
+                return String(localized: "The tunnel refused: \(reason)")
             }
         }
     }
@@ -1005,63 +1132,238 @@ final class HakoTVTunnelController: ObservableObject {
  
  
  
- 
-private actor HakoTVIPCChannel {
+actor HakoTVIPCChannel {
     static let shared = HakoTVIPCChannel()
+    typealias Delivery = @Sendable (Data, @escaping @Sendable (Data?) -> Void) throws -> Void
+    typealias Failure = HakoTVTunnelController.ControllerError
 
+    struct Limits: Sendable {
+        var queuedCount = 32
+        var payloadBytes = 256 * 1024
+        var timeoutNanoseconds: UInt64 = 30_000_000_000
+    }
     private struct Pending {
         let id: UUID
-        let session: NETunnelProviderSession
+        let command: String
+        let deliver: Delivery
         let data: Data
-        let timeoutNanoseconds: UInt64
+        let ticket: HakoTVReadAdmission?
+        let generation: HakoTVIPCGeneration?
+        let deadline: ContinuousClock.Instant
         let continuation: CheckedContinuation<Data, Error>
     }
+     
+     
+    private struct Unresolved {
+        let id: UUID
+        let command: String
+        let generation: HakoTVIPCGeneration?
+        let deadline: ContinuousClock.Instant
+        var continuation: CheckedContinuation<Data, Error>?
+    }
 
+    private let limits: Limits
     private var queue: [Pending] = []
-    private var current: Pending?
-    private var timeoutTask: Task<Void, Never>?
+    private var current: Unresolved?
+    private var deadlines: [UUID: Task<Void, Never>] = [:]
+    private(set) var queuedBytes = 0
+    var queuedCount: Int { queue.count }
+    var unresolvedCount: Int { current == nil ? 0 : 1 }
+    var quarantined: Bool { current != nil && current?.continuation == nil }
 
-    func send(session: NETunnelProviderSession, data: Data, timeoutNanoseconds: UInt64) async throws -> Data {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.append(Pending(
-                id: UUID(), session: session, data: data,
-                timeoutNanoseconds: timeoutNanoseconds, continuation: continuation
-            ))
-            startNextIfNeeded()
+    init(limits: Limits = Limits()) { self.limits = limits }
+
+    func send(session: NETunnelProviderSession, data: Data, timeoutNanoseconds: UInt64,
+              cancellableRead: Bool = false, generation: HakoTVIPCGeneration? = nil) async throws -> Data {
+        try await send(data: data, timeoutNanoseconds: timeoutNanoseconds,
+                       cancellableRead: cancellableRead, generation: generation) { data, reply in
+            try session.sendProviderMessage(data, responseHandler: reply)
         }
+    }
+
+    func send(data: Data, timeoutNanoseconds: UInt64, cancellableRead: Bool = false,
+              generation: HakoTVIPCGeneration? = nil, deliver: @escaping Delivery) async throws -> Data {
+        let deadline = ContinuousClock.now.advanced(by: .nanoseconds(Int64(clamping:
+            min(timeoutNanoseconds, limits.timeoutNanoseconds))))
+        guard data.count <= limits.payloadBytes else { throw Failure.ipcNotSent(.capacity) }
+        guard let request = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let command = request["cmd"] as? String, !command.isEmpty, command.utf8.count <= 64 else {
+            throw Failure.ipcNotSent(.invalidRequest)
+        }
+         
+         
+        if command == "reload", request["async"] as? Bool == true {
+            throw Failure.ipcNotSent(.unsupportedAsyncReload)
+        }
+        let id = UUID()
+        let ticket = cancellableRead && Self.readCommands.contains(command) ? HakoTVReadAdmission() : nil
+        return try await withTaskCancellationHandler {
+            if ticket != nil { try Task.checkCancellation() }
+            guard generation?.isValid != false else { throw Failure.ipcNotSent(.connectionChanged) }
+            guard deadline > .now else { throw Failure.ipcNotSent(.deadline) }
+            guard !quarantined else { throw Failure.ipcNotSent(.unresolved) }
+            guard queue.count < limits.queuedCount,
+                  data.count <= limits.payloadBytes - queuedBytes else { throw Failure.ipcNotSent(.capacity) }
+            return try await withCheckedThrowingContinuation { continuation in
+                queue.append(Pending(id: id, command: command, deliver: deliver, data: data,
+                    ticket: ticket, generation: generation, deadline: deadline, continuation: continuation))
+                queuedBytes += data.count
+                deadlines[id] = Task { [weak self] in
+                    do { try await ContinuousClock().sleep(until: deadline) } catch { return }
+                    await self?.expire(id: id)
+                }
+                startNextIfNeeded()
+            }
+        } onCancel: {
+            guard let ticket else { return }
+            ticket.cancel()
+            Task { await self.removeQueued(id: id, error: CancellationError()) }
+        }
+    }
+
+    private static let readCommands: Set<String> = [
+        "hello", "runtimeDiagnostics", "reloadStatus", "status", "traffic",
+        "connections", "proxies", "logs", "proxyShareStatus"
+    ]
+
+    private func removeQueued(id: UUID, error: Error) {
+        guard let index = queue.firstIndex(where: { $0.id == id }) else { return }
+        let pending = queue.remove(at: index)
+        queuedBytes -= pending.data.count
+        deadlines.removeValue(forKey: id)?.cancel()
+        pending.continuation.resume(throwing: error)
     }
 
     private func startNextIfNeeded() {
-        guard current == nil, !queue.isEmpty else { return }
-        let pending = queue.removeFirst()
-        current = pending
-        do {
-            try pending.session.sendProviderMessage(pending.data) { [weak self] response in
-                Task {
-                    guard let response else {
-                        await self?.finish(id: pending.id, result: .failure(HakoTVTunnelController.ControllerError.extensionUnavailable))
-                        return
-                    }
-                    await self?.finish(id: pending.id, result: .success(response))
-                }
+        guard current == nil else { return }
+        while !queue.isEmpty {
+            let pending = queue.removeFirst()
+            queuedBytes -= pending.data.count
+            let failure: Error?
+            if pending.generation?.isValid == false { failure = Failure.ipcNotSent(.connectionChanged) }
+            else if pending.deadline <= .now { failure = Failure.ipcNotSent(.deadline) }
+            else if let ticket = pending.ticket, !ticket.admit() { failure = CancellationError() }
+            else { failure = nil }
+            if let failure {
+                deadlines.removeValue(forKey: pending.id)?.cancel()
+                pending.continuation.resume(throwing: failure)
+                continue
             }
-        } catch {
-            finish(id: pending.id, result: .failure(error))
-            return
-        }
-        timeoutTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: pending.timeoutNanoseconds)
-            await self?.finish(id: pending.id, result: .failure(HakoTVTunnelController.ControllerError.tunnelTimedOut))
+            let id = pending.id
+            current = Unresolved(id: id, command: pending.command, generation: pending.generation,
+                                 deadline: pending.deadline, continuation: pending.continuation)
+            do {
+                try pending.deliver(pending.data) { [weak self] response in
+                    Task { await self?.receive(id: id, response: response) }
+                }
+                return
+            } catch {
+                 
+                deadlines.removeValue(forKey: id)?.cancel()
+                current = nil
+                pending.continuation.resume(throwing: Failure.ipcNotSent(.transport(error.localizedDescription)))
+                 
+            }
         }
     }
 
-    private func finish(id: UUID, result: Result<Data, Error>) {
-        guard let pending = current, pending.id == id else { return }
-        timeoutTask?.cancel()
-        timeoutTask = nil
+    private func expire(id: UUID) {
+        deadlines.removeValue(forKey: id)?.cancel()
+        if current?.id == id { makeUnknown(id: id) }
+        else { removeQueued(id: id, error: Failure.ipcNotSent(.deadline)) }
+    }
+
+    private func makeUnknown(id: UUID) {
+        guard current?.id == id else { return }
+        deadlines.removeValue(forKey: id)?.cancel()
+        let continuation = current?.continuation
+        current?.continuation = nil
+        continuation?.resume(throwing: Failure.ipcResultUnknown)
+    }
+
+    private func receive(id: UUID, response: Data?) {
+        guard let unresolved = current, unresolved.id == id else { return }
+        guard let response, Self.isCompletion(response, command: unresolved.command) else {
+            makeUnknown(id: id)
+            return
+        }
+        deadlines.removeValue(forKey: id)?.cancel()
         current = nil
-        pending.continuation.resume(with: result)
+        if unresolved.deadline <= .now {
+            unresolved.continuation?.resume(throwing: Failure.ipcResultUnknown)
+        } else if unresolved.generation?.isValid == false {
+            unresolved.continuation?.resume(throwing: Failure.ipcReplySuperseded)
+        } else {
+            unresolved.continuation?.resume(returning: response)
+        }
         startNextIfNeeded()
+    }
+
+    private static func isCompletion(_ data: Data, command: String) -> Bool {
+         
+         
+        if command == "consumeGoCrashReport" { return String(data: data, encoding: .utf8) != nil }
+        guard let value = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) else { return false }
+        if command == "logs", value is [String] || value is NSNull { return true }
+        guard let object = value as? [String: Any] else { return false }
+        if object["error"] is String { return true }
+        if object["accepted"] as? Bool == true { return false }
+        switch command {
+        case "reload", "setMode", "select", "closeAll", "recordMemoryPressureEvidence":
+            return object["ok"] as? Bool == true
+        case "hello":
+            return object["schemaVersion"] is NSNumber && object["coreVersion"] is String
+        case "status":
+            return object["status"] is String && object["mode"] is String
+        case "traffic":
+            return ["up", "down", "upTotal", "downTotal"].allSatisfy { object[$0] is NSNumber }
+        case "connections":
+            return object["connections"] is [Any] || object["connections"] is NSNull
+        case "proxies": return object["proxies"] is [String: Any]
+        case "urltest": return object["delay"] is NSNumber
+        case "close": return object["closed"] is NSNumber
+        case "proxyShareStart", "proxyShareStop", "proxyShareStatus":
+            return object["ok"] as? Bool == true && object["status"] is [String: Any]
+        case "runtimeDiagnostics", "reloadRuntimeSetupOptions", "exerciseSleepWake":
+            return object["goroutines"] is NSNumber
+        case "consumeOOMEvidence":
+            return object["schemaVersion"] is NSNumber && object["pressureLevel"] is String
+                && object["possibleSystemKill"] as? Bool == true
+        case "reloadStatus":
+            return object["session"] is String && object["state"] is String
+        default:
+             
+             
+            return false
+        }
+    }
+}
+
+ 
+ 
+final class HakoTVIPCGeneration: @unchecked Sendable {
+    private let lock = NSLock()
+    private var valid: Bool
+    init(active: Bool = true) { valid = active }
+    var isValid: Bool { lock.lock(); defer { lock.unlock() }; return valid }
+    func invalidate() { lock.lock(); valid = false; lock.unlock() }
+}
+
+ 
+ 
+private final class HakoTVReadAdmission: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+    private var admitted = false
+    func cancel() {
+        lock.lock(); defer { lock.unlock() }
+        if !admitted { cancelled = true }
+    }
+    func admit() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        guard !cancelled else { return false }
+        admitted = true
+        return true
     }
 }
 
@@ -1077,4 +1379,31 @@ final class HakoTVResumeOnce: @unchecked Sendable {
         claimed = true
         return true
     }
+}
+
+
+enum HakoTVPollingPage: Equatable, Sendable {
+    case home, nodes, outboundMode, connections, connectionDetail, diagnostics, configuration
+
+     
+     
+    func commands(tick: Int) -> [HakoTVPollingCommand] {
+        var result: [HakoTVPollingCommand] = []
+        if self == .home || self == .diagnostics { result.append(.traffic) }
+        if tick % 3 == 0 {
+            if self == .home || self == .nodes { result.append(.proxies) }
+            if self == .home || self == .connections || self == .connectionDetail { result.append(.connections) }
+            result.append(.status)
+        }
+        return result
+    }
+}
+
+enum HakoTVPollingCommand: String, Equatable, Sendable {
+    case traffic, proxies, connections, status
+}
+
+struct HakoTVPollingPresentation: Equatable, Sendable {
+    let page: HakoTVPollingPage
+    let active: Bool
 }
