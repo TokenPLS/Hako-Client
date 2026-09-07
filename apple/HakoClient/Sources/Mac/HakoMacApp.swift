@@ -11,6 +11,11 @@ private final class HakoMacApplicationDelegate: NSObject, NSApplicationDelegate 
     func applicationDidFinishLaunching(_ notification: Notification) {
          
          
+         
+         
+        HakoMacLaunchGate.shared.applicationDidFinishLaunching()
+         
+         
         HakoMacDockIcon.apply(
             hidesIcon: UserDefaults.standard.bool(forKey: HakoMacDockIcon.key)
         )
@@ -1043,7 +1048,15 @@ private final class HakoMacSceneModel: ObservableObject {
         observeMenuTracking()
         refreshSnapshot()
         Self.current = self
-        installStatusItem()
+         
+         
+         
+         
+         
+         
+        HakoMacLaunchGate.shared.onceLaunched { [weak self] in
+            self?.installStatusItem()
+        }
     }
 
      
@@ -3161,6 +3174,10 @@ private struct HakoMacDeferredSourcePage: View, Equatable {
 
  
 
+ 
+ 
+ 
+ 
  
  
  
