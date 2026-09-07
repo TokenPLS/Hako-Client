@@ -506,7 +506,9 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
         servesProxyShareFixture ? true : client != nil
     }
 
-    init() {return 
+    init() {
+return 
+
     }
 
 

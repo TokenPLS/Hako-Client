@@ -242,7 +242,9 @@ final class ConnectionsModel: ObservableObject {
         clientFactory: @escaping ConnectionsClientFactory = makeNativeConnectionsClient
     ) {
         let initialSeed: [HakoConnection]
+
             initialSeed = seed
+
         activityConnections = initialSeed
         self.connected =
             false || usesFixtureFeed || connected

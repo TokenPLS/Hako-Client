@@ -993,14 +993,20 @@ private final class HakoMacSceneModel: ObservableObject {
         self.vpn = vpn
         let reviewContainer = (nil as URL?)
         self.reviewContainer = reviewContainer
+
             backupScope = .ordinary
             profiles = ProfilesViewModel(vpn: vpn)
+
         command = ClashCommandClient()
         stats = StatsModel()
+
             nodes = NodesModel()
+
         networkQuality = NetworkQualityModel()
         stun = STUNTestModel()
+
             connections = ConnectionsModel()
+
         proxyShare = ProxyShareModel()
         profileImports = ProfileImportRouter()
         preferences = AppPreferencesModel()
@@ -1133,10 +1139,12 @@ private final class HakoMacSceneModel: ObservableObject {
     }
 
     func prepare() async {
+
              
              
              
             vpn.legacySettingsMigration = vpn.migrateLegacyGlobalSettingsIfNeeded()
+
         profiles.load()
          
         recomputeHomeRuleTally()

@@ -14,6 +14,7 @@ struct HakoClientApp: App {
          
          
         HakoPerfBootstrap.install()
+
             Self.repairPersonalRulePlacement()
             MetricKitCollector.shared.start()
              
@@ -21,6 +22,7 @@ struct HakoClientApp: App {
             BackgroundRefresh.schedule(earliest: BackgroundRefresh.nextEligibility())
              
             Task { await BackgroundRefresh.scanOnForegroundIfDue() }
+
     }
 
      
@@ -407,7 +409,9 @@ struct AppShellView: View {
                 }
                 checkSharedImports()
                 handlePendingSystemAction()
+
                     Task { await BackgroundRefresh.scanOnForegroundIfDue() }
+
             } else if phase == .background, !false {
                 connections.stop()
                 Task { await nodes.cancelLatencyTests(reason: .backgrounded) }
