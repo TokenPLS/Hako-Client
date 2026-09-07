@@ -1304,6 +1304,14 @@ private struct HakoProfileRow<
             detailButton
                 .padding(.trailing, HakoTheme.Spacing.standard)
         }
+         
+         
+         
+         
+         
+         
+         
+        .accessibilityElement(children: .contain)
     }
 
      
