@@ -981,6 +981,33 @@ final class ProfilesViewModel: ObservableObject {
      
      
      
+     
+     
+    func updateGlobalLANShare(
+        allowLAN: Bool?, mixedPort: Int32?, profileID: String
+    ) throws {
+        guard let profileStore,
+              let latest = profileStore.load().first(where: { $0.id == profileID })
+        else {
+            throw PipelineError.sourceUnavailable(
+                "the profile is no longer available"
+            )
+        }
+        var patch = OverridePatch(patchJSON: settingsProfile(for: latest).override.patchJSON)
+        patch.setValue(allowLAN, at: ["allow-lan"])
+        if let mixedPort {
+            patch.setValue(Int(mixedPort), at: ["mixed-port"])
+        }
+        var candidate = latest
+        candidate.override.patchJSON = patch.patchJSON
+        try updateGlobalConfiguration(candidate, replacing: ["allow-lan", "mixed-port"])
+    }
+
+     
+     
+     
+     
+     
     func adoptHeldBackUpdate(_ profile: Profile, keyPath: String) throws {
         guard let profileStore,
               let latest = profileStore.load().first(where: { $0.id == profile.id }),

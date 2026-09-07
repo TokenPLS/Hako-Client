@@ -710,6 +710,7 @@
 "Creating the copy…" = "正在建立副本…";
 "Credential needs attention" = "認證資訊需要處理";
 "Credentials" = "認證資訊";
+"Credentials come from the profile's authentication." = "認證來自設定檔的 authentication。";
 "Credentials stay in the device Keychain. Chains use dialer-proxy; neither feature rewrites the downloaded source." = "認證資訊儲存在裝置鑰匙圈中。串聯使用 dialer-proxy；兩者都不會改寫已下載的原始碼。";
 "Critical memory pressure was recorded before the previous Extension ended; iOS may have terminated it." = "上一次延伸功能結束前記錄到嚴重記憶體壓力；可能已被 iOS 終止。";
 "Current" = "目前";
@@ -1095,6 +1096,7 @@
 "From URL…" = "從 URL 匯入…";
 "From profile" = "來自設定檔";
 "From profile · %@ entries" = "來自設定檔 · %@ 條";
+"From the profile" = "來自設定檔";
 "GC Reclaimed" = "GC 已回收";
 "GEO Rules" = "GEO 規則";
 "GEO Rules shows the compiled artifacts' size on disk — a trim price tag; their memory is already inside Config Parse." = "GEO 規則一行顯示的是編譯產物的磁碟尺寸（修剪價籤）；其記憶體已計入設定解析。";
@@ -1138,6 +1140,7 @@
 "Grouped by destination. Updates from the subscription replace these rules." = "按目標群組；訂閱更新會取代這些規則。";
 "Groups" = "群組";
 "Groups (%@)" = "群組（%@）";
+"HTTP + SOCKS5" = "HTTP + SOCKS5";
 "HTTP CONNECT upstream with optional authentication and TLS." = "HTTP CONNECT 上游，可選認證與 TLS。";
 "HTTP Demo" = "HTTP Demo";
 "HTTP Mask" = "HTTP 偽裝";
@@ -1145,6 +1148,7 @@
 "HTTP Mask Mode" = "HTTP 偽裝模式";
 "HTTP Mask TLS" = "HTTP 偽裝 TLS";
 "HTTP Multiplexing" = "HTTP 多路重複使用";
+"HTTP Port" = "HTTP 連接埠";
 "HTTP and HTTPS proxies have no UDP transport. Without this, matched traffic the outbound cannot carry falls through every rule and leaves over DIRECT with your own address." = "HTTP 與 HTTPS 代理沒有 UDP 傳輸通道。若不設定，命中規則但出口承載不了的流量會穿過全部規則，帶著你自己的網址經 DIRECT 出門。";
 "HTTP headers must use non-empty names and string values." = "HTTP 頭必須使用非空名稱與字串值。";
 "HTTP/3 MASQUE tunnel with key-based authentication and tunnel addressing." = "基於金鑰認證與通道定址的 HTTP/3 MASQUE 通道。";
@@ -1330,6 +1334,7 @@
 "Last Action" = "上次操作";
 "Last Operation" = "上次操作";
 "Last Profile" = "上一個設定檔";
+"Last Start" = "上次啟動";
 "Last Sync" = "上次同步";
 "Last activation" = "上次啟用";
 "Last sync %@" = "上次同步 %@";
@@ -1357,6 +1362,7 @@
 "Link · file · QR · clipboard" = "連結 · 檔案 · QR Code · 剪貼簿";
 "Link · file · clipboard" = "連結 · 檔案 · 剪貼簿";
 "List" = "列表";
+"Listener" = "監聽";
 "Listener Definitions" = "監聽定義";
 "Live" = "即時";
 "Live Traffic" = "即時流量";
@@ -1554,6 +1560,7 @@
 "Nameserver" = "nameserver";
 "Nameserver policy" = "nameserver-policy";
 "Nameserver policy · Fallback · Fake-IP · Cache" = "網域伺服器策略 · Fallback · Fake-IP · 快取";
+"Native Share" = "原生共享";
 "Needs %@" = "還需要%@";
 "Needs Attention" = "需要處理";
 "Nested Policy" = "巢狀策略";
@@ -1844,7 +1851,9 @@
 "Plugin Path" = "外掛路徑";
 "Plugin TLS" = "外掛 TLS";
 "Point the other device at one address above, over HTTP or SOCKS5, with this username and its saved password." = "讓另一台裝置透過 HTTP 或 SOCKS5 指向上面任一網址，使用此使用者名稱與已儲存的密碼。";
+"Point the other device at one address above, over HTTP or SOCKS5." = "在另一台裝置上把 HTTP 或 SOCKS5 代理指向上面任一網址。";
 "Port" = "連接埠";
+"Port %@ is the profile's listener, so the next free port is suggested." = "連接埠 %@ 已被設定檔監聽佔用，已改為下一個空閒連接埠。";
 "Port Hop Interval" = "連接埠跳躍間隔";
 "Port Hopping" = "連接埠跳躍 (ports)";
 "Port Range" = "連接埠範圍";
@@ -1920,6 +1929,7 @@
 "Project" = "專案主頁";
 "Protocol" = "協定";
 "Protocol Parameter" = "協定參數 (protocol-param)";
+"Protocols" = "協定";
 "Provider" = "外部資源";
 "Provider Choice" = "集合選擇";
 "Provider Fallback" = "集合回退";
@@ -2218,6 +2228,7 @@
 "Runtime identity was not yet confirmed" = "執行例項尚未確認";
 "Runtime settings saved for all profiles" = "執行階段設定已對所有設定檔儲存";
 "SOCKS5 Demo" = "SOCKS5 Demo";
+"SOCKS5 Port" = "SOCKS5 連接埠";
 "SOCKS5 upstream with optional authentication, TLS, and UDP relay." = "SOCKS5 上游，可選認證、TLS 與 UDP 轉發。";
 "SSH Demo" = "SSH Demo";
 "SSID Match" = "SSID 符合";
@@ -2311,6 +2322,7 @@
 "Share Log" = "分享記錄";
 "Share Profile" = "共享設定檔";
 "Share Report" = "共享報告";
+"Share on the Local Network" = "區域網路共享";
 "Shared Configuration.yaml" = "Shared Configuration.yaml";
 "Sharing stops first. The saved username and password are then removed from this device." = "先停止共享，再從本機移除已儲存的使用者名稱與密碼。";
 "Shell" = "Shell";
@@ -2686,6 +2698,7 @@
 "The profile could not be saved." = "設定檔無法儲存。";
 "The profile is no longer available." = "這個設定檔已不存在。";
 "The profile list could not be read, so it was left untouched. Restore from a backup, or remove the app's data to start over." = "設定檔列表無法讀取，已原樣保留未做改動。請從備份回復，或刪除 App 資料重新開始。";
+"The profile sets no authentication: anyone on this network can use this proxy." = "設定檔沒有 authentication：區域網路內任何人都能用這個代理。";
 "The profile was not deleted." = "設定檔沒有刪除。";
 "The profile's own rules remain in effect. Add only the exception you need." = "設定檔自帶的規則仍然生效。只新增你需要的例外。";
 "The profile's saved selection could not be cleared." = "無法清除設定檔裡儲存的選擇。";
@@ -2830,6 +2843,7 @@
 "This is not a rule head Clash's iOS editor recognizes." = "這不是 Clash iOS 編輯器可識別的規則頭。";
 "This is not valid YAML. Check the line the editor marked, then save again." = "這不是有效的 YAML。檢查編輯器標出的那一行，然後重新儲存。";
 "This is not valid configuration YAML: %@" = "這不是有效的設定 YAML：%@";
+"This is the profile's allow-lan. Written in the profile, it is read as written; not written, turning this on writes an override. Takes effect the next time the tunnel starts." = "對應設定檔裡的 allow-lan：設定檔寫了就照設定檔讀取，沒寫時開啟開關即寫入覆寫；下次連線生效。";
 "This link is not encrypted. Credentials in the address travel in the clear." = "這條連結不加密。網址裡的認證資訊會明文過網。";
 "This mode sends all traffic without a proxy, so proxy groups and nodes are not listed." = "此模式下所有流量不經過代理，因此不列出代理群組與節點。";
 "This name could not be resolved just now." = "剛才無法解析該網域。";

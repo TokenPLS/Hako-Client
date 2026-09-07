@@ -710,6 +710,7 @@
 "Creating the copy…" = "Creating the copy…";
 "Credential needs attention" = "Credential needs attention";
 "Credentials" = "Credentials";
+"Credentials come from the profile's authentication." = "Credentials come from the profile's authentication.";
 "Credentials stay in the device Keychain. Chains use dialer-proxy; neither feature rewrites the downloaded source." = "Credentials stay in the device Keychain. Chains use dialer-proxy; neither feature rewrites the downloaded source.";
 "Critical memory pressure was recorded before the previous Extension ended; iOS may have terminated it." = "Critical memory pressure was recorded before the previous Extension ended; iOS may have terminated it.";
 "Current" = "Current";
@@ -1095,6 +1096,7 @@
 "From URL…" = "From URL…";
 "From profile" = "From profile";
 "From profile · %@ entries" = "From profile · %@ entries";
+"From the profile" = "From the profile";
 "GC Reclaimed" = "GC Reclaimed";
 "GEO Rules" = "GEO Rules";
 "GEO Rules shows the compiled artifacts' size on disk — a trim price tag; their memory is already inside Config Parse." = "GEO Rules shows the compiled artifacts' size on disk — a trim price tag; their memory is already inside Config Parse.";
@@ -1138,6 +1140,7 @@
 "Grouped by destination. Updates from the subscription replace these rules." = "Grouped by destination. Updates from the subscription replace these rules.";
 "Groups" = "Groups";
 "Groups (%@)" = "Groups (%@)";
+"HTTP + SOCKS5" = "HTTP + SOCKS5";
 "HTTP CONNECT upstream with optional authentication and TLS." = "HTTP CONNECT upstream with optional authentication and TLS.";
 "HTTP Demo" = "HTTP Demo";
 "HTTP Mask" = "HTTP Mask";
@@ -1145,6 +1148,7 @@
 "HTTP Mask Mode" = "HTTP Mask Mode";
 "HTTP Mask TLS" = "HTTP Mask TLS";
 "HTTP Multiplexing" = "HTTP Multiplexing";
+"HTTP Port" = "HTTP Port";
 "HTTP and HTTPS proxies have no UDP transport. Without this, matched traffic the outbound cannot carry falls through every rule and leaves over DIRECT with your own address." = "HTTP and HTTPS proxies have no UDP transport. Without this, matched traffic the outbound cannot carry falls through every rule and leaves over DIRECT with your own address.";
 "HTTP headers must use non-empty names and string values." = "HTTP headers must use non-empty names and string values.";
 "HTTP/3 MASQUE tunnel with key-based authentication and tunnel addressing." = "HTTP/3 MASQUE tunnel with key-based authentication and tunnel addressing.";
@@ -1330,6 +1334,7 @@
 "Last Action" = "Last Action";
 "Last Operation" = "Last Operation";
 "Last Profile" = "Last Profile";
+"Last Start" = "Last Start";
 "Last Sync" = "Last Sync";
 "Last activation" = "Last activation";
 "Last sync %@" = "Last sync %@";
@@ -1357,6 +1362,7 @@
 "Link · file · QR · clipboard" = "Link · file · QR · clipboard";
 "Link · file · clipboard" = "Link · file · clipboard";
 "List" = "List";
+"Listener" = "Listener";
 "Listener Definitions" = "Listener Definitions";
 "Live" = "Live";
 "Live Traffic" = "Live Traffic";
@@ -1554,6 +1560,7 @@
 "Nameserver" = "Nameserver";
 "Nameserver policy" = "Nameserver policy";
 "Nameserver policy · Fallback · Fake-IP · Cache" = "Nameserver policy · Fallback · Fake-IP · Cache";
+"Native Share" = "Native Share";
 "Needs %@" = "Needs %@";
 "Needs Attention" = "Needs Attention";
 "Nested Policy" = "Nested Policy";
@@ -1844,7 +1851,9 @@
 "Plugin Path" = "Plugin Path";
 "Plugin TLS" = "Plugin TLS";
 "Point the other device at one address above, over HTTP or SOCKS5, with this username and its saved password." = "Point the other device at one address above, over HTTP or SOCKS5, with this username and its saved password.";
+"Point the other device at one address above, over HTTP or SOCKS5." = "Point the other device at one address above, over HTTP or SOCKS5.";
 "Port" = "Port";
+"Port %@ is the profile's listener, so the next free port is suggested." = "Port %@ is the profile's listener, so the next free port is suggested.";
 "Port Hop Interval" = "Port Hop Interval";
 "Port Hopping" = "Port Hopping";
 "Port Range" = "Port Range";
@@ -1920,6 +1929,7 @@
 "Project" = "Project";
 "Protocol" = "Protocol";
 "Protocol Parameter" = "Protocol Parameter";
+"Protocols" = "Protocols";
 "Provider" = "Provider";
 "Provider Choice" = "Provider Choice";
 "Provider Fallback" = "Provider Fallback";
@@ -2218,6 +2228,7 @@
 "Runtime identity was not yet confirmed" = "Runtime identity was not yet confirmed";
 "Runtime settings saved for all profiles" = "Runtime settings saved for all profiles";
 "SOCKS5 Demo" = "SOCKS5 Demo";
+"SOCKS5 Port" = "SOCKS5 Port";
 "SOCKS5 upstream with optional authentication, TLS, and UDP relay." = "SOCKS5 upstream with optional authentication, TLS, and UDP relay.";
 "SSH Demo" = "SSH Demo";
 "SSID Match" = "SSID Match";
@@ -2311,6 +2322,7 @@
 "Share Log" = "Share Log";
 "Share Profile" = "Share Profile";
 "Share Report" = "Share Report";
+"Share on the Local Network" = "Share on the Local Network";
 "Shared Configuration.yaml" = "Shared Configuration.yaml";
 "Sharing stops first. The saved username and password are then removed from this device." = "Sharing stops first. The saved username and password are then removed from this device.";
 "Shell" = "Shell";
@@ -2686,6 +2698,7 @@
 "The profile could not be saved." = "The profile could not be saved.";
 "The profile is no longer available." = "The profile is no longer available.";
 "The profile list could not be read, so it was left untouched. Restore from a backup, or remove the app's data to start over." = "The profile list could not be read, so it was left untouched. Restore from a backup, or remove the app's data to start over.";
+"The profile sets no authentication: anyone on this network can use this proxy." = "The profile sets no authentication: anyone on this network can use this proxy.";
 "The profile was not deleted." = "The profile was not deleted.";
 "The profile's own rules remain in effect. Add only the exception you need." = "The profile's own rules remain in effect. Add only the exception you need.";
 "The profile's saved selection could not be cleared." = "The profile's saved selection could not be cleared.";
@@ -2830,6 +2843,7 @@
 "This is not a rule head Clash's iOS editor recognizes." = "This is not a rule head Clash's iOS editor recognizes.";
 "This is not valid YAML. Check the line the editor marked, then save again." = "This is not valid YAML. Check the line the editor marked, then save again.";
 "This is not valid configuration YAML: %@" = "This is not valid configuration YAML: %@";
+"This is the profile's allow-lan. Written in the profile, it is read as written; not written, turning this on writes an override. Takes effect the next time the tunnel starts." = "This is the profile's allow-lan. Written in the profile, it is read as written; not written, turning this on writes an override. Takes effect the next time the tunnel starts.";
 "This link is not encrypted. Credentials in the address travel in the clear." = "This link is not encrypted. Credentials in the address travel in the clear.";
 "This mode sends all traffic without a proxy, so proxy groups and nodes are not listed." = "This mode sends all traffic without a proxy, so proxy groups and nodes are not listed.";
 "This name could not be resolved just now." = "This name could not be resolved just now.";

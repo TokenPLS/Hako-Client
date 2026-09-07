@@ -562,6 +562,7 @@ final class ProfileActivationCoordinator {
         }
     }
     private let activationFetchBudget: ProviderFetchBudget
+    private let lanPermission: (Bool) -> Void
      
      
      
@@ -637,11 +638,24 @@ final class ProfileActivationCoordinator {
          scheduleDeferredCompilation: @escaping (@escaping () -> Void) -> Void = {
              ProfileActivationCoordinator.deferredCompilationQueue.async(execute: $0)
          },
+          
+          
+          
+          
+          
+          
+          
+         lanPermission: @escaping (Bool) -> Void = {
+             LocalNetworkPermission.setPermitted(
+                 $0, in: UserDefaults(suiteName: HakoAppIdentifiers.appGroup)
+             )
+         },
          now: @escaping () -> Date = Date.init,
          log: @escaping (String) -> Void = {
              HakoLogStore.shared.append($0, stream: .app)
          }) {
         self.store = store
+        self.lanPermission = lanPermission
         self.profileStore = profileStore
         self.credentials = credentials
         self.coreHomeDir = coreHomeDir
@@ -1574,6 +1588,12 @@ final class ProfileActivationCoordinator {
                     finalData: Data(finalYAML.utf8)
                 )
             }
+             
+             
+             
+             
+             
+            lanPermission(ProfileListenerPorts.parse(yaml: finalYAML)?.allowLAN ?? false)
              
              
              

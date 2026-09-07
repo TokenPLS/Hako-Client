@@ -254,6 +254,40 @@ struct AppShellView: View {
                     LocalNetworkPermission.isPermitted(UserDefaults(suiteName: HakoAppIdentifiers.appGroup))
                 }
             )
+             
+             
+             
+             
+            proxyShare.bind(kernelShare: KernelLANShareBinding(
+                profileSourceYAML: { [profiles] in
+                    guard let active = profiles.profiles.first(where: { $0.id == profiles.activeProfileID })
+                    else { return nil }
+                    return profiles.sourceYAML(for: active)
+                },
+                 
+                 
+                 
+                override: { [vpn] in
+                    let patch = OverridePatch(patchJSON: FlClashRuntimeConfig.load(from: vpn.clientPreferences).patchJSON)
+                    return KernelLANShareOverride(
+                        allowLAN: patch.value(at: ["allow-lan"]) as? Bool,
+                        mixedPort: (patch.value(at: ["mixed-port"]) as? NSNumber).flatMap { Int32(exactly: $0.doubleValue) }
+                    )
+                },
+                writeOverride: { [profiles] override in
+                    guard let id = profiles.activeProfileID else {
+                        throw PipelineError.sourceUnavailable("the profile is no longer available")
+                    }
+                    try profiles.updateGlobalLANShare(
+                        allowLAN: override.allowLAN, mixedPort: override.mixedPort, profileID: id
+                    )
+                },
+                setPermitted: {
+                    LocalNetworkPermission.setPermitted(
+                        $0, in: UserDefaults(suiteName: HakoAppIdentifiers.appGroup)
+                    )
+                }
+            ))
             stun.bind(command: command)
             vpn.legacySettingsMigration = vpn.migrateLegacyGlobalSettingsIfNeeded()
             await vpn.refresh()

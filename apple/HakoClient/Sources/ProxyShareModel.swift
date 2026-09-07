@@ -559,6 +559,62 @@ private final class ProxyShareTimeoutGate<Value>: @unchecked Sendable {
     }
 }
 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+struct KernelLANShare: Equatable {
+    enum Source: Equatable {
+         
+        case profile
+         
+        case override
+         
+        case none
+    }
+
+    let isOn: Bool
+    let source: Source
+     
+    let listener: ProfileListenerPorts?
+
+    static let unbound = KernelLANShare(isOn: false, source: .none, listener: nil)
+
+     
+     
+    static let defaultPort: Int32 = 7890
+}
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+struct KernelLANShareOverride: Equatable {
+    var allowLAN: Bool?
+    var mixedPort: Int32?
+}
+
+ 
+ 
+ 
+ 
+ 
+struct KernelLANShareBinding {
+    let profileSourceYAML: @MainActor () -> String?
+    let override: @MainActor () -> KernelLANShareOverride
+     
+    let writeOverride: @MainActor (KernelLANShareOverride) throws -> Void
+    let setPermitted: @MainActor (Bool) -> Void
+}
+
 @MainActor
 final class ProxyShareModel: ObservableObject {
     @Published private(set) var phase: ProxySharePhase = .unavailable
@@ -581,6 +637,14 @@ final class ProxyShareModel: ObservableObject {
         self?.terminalListenerDidChange.send()
     }
     private var lanListenerPermitted: () -> Bool = { false }
+    private var kernelShareBinding: KernelLANShareBinding?
+     
+     
+     
+     
+     
+     
+    @Published private(set) var kernelShareInFlight: Bool?
     private let vault: ProxyShareCredentialVault
     private let preferences: ProxySharePreferences
     private let addressProvider: () -> [String]
@@ -627,6 +691,95 @@ final class ProxyShareModel: ObservableObject {
         self.lanListenerPermitted = lanListenerPermitted
     }
 
+    func bind(kernelShare binding: KernelLANShareBinding) {
+        kernelShareBinding = binding
+    }
+
+     
+     
+     
+     
+    var kernelShare: KernelLANShare {
+        let listener = currentProfileListener()
+        let override = kernelShareBinding?.override().allowLAN
+        let isOn = kernelShareInFlight ?? override ?? (listener?.allowLAN ?? false)
+        let source: KernelLANShare.Source
+        if override != nil {
+            source = .override
+        } else {
+            source = isOn ? .profile : .none
+        }
+        return KernelLANShare(isOn: isOn, source: source, listener: listener)
+    }
+
+     
+     
+     
+     
+     
+     
+    var nativeSharePortSuggestion: Int32? {
+        let share = kernelShare
+        guard share.isOn, let listener = share.listener else { return nil }
+        let taken = Set([listener.mixedPort, listener.httpPort, listener.socksPort].compactMap { $0 })
+        guard taken.contains(rememberedPort) else { return nil }
+        var candidate = rememberedPort
+        repeat { candidate += 1 } while taken.contains(candidate) && candidate < HakoProxyShareMaximumPort
+        return candidate
+    }
+
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+    func setKernelShare(on: Bool) async {
+        guard let binding = kernelShareBinding else { return }
+        kernelShareInFlight = on
+        defer { kernelShareInFlight = nil }
+        let source = binding.profileSourceYAML()
+        let parser = profileListenerParser
+        let profile = await Task.detached(priority: .userInitiated) {
+            source.flatMap(parser)
+        }.value
+        let profileAsksForIt = profile?.allowLAN ?? false
+         
+        let profileHasPort = profile != nil
+        let current = binding.override()
+        var override = KernelLANShareOverride()
+        override.allowLAN = on == profileAsksForIt ? nil : on
+        if on, !profileHasPort, current.mixedPort == nil {
+            override.mixedPort = KernelLANShare.defaultPort
+        }
+        do {
+            try binding.writeOverride(override)
+            binding.setPermitted(on)
+            errorMessage = ""
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        objectWillChange.send()
+        terminalListenerDidChange.send()
+    }
+
+     
+     
+    private func currentProfileListener() -> ProfileListenerPorts? {
+        if let profileYAML {
+            switch preparedProfileListener.read(yaml: profileYAML()) {
+            case .preparing: return nil
+            case .ready(let prepared): return prepared
+            }
+        }
+        return profileListener()
+    }
+
      
      
      
@@ -634,15 +787,11 @@ final class ProxyShareModel: ObservableObject {
      
      
     var terminalListener: ProxyTerminalListener? {
-        let profile: ProfileListenerPorts?
-        if let profileYAML {
-            switch preparedProfileListener.read(yaml: profileYAML()) {
-            case .preparing: return nil
-            case .ready(let prepared): profile = prepared
-            }
-        } else {
-            profile = profileListener()
+        if let profileYAML,
+           case .preparing = preparedProfileListener.read(yaml: profileYAML()) {
+            return nil
         }
+        let profile = currentProfileListener()
         if let profile {
             let http = profile.mixedPort ?? profile.httpPort
             let socks = profile.mixedPort ?? profile.socksPort
