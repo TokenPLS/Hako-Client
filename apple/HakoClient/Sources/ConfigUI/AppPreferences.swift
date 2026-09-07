@@ -5,6 +5,10 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     case system
     case english
     case simplifiedChinese
+     
+     
+     
+    case traditionalChinese
 
     var id: String { rawValue }
 
@@ -13,6 +17,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         case .system: return "System Default"
         case .english: return "English"
         case .simplifiedChinese: return "Simplified Chinese"
+        case .traditionalChinese: return "Traditional Chinese"
         }
     }
 
@@ -24,6 +29,8 @@ enum AppLanguage: String, CaseIterable, Identifiable {
             return Locale(identifier: "en")
         case .simplifiedChinese:
             return Locale(identifier: "zh-Hans")
+        case .traditionalChinese:
+            return Locale(identifier: "zh-Hant")
         }
     }
 }
@@ -120,6 +127,8 @@ enum AppPreferences {
             standard.set(["en"], forKey: bundleLanguageKey)
         case .simplifiedChinese:
             standard.set(["zh-Hans"], forKey: bundleLanguageKey)
+        case .traditionalChinese:
+            standard.set(["zh-Hant"], forKey: bundleLanguageKey)
         }
     }
 

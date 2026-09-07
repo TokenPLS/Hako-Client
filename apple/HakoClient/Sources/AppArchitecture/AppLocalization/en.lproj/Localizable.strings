@@ -2889,6 +2889,7 @@
 "Tools" = "Tools";
 "Top-level interface names and Linux routing marks are not applied. Apple selects physical egress through Network Extension and its current network path." = "Top-level interface names and Linux routing marks are not applied. Apple selects physical egress through Network Extension and its current network path.";
 "Total %@" = "Total %@";
+"Traditional Chinese" = "Traditional Chinese";
 "Traffic" = "Traffic";
 "Traffic Pattern" = "Traffic Pattern";
 "Traffic Recognition" = "Traffic Recognition";

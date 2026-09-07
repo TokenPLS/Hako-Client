@@ -2889,6 +2889,7 @@
 "Tools" = "工具";
 "Top-level interface names and Linux routing marks are not applied. Apple selects physical egress through Network Extension and its current network path." = "顶层网卡名与 Linux 路由标记不会生效。Apple 通过网络扩展及其当前网络路径选择物理出口。";
 "Total %@" = "共 %@";
+"Traditional Chinese" = "繁体中文";
 "Traffic" = "流量";
 "Traffic Pattern" = "流量模式";
 "Traffic Recognition" = "流量识别";
