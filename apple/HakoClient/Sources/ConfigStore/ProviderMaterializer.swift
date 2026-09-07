@@ -781,9 +781,29 @@ final class ProviderMaterializer {
         }
         guard !toFetch.isEmpty else { return acquired }
 
+         
+         
+         
+         
+         
+         
+         
+         
+        var leaders: [(index: Int, request: URLRequest, name: String, url: String?)] = []
+        var leaderIndex: [URLRequest: Int] = [:]
+        var followers: [Int: [(index: Int, name: String, url: String?)]] = [:]
+        for item in toFetch {
+            if let leader = leaderIndex[item.request] {
+                followers[leader, default: []].append((item.index, item.name, item.url))
+            } else {
+                leaderIndex[item.request] = item.index
+                leaders.append(item)
+            }
+        }
+
         try await withThrowingTaskGroup(of: (Int, AcquiredPayload).self) { group in
             var next = 0
-            let inFlight = min(budget == .patient ? Self.concurrentFetches : Self.quickConcurrentFetches, toFetch.count)
+            let inFlight = min(budget == .patient ? Self.concurrentFetches : Self.quickConcurrentFetches, leaders.count)
             func start(_ item: (index: Int, request: URLRequest, name: String, url: String?)) {
                 group.addTask { [fetcher] in
                     let result: DownloadResult
@@ -826,13 +846,24 @@ final class ProviderMaterializer {
                 }
             }
             while next < inFlight {
-                start(toFetch[next])
+                start(leaders[next])
                 next += 1
             }
             for try await (index, payload) in group {
                 acquired[index] = payload
-                if next < toFetch.count {
-                    start(toFetch[next])
+                for follower in followers[index] ?? [] {
+                    acquired[follower.index] = payload.failure.map { failure in
+                        AcquiredPayload(
+                            data: nil, refreshed: false, subscriptionUserInfo: nil,
+                            failure: ProviderDownloadFailure(
+                                provider: follower.name, url: follower.url,
+                                underlying: failure.underlying
+                            )
+                        )
+                    } ?? payload
+                }
+                if next < leaders.count {
+                    start(leaders[next])
                     next += 1
                 }
             }
