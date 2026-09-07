@@ -2542,6 +2542,18 @@ private final class HakoMacSceneModel: ObservableObject {
         nodes.bind(command: command)
         stun.bind(command: command)
         proxyShare.bind(command: command)
+         
+         
+         
+        proxyShare.bind(profileListener: { [weak self] in
+            guard let self,
+                  let active = self.profiles.profiles.first(where: { $0.id == self.profiles.activeProfileID }),
+                  let yaml = self.profiles.effectiveYAML(for: active)
+            else { return nil }
+            return ProfileListenerPorts.parse(yaml: yaml)
+        }, lanListenerPermitted: {
+            LocalNetworkPermission.isPermitted(UserDefaults(suiteName: HakoAppIdentifiers.appGroup))
+        })
     }
 
      
@@ -3230,8 +3242,33 @@ extension HakoMacSceneModel {
             hidesDockIcon: UserDefaults.standard.bool(forKey: HakoMacDockIcon.key),
             upLine: menuBarTraffic.upLine,
             downLine: menuBarTraffic.downLine,
-            offersQuitLeavingTunnel: false
+            offersQuitLeavingTunnel: false,
+            offersShellCommand: proxyShare.terminalListener != nil,
+            offersExternalShellCommand: proxyShare.terminalListener?.lanReachable == true && proxyShare.reachableAddresses.first != nil,
+             
+            prefersLoopbackShellCommand: false
         )
+    }
+
+     
+     
+     
+     
+    private func copyShellCommand(externalIP: Bool) {
+        guard let listener = proxyShare.terminalListener else { return }
+        guard let host = externalIP ? proxyShare.reachableAddresses.first : "127.0.0.1" else { return }
+        let text = ProxyEnvironmentCommand.text(
+            shell: ProxyEnvironmentShell.remembered(in: .standard),
+            endpoint: ProxyEnvironmentEndpoint(
+                host: host,
+                httpPort: listener.httpPort,
+                socksPort: listener.socksPort,
+                username: listener.username,
+                password: proxyShare.terminalPassword(for: listener)
+            )
+        )
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
      
@@ -3271,6 +3308,9 @@ extension HakoMacSceneModel {
             NSApplication.shared.terminate(nil)
         }
         actions.quit = { NSApplication.shared.terminate(nil) }
+        actions.copyShellCommand = { [weak self] externalIP in
+            self?.copyShellCommand(externalIP: externalIP)
+        }
         return actions
     }
 }

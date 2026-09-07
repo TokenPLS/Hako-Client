@@ -569,6 +569,8 @@ final class ProxyShareModel: ObservableObject {
     @Published private(set) var localAddresses: [String] = []
 
     private weak var command: ProxyShareCommanding?
+    private var profileListener: () -> ProfileListenerPorts? = { nil }
+    private var lanListenerPermitted: () -> Bool = { false }
     private let vault: ProxyShareCredentialVault
     private let preferences: ProxySharePreferences
     private let addressProvider: () -> [String]
@@ -589,6 +591,49 @@ final class ProxyShareModel: ObservableObject {
         rememberedPort = preferences.port()
         refreshCredentialSummary()
         refreshAddresses()
+    }
+
+     
+     
+     
+    func bind(
+        profileListener: @escaping () -> ProfileListenerPorts?,
+        lanListenerPermitted: @escaping () -> Bool
+    ) {
+        self.profileListener = profileListener
+        self.lanListenerPermitted = lanListenerPermitted
+    }
+
+     
+     
+     
+     
+     
+     
+    var terminalListener: ProxyTerminalListener? {
+        if let profile = profileListener() {
+            let http = profile.mixedPort ?? profile.httpPort
+            let socks = profile.mixedPort ?? profile.socksPort
+            if http != nil || socks != nil {
+                return ProxyTerminalListener(
+                    source: .profile, httpPort: http, socksPort: socks,
+                    username: profile.credentials?.username ?? "",
+                    password: profile.credentials?.password ?? "",
+                    lanReachable: profile.allowLAN && lanListenerPermitted()
+                )
+            }
+        }
+        guard status.enabled else { return nil }
+        return ProxyTerminalListener(
+            source: .share, httpPort: status.port, socksPort: status.port,
+            username: savedUsername, password: "", lanReachable: true
+        )
+    }
+
+     
+     
+    func terminalPassword(for listener: ProxyTerminalListener) -> String {
+        listener.source == .share ? (savedPassword() ?? "") : listener.password
     }
 
     func bind(command: ProxyShareCommanding) {
@@ -790,6 +835,29 @@ final class ProxyShareModel: ObservableObject {
         let credentials = vault.load()
         savedUsername = credentials?.username ?? ""
         hasSavedPassword = credentials != nil
+    }
+
+     
+     
+     
+    func savedPassword() -> String? {
+        vault.load()?.password
+    }
+
+     
+     
+     
+     
+     
+     
+    var reachableAddresses: [String] {
+        let dialable = localAddresses.filter { address in
+            let value = address.lowercased()
+            return !value.hasPrefix("169.254.")
+                && !value.hasPrefix("fe80:")
+                && !value.contains("%")
+        }
+        return dialable.isEmpty ? localAddresses : dialable
     }
 
     private func publish(error: Error) {

@@ -80,7 +80,7 @@
 "In use" = "使用中";
 "In use. The tunnel fetches its configuration from this address." = "使用中。通道從這個網址取得設定。";
 "Last known choice" = "上次已知的選擇";
-"Last observed duration" = "最後觀測到的時長";
+"Last observed duration" = "最後觀測到的持續時間";
 "Last problem" = "最近一次問題";
 "Last read %@" = "上次讀取 %@";
 "Latency values are the last test results; reading the list does not run a test." = "延遲數值來自上次測試；讀取列表不會進行測試。";

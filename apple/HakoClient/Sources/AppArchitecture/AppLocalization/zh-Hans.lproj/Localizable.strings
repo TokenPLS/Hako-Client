@@ -662,8 +662,11 @@
 "Copied" = "已复制";
 "Copied only when you ask" = "仅在你要求时复制";
 "Copy" = "复制";
+"Copy (External IP)" = "复制（外部 IP）";
 "Copy Diagnostic Code" = "复制诊断代码";
 "Copy Groups and Rules from Profile" = "从配置复制分组与规则";
+"Copy Shell Command" = "复制终端代理命令";
+"Copy Shell Command (127.0.0.1)" = "复制终端代理命令（127.0.0.1）";
 "Copy Subscription Link" = "复制订阅链接";
 "Copy YAML" = "复制 YAML";
 "Core" = "内核";
@@ -951,6 +954,7 @@
 "Enter what this rule matches." = "填写这条规则匹配什么。";
 "Enters through" = "入口经由";
 "Entry" = "入口";
+"Environment Variables" = "环境变量";
 "Ephemeral Node" = "临时节点 (Ephemeral)";
 "Error · Dark" = "Error · Dark";
 "Error: another script already uses that name." = "错误：已有脚本使用该名称。";
@@ -2309,6 +2313,7 @@
 "Share Report" = "共享报告";
 "Shared Configuration.yaml" = "Shared Configuration.yaml";
 "Sharing stops first. The saved username and password are then removed from this device." = "先停止共享，再从本机移除已保存的用户名与密码。";
+"Shell" = "Shell";
 "Short ID" = "Short ID";
 "Shortcuts & Controls" = "快捷指令与控件";
 "Shortcuts & Siri" = "快捷指令与 Siri";
@@ -2488,6 +2493,7 @@
 "Target" = "目标";
 "Target not in this profile" = "目标不在此配置中";
 "Technical details" = "技术细节";
+"Terminal" = "终端";
 "Terms of Use" = "Terms of Use";
 "Test All" = "全部测速";
 "Test All Chains" = "测试全部链路";

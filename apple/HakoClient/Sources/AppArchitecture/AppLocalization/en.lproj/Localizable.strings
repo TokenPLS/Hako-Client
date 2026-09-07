@@ -662,8 +662,11 @@
 "Copied" = "Copied";
 "Copied only when you ask" = "Copied only when you ask";
 "Copy" = "Copy";
+"Copy (External IP)" = "Copy (External IP)";
 "Copy Diagnostic Code" = "Copy Diagnostic Code";
 "Copy Groups and Rules from Profile" = "Copy Groups and Rules from Profile";
+"Copy Shell Command" = "Copy Shell Command";
+"Copy Shell Command (127.0.0.1)" = "Copy Shell Command (127.0.0.1)";
 "Copy Subscription Link" = "Copy Subscription Link";
 "Copy YAML" = "Copy YAML";
 "Core" = "Core";
@@ -951,6 +954,7 @@
 "Enter what this rule matches." = "Enter what this rule matches.";
 "Enters through" = "Enters through";
 "Entry" = "Entry";
+"Environment Variables" = "Environment Variables";
 "Ephemeral Node" = "Ephemeral Node";
 "Error · Dark" = "Error · Dark";
 "Error: another script already uses that name." = "Error: another script already uses that name.";
@@ -2309,6 +2313,7 @@
 "Share Report" = "Share Report";
 "Shared Configuration.yaml" = "Shared Configuration.yaml";
 "Sharing stops first. The saved username and password are then removed from this device." = "Sharing stops first. The saved username and password are then removed from this device.";
+"Shell" = "Shell";
 "Short ID" = "Short ID";
 "Shortcuts & Controls" = "Shortcuts & Controls";
 "Shortcuts & Siri" = "Shortcuts & Siri";
@@ -2488,6 +2493,7 @@
 "Target" = "Target";
 "Target not in this profile" = "Target not in this profile";
 "Technical details" = "Technical details";
+"Terminal" = "Terminal";
 "Terms of Use" = "Terms of Use";
 "Test All" = "Test All";
 "Test All Chains" = "Test All Chains";

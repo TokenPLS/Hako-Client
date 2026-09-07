@@ -21,6 +21,15 @@ struct HakoMacStatusMenuSnapshot: Equatable {
      
      
     var offersQuitLeavingTunnel: Bool
+     
+     
+     
+    var offersShellCommand: Bool
+    var offersExternalShellCommand: Bool
+     
+     
+     
+    var prefersLoopbackShellCommand: Bool
 }
 
  
@@ -38,6 +47,9 @@ struct HakoMacStatusMenuActions {
     var openApp: () -> Void = {}
     var quitLeavingTunnel: () -> Void = {}
     var quit: () -> Void = {}
+     
+     
+    var copyShellCommand: (_ externalIP: Bool) -> Void = { _ in }
 
     static let none = HakoMacStatusMenuActions()
 }
@@ -84,7 +96,9 @@ enum HakoMacStatusMenuBuilder {
         }
 
          
-        menu.addItem(label(copy(snapshot.phase.statusTitle)))
+         
+         
+         
         switch HakoMacMenuPrimaryRow.resolve(
             phase: snapshot.phase,
             intent: snapshot.primaryIntent
@@ -94,7 +108,7 @@ enum HakoMacStatusMenuBuilder {
         case .cancelStart:
             menu.addItem(row(copy("Cancel"), identifier: "menu-bar.cancel-start", actions.cancelStart))
         case .none:
-            break
+            menu.addItem(label(copy(snapshot.phase.statusTitle)))
         }
 
          
@@ -156,6 +170,29 @@ enum HakoMacStatusMenuBuilder {
                 item.submenu = submenu
                 menu.addItem(item)
             }
+        }
+
+         
+         
+         
+         
+         
+        menu.addItem(.separator())
+        if snapshot.prefersLoopbackShellCommand {
+            let loopback = row(
+                copy("Copy Shell Command (127.0.0.1)"),
+                identifier: "menu-bar.copy-shell-command-loopback"
+            ) { actions.copyShellCommand(false) }
+            loopback.isEnabled = snapshot.offersShellCommand
+            menu.addItem(loopback)
+        } else {
+            let external = snapshot.offersExternalShellCommand
+            let line = row(
+                copy("Copy Shell Command"),
+                identifier: "menu-bar.copy-shell-command"
+            ) { actions.copyShellCommand(external) }
+            line.isEnabled = snapshot.offersShellCommand
+            menu.addItem(line)
         }
 
          
@@ -332,6 +369,8 @@ final class HakoMacStatusMenuController: NSObject, NSMenuDelegate {
         guard menu.items.isEmpty else { return }
         var current = snapshot()
         current.offersQuitLeavingTunnel = optionIsHeld() && tunnelIsUp()
+         
+        current.prefersLoopbackShellCommand = optionIsHeld()
         let built = HakoMacStatusMenuBuilder.makeMenu(current, actions: actions, locale: locale)
         for item in built.items {
             built.removeItem(item)
@@ -438,7 +477,10 @@ extension HakoMacStatusMenuSnapshot {
         hidesDockIcon: false,
         upLine: "",
         downLine: "",
-        offersQuitLeavingTunnel: false
+        offersQuitLeavingTunnel: false,
+        offersShellCommand: false,
+        offersExternalShellCommand: false,
+        prefersLoopbackShellCommand: false
     )
 }
 

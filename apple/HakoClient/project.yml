@@ -546,6 +546,7 @@ targets:
     - path: Shared/LocalNetworkPermission.swift
     - path: Sources/ConfigStore/CoreLogExcerpt.swift
     - path: Sources/ProxyShareModel.swift
+    - path: Sources/ProfileListenerPorts.swift
     - path: Sources/ConfigStore/CredentialStore.swift
     - path: Sources/ConfigUI/ClientUserAgent.swift
     - path: Shared/HakoLogStore.swift

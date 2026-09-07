@@ -241,6 +241,20 @@ struct AppShellView: View {
 
 
             proxyShare.bind(command: command)
+             
+             
+             
+            proxyShare.bind(
+                profileListener: { [profiles] in
+                    guard let active = profiles.profiles.first(where: { $0.id == profiles.activeProfileID }),
+                          let yaml = profiles.effectiveYAML(for: active)
+                    else { return nil }
+                    return ProfileListenerPorts.parse(yaml: yaml)
+                },
+                lanListenerPermitted: {
+                    LocalNetworkPermission.isPermitted(UserDefaults(suiteName: HakoAppIdentifiers.appGroup))
+                }
+            )
             stun.bind(command: command)
             vpn.legacySettingsMigration = vpn.migrateLegacyGlobalSettingsIfNeeded()
             await vpn.refresh()

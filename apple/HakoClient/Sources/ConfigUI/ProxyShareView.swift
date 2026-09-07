@@ -24,6 +24,13 @@ struct ProxyShareView: View {
      
      
     @State private var deviations: ConfigDeviationReport?
+    @AppStorage(ProxyEnvironmentShell.defaultsKey) private var environmentShellRaw = ProxyEnvironmentShell.bash.rawValue
+    @State private var environmentCopied: EnvironmentCopy?
+
+    private enum EnvironmentCopy {
+        case local
+        case external
+    }
     @State private var portText = ""
     @State private var username = ""
     @State private var password = ""
@@ -49,6 +56,9 @@ struct ProxyShareView: View {
             }
             serverSection
             securitySection
+            if model.terminalListener != nil {
+                terminalSection
+            }
             profileListenerSection
             listenerDeviationsSection
         }
@@ -315,20 +325,105 @@ struct ProxyShareView: View {
 
      
      
-     
-     
-     
-     
-     
-     
     private var reachableAddresses: [String] {
-        let dialable = model.localAddresses.filter { address in
-            let value = address.lowercased()
-            return !value.hasPrefix("169.254.")
-                && !value.hasPrefix("fe80:")
-                && !value.contains("%")
+        model.reachableAddresses
+    }
+
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+    private var terminalSection: some View {
+        Section {
+            Picker("Shell", selection: environmentShell) {
+                ForEach(ProxyEnvironmentShell.allCases) { shell in
+                    Text(verbatim: shell.title).tag(shell)
+                }
+            }
+            .accessibilityIdentifier("proxyShare.environment.shell")
+            HStack {
+                Text("Environment Variables")
+                Spacer()
+                Button(action: { copyEnvironment(externalIP: false) }) {
+                    if environmentCopied == .local {
+                        Text("Copied")
+                    } else {
+                        Text("Copy")
+                    }
+                }
+                .disabled(model.phase.isBusy)
+                .accessibilityIdentifier("proxyShare.environment.copy")
+#if os(macOS)
+                Button(action: { copyEnvironment(externalIP: true) }) {
+                    if environmentCopied == .external {
+                        Text("Copied")
+                    } else {
+                        Text("Copy (External IP)")
+                    }
+                }
+                .disabled(model.phase.isBusy || !externalLineIsAvailable)
+                .accessibilityIdentifier("proxyShare.environment.copy-external")
+#endif
+            }
+        } header: {
+            Text("Terminal")
         }
-        return dialable.isEmpty ? model.localAddresses : dialable
+    }
+
+     
+     
+    private var externalLineIsAvailable: Bool {
+        guard let listener = model.terminalListener else { return false }
+        return listener.lanReachable && reachableAddresses.first != nil
+    }
+
+    private var environmentShell: Binding<ProxyEnvironmentShell> {
+        Binding(
+            get: { ProxyEnvironmentShell(rawValue: environmentShellRaw) ?? .bash },
+            set: { environmentShellRaw = $0.rawValue }
+        )
+    }
+
+    private var environmentHost: String {
+#if os(macOS)
+        "127.0.0.1"
+#else
+        reachableAddresses.first ?? "127.0.0.1"
+#endif
+    }
+
+    private func copyEnvironment(externalIP: Bool) {
+        guard let listener = model.terminalListener else { return }
+        guard let host = externalIP ? reachableAddresses.first : environmentHost else { return }
+        let text = ProxyEnvironmentCommand.text(
+            shell: environmentShell.wrappedValue,
+            endpoint: ProxyEnvironmentEndpoint(
+                host: host,
+                httpPort: listener.httpPort,
+                socksPort: listener.socksPort,
+                username: listener.username,
+                password: model.terminalPassword(for: listener)
+            )
+        )
+#if canImport(UIKit)
+         
+         
+        CredentialPasteboardWrite.put(text)
+#else
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+#endif
+        environmentCopied = externalIP ? .external : .local
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            environmentCopied = nil
+        }
     }
 
     private var actionExplanation: String {

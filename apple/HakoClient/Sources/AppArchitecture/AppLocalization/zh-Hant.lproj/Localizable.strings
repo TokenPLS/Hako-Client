@@ -662,8 +662,11 @@
 "Copied" = "已複製";
 "Copied only when you ask" = "僅在你要求時複製";
 "Copy" = "拷貝";
+"Copy (External IP)" = "複製（外部 IP）";
 "Copy Diagnostic Code" = "複製診斷程式碼";
 "Copy Groups and Rules from Profile" = "從設定檔複製群組與規則";
+"Copy Shell Command" = "複製終端機代理指令";
+"Copy Shell Command (127.0.0.1)" = "複製終端機代理指令（127.0.0.1）";
 "Copy Subscription Link" = "複製訂閱連結";
 "Copy YAML" = "複製 YAML";
 "Core" = "核心";
@@ -951,6 +954,7 @@
 "Enter what this rule matches." = "填寫這條規則符合什麼。";
 "Enters through" = "入口經由";
 "Entry" = "入口";
+"Environment Variables" = "環境變數";
 "Ephemeral Node" = "臨時節點 (Ephemeral)";
 "Error · Dark" = "Error · Dark";
 "Error: another script already uses that name." = "錯誤：已有指令碼使用該名稱。";
@@ -2309,6 +2313,7 @@
 "Share Report" = "共享報告";
 "Shared Configuration.yaml" = "Shared Configuration.yaml";
 "Sharing stops first. The saved username and password are then removed from this device." = "先停止共享，再從本機移除已儲存的使用者名稱與密碼。";
+"Shell" = "Shell";
 "Short ID" = "Short ID";
 "Shortcuts & Controls" = "捷徑與控制項目";
 "Shortcuts & Siri" = "捷徑與 Siri";
@@ -2488,6 +2493,7 @@
 "Target" = "目標";
 "Target not in this profile" = "目標不在此設定檔中";
 "Technical details" = "技術細節";
+"Terminal" = "終端";
 "Terms of Use" = "Terms of Use";
 "Test All" = "全部測速";
 "Test All Chains" = "測試全部鏈路";
