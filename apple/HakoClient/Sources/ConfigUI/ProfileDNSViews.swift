@@ -376,7 +376,7 @@ struct ProfileDNSSettingsAdapter: View {
     private var actions: AppleClientActions {
         AppleClientActions(capability: .dns) { action in
             guard case .dns(let command) = action else {
-                throw AppleClientActionError.adapterFailure(.dns)
+                throw AppleClientActionError.unavailable(.dns, .notProvidedByAdapter)
             }
             switch command {
             case .openDNSQuery:
@@ -397,7 +397,18 @@ struct ProfileDNSSettingsAdapter: View {
                 var draft = ProfileDNSDraft(profile: profile)
                 draft.patchJSON = source.buildPatchJSON()
                 draft.dnsOverridesProfiles = source.overrideDNS
-                try save(draft)
+                do {
+                    try save(draft)
+                } catch {
+                     
+                     
+                     
+                    HakoLogStore.shared.append(
+                        "dns settings not saved: \((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)",
+                        stream: .app, level: .warning
+                    )
+                    throw error
+                }
             case .saveLocalMappings(let mappings):
                 guard let saveHosts else {
                     throw AppleClientActionError.unavailable(
@@ -523,7 +534,7 @@ struct ProfileHostsAdapter: View {
             guard case .dns(.saveLocalMappings(let mappings)) =
                 action
             else {
-                throw AppleClientActionError.adapterFailure(.dns)
+                throw AppleClientActionError.unavailable(.dns, .notProvidedByAdapter)
             }
             var draft = ProfileHostsDraft(profile: profile)
             draft.hosts = Dictionary(
@@ -532,7 +543,15 @@ struct ProfileHostsAdapter: View {
                 },
                 uniquingKeysWith: { _, latest in latest }
             )
-            try save(draft)
+            do {
+                try save(draft)
+            } catch {
+                HakoLogStore.shared.append(
+                    "local mappings not saved: \((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)",
+                    stream: .app, level: .warning
+                )
+                throw error
+            }
         }
     }
 }

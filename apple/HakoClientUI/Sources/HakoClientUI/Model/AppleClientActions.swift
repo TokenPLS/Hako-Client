@@ -211,7 +211,13 @@ public enum AppleClientActionError: Error, Equatable, Sendable {
         AppleClientUnavailableReason
     )
     case failed(AppleClientFailure)
-    case adapterFailure(AppleClientCapability)
+     
+     
+     
+     
+     
+     
+    case adapterFailure(AppleClientCapability, sentence: String)
 }
 
 extension AppleClientActionError: LocalizedError {
@@ -234,8 +240,8 @@ extension AppleClientActionError: LocalizedError {
             }
         case .failed(let failure):
             failure.message
-        case .adapterFailure:
-            "The system action could not be completed."
+        case .adapterFailure(_, let sentence):
+            sentence.isEmpty ? "The system action could not be completed." : sentence
         }
     }
 }
@@ -345,7 +351,11 @@ public struct AppleClientActions {
         } catch {
              
              
-            throw AppleClientActionError.adapterFailure(capability)
+             
+             
+            let sentence = (error as? LocalizedError)?.errorDescription
+                ?? error.localizedDescription
+            throw AppleClientActionError.adapterFailure(capability, sentence: sentence)
         }
     }
 }
