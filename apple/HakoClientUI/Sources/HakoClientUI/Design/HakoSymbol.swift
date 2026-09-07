@@ -109,6 +109,7 @@ public enum HakoSymbol: String, CaseIterable, Sendable {
     case pencil = "pencil"
     case person2 = "person.2"
     case photo = "photo"
+    case play = "play"
     case playFill = "play.fill"
     case plus = "plus"
     case plusCircle = "plus.circle"

@@ -167,8 +167,7 @@ public struct HakoMacRootView: View {
                 destination: utilitiesDestinationBinding,
                 presentationClass: .regularTouch,
                 palette: productPalette,
-                 
-                 
+                     
                  
                  
                  
@@ -197,8 +196,7 @@ public struct HakoMacRootView: View {
                     sharedDestinationContent(.more(destination))
                 }
             )
-        case .profiles, .proxies, .rules, .connections, .requests, .logs,
-             .dns, .about:
+        case .profiles, .proxies, .rules, .activity, .dns, .about:
             sharedDestinationContent(destination.productDestination)
         }
     }

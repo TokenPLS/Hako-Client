@@ -17,6 +17,10 @@ struct ConnectionsView: View {
     @ObservedObject var model: ConnectionsModel
     @ObservedObject var command: ClashCommandClient
     var autoStart = true
+     
+    var query = ""
+     
+    var isShown = true
 
     var body: some View {
         HakoClientUI.HakoConnectionsView(
@@ -52,7 +56,9 @@ struct ConnectionsView: View {
                 horizontalSizeClass == .regular
                     ? .regularTouch
                     : .compactTouch,
-            palette: HakoActivityIOSAdapter.palette
+            palette: HakoActivityIOSAdapter.palette,
+            query: query,
+            isShown: isShown
         ) { symbol in
             HakoSymbolImage(symbol: symbol)
         }

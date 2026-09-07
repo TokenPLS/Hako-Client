@@ -860,6 +860,14 @@ private final class HakoMacSceneModel: ObservableObject {
             .store(in: &menuGate)
     }
     @Published var navigationRequest: HakoMacSecondaryDestination?
+     
+     
+     
+     
+     
+     
+     
+    @Published var activityLens: HakoActivityLens = .connections
     @Published private var stagedProxyGroup: String?
     @Published private var profileRefreshToken = 0
      
@@ -1725,6 +1733,10 @@ private final class HakoMacSceneModel: ObservableObject {
                     stun: stun,
                     proxyShare: proxyShare,
                     destination: destination,
+                    activityLens: Binding(
+                        get: { self.activityLens },
+                        set: { self.activityLens = $0 }
+                    ),
                     usesRegularDetailLayout: true,
                     loadsPersistedLogs:
                         !false

@@ -71,7 +71,7 @@ enum AppShellLayoutSelector {
          
          
          
-        case .home, .utilities, .more, .connections, .requests, .logs, .dns, .about:
+        case .home, .utilities, .more, .activity, .dns, .about:
             nil
         }
     }
@@ -148,8 +148,13 @@ extension HakoSystemRoute {
                 return .profiles
             case .nodes, .proxies:
                 return .proxies
+             
+             
+             
+             
+             
             case .logs:
-                return .utilities(.logs)
+                return .utilities(.activity)
             case .tools, .utilities:
                 return .utilities(.root)
             case .more:

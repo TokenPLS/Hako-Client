@@ -120,6 +120,10 @@ struct AppShellView: View {
     @StateObject private var proxyShare = ProxyShareModel()
     @StateObject private var profileImports = ProfileImportRouter()
     @State private var navigationState = HakoClientUI.AppleClientNavigationState()
+     
+     
+     
+    @State private var activityLens: HakoActivityLens = .connections
 
     init() {
         let vpn = VPNController()
@@ -678,13 +682,8 @@ struct AppShellView: View {
             )
          
          
-         
-        case .connections:
-            regularDestination(for: .utilities(.connections))
-        case .requests:
-            regularDestination(for: .utilities(.requests))
-        case .logs:
-            regularDestination(for: .utilities(.logs))
+        case .activity:
+            regularDestination(for: .utilities(.activity))
          
          
          
@@ -724,6 +723,7 @@ struct AppShellView: View {
                 stun: stun,
                 proxyShare: proxyShare,
                 destination: item,
+                activityLens: $activityLens,
                 usesRegularDetailLayout: true
             )
         case .more(let item):
@@ -766,7 +766,14 @@ struct AppShellView: View {
             openProxies: { navigate(to: .proxies) },
             openRules: { navigate(to: .rules) },
             openActiveRules: { navigate(to: .activeRules) },
-            openLogs: { navigate(to: .utilities(.logs)) },
+            openLogs: {
+                 
+                 
+                 
+                 
+                activityLens = .logs
+                navigate(to: .utilities(.activity))
+            },
             openDNSQuery: { navigate(to: .dnsQuery) },
             rebind: rebind
         )
@@ -781,6 +788,7 @@ struct AppShellView: View {
             stun: stun,
             proxyShare: proxyShare,
             destination: utilitiesDestinationSelection,
+            activityLens: $activityLens,
             ownsNavigationContainer: ownsNavigationContainer
         )
     }
@@ -816,7 +824,7 @@ struct AppShellView: View {
     ) -> AppTab {
         switch root {
         case .home, .proxies, .rules, .profiles: .home
-        case .connections, .requests, .logs, .utilities: .utilities
+        case .activity, .utilities: .utilities
         case .dns, .more, .about: .more
         }
     }
@@ -1033,8 +1041,13 @@ struct AppShellView: View {
     private func handleSystemRoute(_ route: HakoSystemRoute) {
         navigate(to: route.navigationDestination)
         switch route {
-        case .open:
-            break
+        case .open(let destination):
+             
+             
+             
+            if destination == .logs {
+                activityLens = .logs
+            }
         case .vpn(let action):
             Task {
                  

@@ -206,12 +206,9 @@
 "Activate or sync this profile first." = "请先激活或同步该配置。";
 "Active" = "生效中";
 "Active Rules" = "运行中的规则";
-"Active now" = "当前生效";
 "Active profile · %@" = "当前配置 · %@";
 "Active runtime" = "当前运行";
 "Activity" = "活动";
-"Activity Unavailable" = "活动不可用";
-"Activity shows totals only. Destinations, addresses, rules, and log messages remain in the platform Adapter." = "活动页只显示总量。目的地、地址、规则与日志内容留在平台适配层。";
 "AdGuard Default" = "AdGuard Default";
 "Add" = "添加";
 "Add Category" = "添加分类";
@@ -511,7 +508,6 @@
 "Clash could not open its secure shared container." = "Clash 无法打开其安全共享容器。";
 "Clash could not prepare its local Direct profile. Open Profiles to retry without replacing your data." = "Clash 无法准备本地直连配置。请打开配置重试；现有数据不会被替换。";
 "Clash could not reach its VPN configuration. Open Clash once, then run the shortcut again." = "Clash 无法访问它的 VPN 配置。请打开一次 Clash，然后再运行该快捷指令。";
-"Clash could not read the current activity snapshot." = "Clash 无法读取当前活动快照。";
 "Clash could not rebuild the saved runtime revision or start its last known-good runtime. Your source profile was kept unchanged, and a built-in safety configuration is blocking traffic. Please report this client runtime-generation failure." = "Clash 无法重建已保存的运行时版本，也无法启动最近可用的运行时。你的源配置保持未动，内置安全配置正在阻断流量。请报告这次客户端运行时生成失败。";
 "Clash could not rebuild the saved runtime revision with this client version. Your source profile was kept unchanged, and Clash started its validated last known-good runtime. Try syncing or reapplying the profile later." = "当前客户端版本无法重建已保存的运行时版本。你的源配置保持未动，Clash 已启动经校验的最近可用运行时。稍后可尝试重新同步或重新应用配置。";
 "Clash could not switch to this profile." = "Clash 无法切换到这个配置。";
@@ -613,7 +609,6 @@
 "Connect directly" = "直接连接";
 "Connect directly, without a proxy" = "直连，不经过代理";
 "Connect first: while the VPN is off, the system resolver is in use, not this profile's." = "请先连接：VPN 关闭时使用的是系统解析器，而不是本配置的。";
-"Connect to View Activity" = "连接后查看活动";
 "Connect to View Proxies" = "连接后查看代理";
 "Connect to a usable network and try again." = "请连接可用网络后重试。";
 "Connect to see the nodes." = "连接后显示节点。";
@@ -710,7 +705,6 @@
 "Current" = "当前";
 "Current Network" = "当前网络";
 "Current Session" = "当前会话";
-"Current buffer" = "当前缓冲区";
 "Current → " = "当前 → ";
 "Custom" = "自定义";
 "Custom Address" = "自定义地址";
@@ -1351,11 +1345,10 @@
 "Live provider status is unavailable. Connect Clash and try again." = "集合实时状态不可用。请连接 Clash 后重试。";
 "Live provider status is up to date." = "集合实时状态已是最新。";
 "Live sessions and their routes" = "实时会话与其路由";
-"Live traffic and session totals appear while Clash is connected." = "Clash 连接期间会显示实时流量与会话统计。";
+"Live sessions, requests, and logs" = "实时会话、请求与日志";
 "Load Balance" = "负载均衡";
 "Load local file" = "加载本地文件";
 "Loading" = "加载中";
-"Loading Activity" = "正在加载活动";
 "Loading Connections" = "正在加载连接";
 "Loading Core Settings…" = "正在加载内核设置…";
 "Loading Logs" = "正在加载日志";
@@ -1996,7 +1989,6 @@
 "Read a configuration from the clipboard." = "从剪贴板读一份配置。";
 "Read only" = "只读";
 "Reading backup…" = "正在读取备份…";
-"Reading privacy-bounded activity from the current connection." = "正在读取当前连接的活动（已按隐私边界限制）。";
 "Reading the current proxy catalog." = "正在读取当前的代理目录。";
 "Reading the live connection snapshot." = "正在读取实时连接快照。";
 "Ready to use" = "已准备就绪";
@@ -2005,7 +1997,6 @@
 "Reapply this profile's validated runtime" = "重新应用本配置已校验的运行时";
 "Reason" = "原因";
 "Receive Window" = "接收窗口 (recv-window)";
-"Recent Logs" = "最近日志";
 "Recent icons are stored locally for reuse. An emoji or a bundled name is drawn here; a URL is kept with the group but never loaded, so a subscription cannot learn when you open the app." = "最近用过的图标会存在本机以便复用。表情或内置名称会在这里画出来；URL 会随分组保存但**永不加载**，这样订阅方无法得知你何时打开了本应用。";
 "Recent requests, kept after disconnect" = "最近的请求，断开后仍保留";
 "Recording" = "录制中";
@@ -2021,7 +2012,6 @@
 "Reduced RTT" = "降低 RTT (reduce-rtt)";
 "Referenced scripts" = "被引用的脚本";
 "Refresh" = "刷新";
-"Refresh Activity" = "刷新活动";
 "Refresh Proxies" = "刷新代理";
 "Refresh System Status" = "刷新系统状态";
 "Refresh all providers" = "刷新全部 provider";

@@ -24,6 +24,11 @@ struct GoldenFlowUtilitiesAdapter: View {
     @ObservedObject var proxyShare: ProxyShareModel
     @Binding var destination:
         AppNavigationDestination.UtilitiesDestination
+     
+     
+     
+     
+    @Binding var activityLens: HakoActivityLens
     var ownsNavigationContainer = true
 
 
@@ -72,6 +77,7 @@ struct GoldenFlowUtilitiesAdapter: View {
                     stun: stun,
                     proxyShare: proxyShare,
                     destination: item,
+                    activityLens: $activityLens,
                     usesRegularDetailLayout:
                         !ownsNavigationContainer
                 )
@@ -131,6 +137,7 @@ struct GoldenFlowUtilitiesDestinationAdapter: View {
     @ObservedObject var proxyShare: ProxyShareModel
     let destination:
         AppNavigationDestination.UtilitiesDestination
+    @Binding var activityLens: HakoActivityLens
     var usesRegularDetailLayout: Bool
     var loadsPersistedLogs = true
 
@@ -147,19 +154,29 @@ struct GoldenFlowUtilitiesDestinationAdapter: View {
             switch destination {
             case .root:
                 EmptyView()
-            case .connections:
-                ConnectionsView(
-                    model: connections,
+             
+             
+             
+             
+            case .activity, .connections, .requests, .logs:
+                 
+                 
+                 
+                ActivityView(
                     command: command,
-                    autoStart: false
-                )
-            case .requests:
-                RequestsView(model: connections)
-            case .logs:
-                LogsDestinationView(
-                    command: command,
+                    connections: connections,
+                    lens: $activityLens,
                     loadsPersistedLogs: loadsPersistedLogs
                 )
+                .equatable()
+                .task(id: destination) {
+                    guard
+                        let requested = HakoActivityLens(
+                            destination: destination
+                        )
+                    else { return }
+                    activityLens = requested
+                }
             case .networkQuality:
                 NetworkQualityView(model: networkQuality)
             case .stun:
@@ -208,7 +225,10 @@ struct GoldenFlowUtilitiesDestinationAdapter: View {
  
  
  
-private struct LogsDestinationView: View {
+ 
+ 
+ 
+struct LogsDestinationView: View {
      
      
      
@@ -218,6 +238,10 @@ private struct LogsDestinationView: View {
      
     let command: ClashCommandClient
     let loadsPersistedLogs: Bool
+     
+    var query = ""
+     
+    var isShown = true
     @State private var survived: [String] = []
     @State private var liveLogs: [String] = []
     @State private var isConnected = false
@@ -239,7 +263,9 @@ private struct LogsDestinationView: View {
                  
                  
                 survived = []
-            }
+            },
+            query: query,
+            isShown: isShown
         )
          
          

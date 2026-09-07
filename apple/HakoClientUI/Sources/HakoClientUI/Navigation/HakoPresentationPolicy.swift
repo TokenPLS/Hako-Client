@@ -57,11 +57,14 @@ public enum HakoRootDestination: String, CaseIterable, Hashable, Identifiable, S
      
      
      
+     
+     
+     
+     
+     
     case proxies
     case rules
-    case connections
-    case requests
-    case logs
+    case activity
 
     case profiles
     case dns
@@ -83,7 +86,7 @@ public enum HakoRootDestination: String, CaseIterable, Hashable, Identifiable, S
     public var group: HakoRootSidebarGroup {
         switch self {
         case .home: .primary
-        case .proxies, .rules, .connections, .requests, .logs: .session
+        case .proxies, .rules, .activity: .session
         case .profiles: .configuration
          
          
@@ -137,9 +140,7 @@ public enum HakoRootDestination: String, CaseIterable, Hashable, Identifiable, S
         case .home: "Home"
         case .proxies: "Proxies"
         case .rules: "Rules"
-        case .connections: "Connections"
-        case .requests: "Requests"
-        case .logs: "Logs"
+        case .activity: "Activity"
         case .profiles: "Profiles"
          
          
@@ -159,9 +160,8 @@ public enum HakoRootDestination: String, CaseIterable, Hashable, Identifiable, S
         case .rules: .ruleDomain
          
          
-        case .connections: .listTriangle
-        case .requests: .listBulletRectanglePortrait
-        case .logs: .textAlignleft
+         
+        case .activity: .waveformPathEcg
          
          
         case .profiles: .trayFullFill

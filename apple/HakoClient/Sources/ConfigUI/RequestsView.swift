@@ -13,6 +13,10 @@ struct RequestsView: View {
     private var horizontalSizeClass
 
     @ObservedObject var model: ConnectionsModel
+     
+    var query = ""
+     
+    var isShown = true
 
     var body: some View {
         HakoClientUI.HakoRequestsView(
@@ -48,7 +52,9 @@ struct RequestsView: View {
                 horizontalSizeClass == .regular
                     ? .regularTouch
                     : .compactTouch,
-            palette: HakoActivityIOSAdapter.palette
+            palette: HakoActivityIOSAdapter.palette,
+            query: query,
+            isShown: isShown
         ) { symbol in
             HakoSymbolImage(symbol: symbol)
         }

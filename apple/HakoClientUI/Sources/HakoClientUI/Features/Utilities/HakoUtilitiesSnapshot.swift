@@ -56,6 +56,21 @@ public struct HakoUtilitiesSnapshot: Codable, Equatable, Sendable {
                 title: .copy(destination.title),
                 subtitle: "Session details, network tests, and local reports"
             )
+        case .activity:
+             
+             
+             
+            return HakoProductDestinationPresentation(
+                title: .copy(destination.title),
+                subtitle: nativeAPIConnected
+                    ? count(
+                        activeConnectionCount,
+                        singular: "%@ active session",
+                        plural: "%@ active sessions"
+                    )
+                    : "Live sessions, requests, and logs",
+                badge: liveBadge
+            )
         case .connections:
             return HakoProductDestinationPresentation(
                 title: .copy(destination.title),

@@ -206,12 +206,9 @@
 "Activate or sync this profile first." = "Activate or sync this profile first.";
 "Active" = "Active";
 "Active Rules" = "Active Rules";
-"Active now" = "Active now";
 "Active profile · %@" = "Active profile · %@";
 "Active runtime" = "Active runtime";
 "Activity" = "Activity";
-"Activity Unavailable" = "Activity Unavailable";
-"Activity shows totals only. Destinations, addresses, rules, and log messages remain in the platform Adapter." = "Activity shows totals only. Destinations, addresses, rules, and log messages remain in the platform Adapter.";
 "AdGuard Default" = "AdGuard Default";
 "Add" = "Add";
 "Add Category" = "Add Category";
@@ -511,7 +508,6 @@
 "Clash could not open its secure shared container." = "Clash could not open its secure shared container.";
 "Clash could not prepare its local Direct profile. Open Profiles to retry without replacing your data." = "Clash could not prepare its local Direct profile. Open Profiles to retry without replacing your data.";
 "Clash could not reach its VPN configuration. Open Clash once, then run the shortcut again." = "Clash could not reach its VPN configuration. Open Clash once, then run the shortcut again.";
-"Clash could not read the current activity snapshot." = "Clash could not read the current activity snapshot.";
 "Clash could not rebuild the saved runtime revision or start its last known-good runtime. Your source profile was kept unchanged, and a built-in safety configuration is blocking traffic. Please report this client runtime-generation failure." = "Clash could not rebuild the saved runtime revision or start its last known-good runtime. Your source profile was kept unchanged, and a built-in safety configuration is blocking traffic. Please report this client runtime-generation failure.";
 "Clash could not rebuild the saved runtime revision with this client version. Your source profile was kept unchanged, and Clash started its validated last known-good runtime. Try syncing or reapplying the profile later." = "Clash could not rebuild the saved runtime revision with this client version. Your source profile was kept unchanged, and Clash started its validated last known-good runtime. Try syncing or reapplying the profile later.";
 "Clash could not switch to this profile." = "Clash could not switch to this profile.";
@@ -613,7 +609,6 @@
 "Connect directly" = "Connect directly";
 "Connect directly, without a proxy" = "Connect directly, without a proxy";
 "Connect first: while the VPN is off, the system resolver is in use, not this profile's." = "Connect first: while the VPN is off, the system resolver is in use, not this profile's.";
-"Connect to View Activity" = "Connect to View Activity";
 "Connect to View Proxies" = "Connect to View Proxies";
 "Connect to a usable network and try again." = "Connect to a usable network and try again.";
 "Connect to see the nodes." = "Connect to see the nodes.";
@@ -710,7 +705,6 @@
 "Current" = "Current";
 "Current Network" = "Current Network";
 "Current Session" = "Current Session";
-"Current buffer" = "Current buffer";
 "Current → " = "Current → ";
 "Custom" = "Custom";
 "Custom Address" = "Custom Address";
@@ -1351,11 +1345,10 @@
 "Live provider status is unavailable. Connect Clash and try again." = "Live provider status is unavailable. Connect Clash and try again.";
 "Live provider status is up to date." = "Live provider status is up to date.";
 "Live sessions and their routes" = "Live sessions and their routes";
-"Live traffic and session totals appear while Clash is connected." = "Live traffic and session totals appear while Clash is connected.";
+"Live sessions, requests, and logs" = "Live sessions, requests, and logs";
 "Load Balance" = "Load Balance";
 "Load local file" = "Load local file";
 "Loading" = "Loading";
-"Loading Activity" = "Loading Activity";
 "Loading Connections" = "Loading Connections";
 "Loading Core Settings…" = "Loading Core Settings…";
 "Loading Logs" = "Loading Logs";
@@ -1996,7 +1989,6 @@
 "Read a configuration from the clipboard." = "Read a configuration from the clipboard.";
 "Read only" = "Read only";
 "Reading backup…" = "Reading backup…";
-"Reading privacy-bounded activity from the current connection." = "Reading privacy-bounded activity from the current connection.";
 "Reading the current proxy catalog." = "Reading the current proxy catalog.";
 "Reading the live connection snapshot." = "Reading the live connection snapshot.";
 "Ready to use" = "Ready to use";
@@ -2005,7 +1997,6 @@
 "Reapply this profile's validated runtime" = "Reapply this profile's validated runtime";
 "Reason" = "Reason";
 "Receive Window" = "Receive Window";
-"Recent Logs" = "Recent Logs";
 "Recent icons are stored locally for reuse. An emoji or a bundled name is drawn here; a URL is kept with the group but never loaded, so a subscription cannot learn when you open the app." = "Recent icons are stored locally for reuse. An emoji or a bundled name is drawn here; a URL is kept with the group but never loaded, so a subscription cannot learn when you open the app.";
 "Recent requests, kept after disconnect" = "Recent requests, kept after disconnect";
 "Recording" = "Recording";
@@ -2021,7 +2012,6 @@
 "Reduced RTT" = "Reduced RTT";
 "Referenced scripts" = "Referenced scripts";
 "Refresh" = "Refresh";
-"Refresh Activity" = "Refresh Activity";
 "Refresh Proxies" = "Refresh Proxies";
 "Refresh System Status" = "Refresh System Status";
 "Refresh all providers" = "Refresh all providers";

@@ -350,6 +350,10 @@ public final class HakoFrameWatch {
     private var link: HakoDisplayLinkDriving?
     private var saidLinkState = false
     private var labels: [String] = []
+     
+     
+     
+    var currentScreen: String? { labels.last }
     private var lastTimestamp: CFTimeInterval = 0
     private var windowBegan: CFTimeInterval = 0
     private var frames = 0
@@ -597,11 +601,31 @@ private final class HakoQuartzDisplayLink: HakoDisplayLinkDriving {
 
 private struct HakoFrameWatchModifier: ViewModifier {
     let label: String
+     
+     
+    @State private var armed: String?
 
     func body(content: Content) -> some View {
         content
-            .onAppear { HakoFrameWatch.shared.begin(label) }
-            .onDisappear { HakoFrameWatch.shared.end(label) }
+            .onAppear {
+                HakoFrameWatch.shared.begin(label)
+                armed = label
+            }
+            .onDisappear {
+                HakoFrameWatch.shared.end(armed ?? label)
+                armed = nil
+            }
+             
+             
+             
+             
+             
+             
+            .onChange(of: label) { new in
+                if let armed { HakoFrameWatch.shared.end(armed) }
+                HakoFrameWatch.shared.begin(new)
+                armed = new
+            }
     }
 }
 

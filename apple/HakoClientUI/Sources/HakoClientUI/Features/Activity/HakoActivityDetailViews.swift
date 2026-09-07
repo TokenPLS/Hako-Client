@@ -1,5 +1,33 @@
 import SwiftUI
 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+enum HakoActivityByteFormatter {
+     
+     
+     
+     
+    @MainActor private static let formatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .binary
+        formatter.includesUnit = true
+        return formatter
+    }()
+
+    @MainActor static func count(_ bytes: Int64) -> String {
+        formatter.string(fromByteCount: max(0, bytes))
+    }
+
+    @MainActor static func rate(_ bytes: Int64) -> String {
+        "\(count(bytes))/s"
+    }
+}
+
 public struct HakoConnectionsView<Icon: View>: View {
     private let snapshot: AppleClientSnapshot
     private let actions: AppleClientActions
@@ -7,7 +35,12 @@ public struct HakoConnectionsView<Icon: View>: View {
     private let palette: HakoProductPalette
     private let icon: (HakoSymbol) -> Icon
 
-    @State private var query = ""
+    private let query: String
+     
+     
+     
+     
+    private let isShown: Bool
     @State private var sort: HakoActivityConnectionSort =
         .recent
     @State private var keywords: Set<String> = []
@@ -39,12 +72,16 @@ public struct HakoConnectionsView<Icon: View>: View {
         actions: AppleClientActions,
         presentationClass: HakoPresentationClass,
         palette: HakoProductPalette,
+        query: String = "",
+        isShown: Bool = true,
         @ViewBuilder icon: @escaping (HakoSymbol) -> Icon
     ) {
         self.snapshot = snapshot
         self.actions = actions
         self.presentationClass = presentationClass
         self.palette = palette
+        self.query = query
+        self.isShown = isShown
         self.icon = icon
     }
 
@@ -163,16 +200,15 @@ public struct HakoConnectionsView<Icon: View>: View {
         .hakoActivityListCanvas(palette.canvas)
         .accessibilityIdentifier("connections.overview")
         .accessibilityValue(activityAccessibilityValue)
-        .hakoRootHeading("Connections")
+         
+         
+         
+         
         .task(id: preparationKey) { await prepareConnections() }
-        .searchable(
-            text: $query,
-            prompt: "Destination, route, or rule"
-        )
         .refreshable {
             await perform(.refresh)
         }
-        .hakoToolbarUnlessInPanel { toolbarContent }
+        .hakoActivityLensToolbar(active: isShown) { toolbarContent }
         .confirmationDialog(
             "Close all active connections?",
             isPresented: $confirmsCloseAll
@@ -428,7 +464,12 @@ public struct HakoRequestsView<Icon: View>: View {
     private let palette: HakoProductPalette
     private let icon: (HakoSymbol) -> Icon
 
-    @State private var query = ""
+    private let query: String
+     
+     
+     
+     
+    private let isShown: Bool
     @State private var keywords: Set<String> = []
     @State private var autoScrollToNewest = true
     @State private var selected:
@@ -439,12 +480,16 @@ public struct HakoRequestsView<Icon: View>: View {
         actions: AppleClientActions,
         presentationClass: HakoPresentationClass,
         palette: HakoProductPalette,
+        query: String = "",
+        isShown: Bool = true,
         @ViewBuilder icon: @escaping (HakoSymbol) -> Icon
     ) {
         self.snapshot = snapshot
         self.actions = actions
         _ = presentationClass
         self.palette = palette
+        self.query = query
+        self.isShown = isShown
         self.icon = icon
     }
 
@@ -547,13 +592,14 @@ public struct HakoRequestsView<Icon: View>: View {
                 }
             }
         }
-        .hakoRootHeading("Requests")
-        .searchable(
-            text: $query,
-            prompt: "Destination, route, or rule"
-        )
-        .hakoToolbarUnlessInPanel {
+         
+        .hakoActivityLensToolbar(active: isShown) {
             ToolbarItem(placement: .primaryAction) {
+                 
+                 
+                 
+                 
+                ControlGroup {
                 Button {
                     autoScrollToNewest.toggle()
                 } label: {
@@ -571,10 +617,12 @@ public struct HakoRequestsView<Icon: View>: View {
                         systemImage:
                             autoScrollToNewest
                             ? HakoSymbol.pause.rawValue
-                            : HakoSymbol.playFill.rawValue
+                            : HakoSymbol.play.rawValue   
                     )
                 }
                 .accessibilityIdentifier("requests.autoScroll")
+                }
+                .hakoReaderControlGroupStyle()
             }
         }
         .modifier(
@@ -616,7 +664,12 @@ public struct HakoLogsView<Icon: View>: View {
     private let palette: HakoProductPalette
     private let icon: (HakoSymbol) -> Icon
 
-    @State private var query = ""
+    private let query: String
+     
+     
+     
+     
+    private let isShown: Bool
      
      
     @State private var severities: Set<HakoActivityLogSeverity>
@@ -627,12 +680,16 @@ public struct HakoLogsView<Icon: View>: View {
         actions: AppleClientActions,
         presentationClass: HakoPresentationClass,
         palette: HakoProductPalette,
+        query: String = "",
+        isShown: Bool = true,
         @ViewBuilder icon: @escaping (HakoSymbol) -> Icon
     ) {
         self.snapshot = snapshot
         self.actions = actions
         _ = presentationClass
         self.palette = palette
+        self.query = query
+        self.isShown = isShown
         self.icon = icon
         _severities = State(
             initialValue: HakoActivityLogSeverity.severities(
@@ -655,9 +712,8 @@ public struct HakoLogsView<Icon: View>: View {
         } placeholder: {
             HakoPageLoadingPlaceholder(title: .copy("Loading Logs"))
         }
-        .hakoRootHeading("Logs")
-        .searchable(text: $query, prompt: "Search logs")
-        .hakoToolbarUnlessInPanel { toolbarContent }
+         
+        .hakoActivityLensToolbar(active: isShown) { toolbarContent }
         .accessibilityIdentifier("logs.overview")
     }
 

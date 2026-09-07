@@ -200,6 +200,10 @@ struct LogsContent: View {
     let lines: [String]
     let isConnected: Bool
     let clear: () -> Void
+     
+    var query = ""
+     
+    var isShown = true
 
     @State private var exportDocument =
         LogsTextDocument(text: "")
@@ -305,7 +309,9 @@ struct LogsContent: View {
                 horizontalSizeClass == .regular
                     ? .regularTouch
                     : .compactTouch,
-            palette: HakoActivityIOSAdapter.palette
+            palette: HakoActivityIOSAdapter.palette,
+            query: query,
+            isShown: isShown
         ) { symbol in
             HakoSymbolImage(symbol: symbol)
         }

@@ -21,6 +21,11 @@ public enum HakoUtilitiesDestination:
     Sendable
 {
     case root
+     
+     
+     
+     
+    case activity
     case connections
     case requests
     case logs
@@ -36,6 +41,7 @@ public enum HakoUtilitiesDestination:
     public var title: String {
         switch self {
         case .root: "Utilities"
+        case .activity: "Activity"
         case .connections: "Connections"
         case .requests: "Requests"
         case .logs: "Logs"
@@ -51,6 +57,7 @@ public enum HakoUtilitiesDestination:
     public var symbol: HakoSymbol {
         switch self {
         case .root: .wrenchAndScrewdriver
+        case .activity: .waveformPathEcg
         case .connections: .listTriangle
         case .requests: .listBulletRectanglePortrait
         case .logs: .textAlignleft
@@ -66,6 +73,7 @@ public enum HakoUtilitiesDestination:
     public var accent: HakoAccentRole {
         switch self {
         case .root: .blue
+        case .activity: .cyan
         case .connections: .cyan
         case .requests: .pink
         case .logs: .purple
@@ -97,13 +105,13 @@ public enum HakoUtilitiesCatalog {
      
      
     public static let regularHubExcludes: Set<HakoUtilitiesDestination> = [
-        .connections, .requests, .logs,
+        .activity,
     ]
 
     public static let sections = [
         HakoUtilitiesSectionDescriptor(
             id: .currentSession,
-            destinations: [.connections, .requests, .logs]
+            destinations: [.activity]
         ),
         HakoUtilitiesSectionDescriptor(
             id: .networkTools,

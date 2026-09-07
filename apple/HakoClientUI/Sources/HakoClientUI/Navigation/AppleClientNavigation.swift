@@ -63,9 +63,10 @@ public enum AppleClientDestination: Hashable, Sendable {
              
              
              
-            case .connections: .connections
-            case .requests: .requests
-            case .logs: .logs
+             
+             
+            case .activity: .activity
+            case .connections, .requests, .logs: .activity
              
              
             case .root, .networkQuality,
@@ -146,9 +147,7 @@ public extension HakoRootDestination {
         case .home: .home
         case .proxies: .proxies
         case .rules: .rules
-        case .connections: .utilities(.connections)
-        case .requests: .utilities(.requests)
-        case .logs: .utilities(.logs)
+        case .activity: .utilities(.activity)
         case .profiles: .profiles
         case .dns: .more(.dnsAndHosts)
         case .utilities: .utilities(.root)
