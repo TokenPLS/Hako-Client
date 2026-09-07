@@ -10,7 +10,7 @@
 "Backup & Restore" = "備份與回復";
 "Basic Config" = "基礎設定";
 "Blue" = "藍色";
-"Cache pruning preserves profiles, resources, settings, credentials, and backups. Clear All removes local profiles, settings, and Keychain credentials, but never iCloud backups." = "清理快取會保留設定檔、資源、設定、認證資訊和備份。清除全部會移除本機設定檔、設定與鑰匙串認證資訊，但不會刪除 iCloud 備份。";
+"Cache pruning preserves profiles, resources, settings, credentials, and backups. Clear All removes local profiles, settings, and Keychain credentials, but never iCloud backups." = "清理快取會保留設定檔、資源、設定、認證資訊和備份。清除全部會移除本機設定檔、設定與鑰匙圈認證資訊，但不會刪除 iCloud 備份。";
 "Cancel" = "取消";
 "Changes apply immediately. System Default follows the language selected in iOS Settings." = "更改會立即生效。「跟隨系統」使用 iOS 設定中選擇的語言。";
 "Clash diagnostic message test succeeded" = "Clash 診斷訊息測試成功";
