@@ -576,7 +576,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE)
         PRODUCT_NAME: HakoTV
-        MARKETING_VERSION: 1.0.9
+        MARKETING_VERSION: 1.0.10
         DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: HakoTV
@@ -629,7 +629,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(HAKO_BUNDLE_BASE).tvextension
         PRODUCT_NAME: HakoTVExtension
-        MARKETING_VERSION: 1.0.9
+        MARKETING_VERSION: 1.0.10
         DEVELOPMENT_TEAM: $(HAKO_DEVELOPMENT_TEAM)
         CODE_SIGN_STYLE: Automatic
     entitlements:

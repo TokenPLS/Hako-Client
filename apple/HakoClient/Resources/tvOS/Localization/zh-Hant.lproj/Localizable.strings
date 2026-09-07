@@ -190,7 +190,7 @@
 "STOPPING" = "正在停止";
 "Save" = "儲存";
 "Saving configuration…" = "正在儲存設定…";
-"Send all traffic through the selected proxy" = "所有流量都走選中的代理";
+"Send all traffic through the selected proxy" = "所有流量都走選取的代理";
 "Share on this network" = "在本網路共享";
 "Share with a username and password" = "用這裡設定的使用者名稱和密碼共享";
 "Sharing did not start." = "共享未能開始。";
@@ -203,7 +203,7 @@
 "Stop sharing" = "停止共享";
 "Stopped" = "已停";
 "Stopping…" = "正在停止…";
-"Stops the tunnel. The configuration and the selected node stay as they are." = "停止通道。設定與選中的節點保持不變。";
+"Stops the tunnel. The configuration and the selected node stay as they are." = "停止通道。設定與選取的節點保持不變。";
 "Switching Route" = "正在切換線路";
 "System" = "系統";
 "Test" = "測速";

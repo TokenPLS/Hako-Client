@@ -54,7 +54,7 @@
 "Materialized proxy/rule provider files" = "已物化的代理與規則 Provider 檔案";
 "Memory release requested" = "已請求釋放記憶體";
 "Message Test" = "訊息測試";
-"Mode, log level, UA, hosts, TCP, geo loader" = "模式、記錄級別、UA、Hosts、TCP 與 Geo 載入器";
+"Mode, log level, UA, hosts, TCP, geo loader" = "模式、記錄等級、UA、Hosts、TCP 與 Geo 載入器";
 "Network Diagnostics" = "網路診斷";
 "Network Quality" = "網路品質";
 "Network, DNS, added rules" = "網路、DNS 與附加規則";
