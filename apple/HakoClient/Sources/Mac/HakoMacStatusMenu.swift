@@ -404,6 +404,17 @@ enum HakoMacStatusItemLabel {
     static func accessibilityLabel(showsSpeed: Bool, upLine: String, downLine: String) -> String {
         showsSpeed ? "Clash — \(upLine), \(downLine)" : "Clash"
     }
+
+     
+     
+     
+     
+     
+     
+     
+    static func appearsDisabled(tunnelIsUp: Bool) -> Bool {
+        !tunnelIsUp
+    }
 }
 
 extension HakoMacStatusMenuSnapshot {

@@ -3182,6 +3182,14 @@ extension HakoMacSceneModel {
             .dropFirst()
             .sink { [weak self] _ in self?.refreshStatusButton() }
             .store(in: &statusItemSubscriptions)
+         
+         
+         
+        vpn.$status
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in self?.refreshStatusButton() }
+            .store(in: &statusItemSubscriptions)
     }
 
     private func refreshStatusButton() {
@@ -3191,6 +3199,9 @@ extension HakoMacSceneModel {
             showsSpeed: showsSpeed,
             upLine: menuBarTraffic.upLine,
             downLine: menuBarTraffic.downLine
+        )
+        button.appearsDisabled = HakoMacStatusItemLabel.appearsDisabled(
+            tunnelIsUp: HakoMacQuit.tunnelIsUp(status: vpn.status)
         )
         button.setAccessibilityLabel(HakoMacStatusItemLabel.accessibilityLabel(
             showsSpeed: showsSpeed,
