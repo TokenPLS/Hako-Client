@@ -98,7 +98,7 @@ struct TunnelSettingsView: View {
             } header: {
                 Text("Hide VPN Icon")
             } footer: {
-                Text("If YES, the VPN badge stays off the status bar: the tunnel leaves 0.0.0.0/31 and ::/127 outside its routes. Takes effect on the next connection. With Include All Networks on, the badge still shows.")
+                Text("If YES, the VPN badge stays off the status bar: the tunnel leaves 0.0.0.0/31 and ::/127 outside its routes. Takes effect on the next connection.")
             }
 
             Section {
