@@ -72,15 +72,20 @@ struct HakoTVICloudRestoreScreen: View {
                     }
                 }
                 if let plan {
+                     
+                     
+                     
                     Section(HakoTVICloudRestorePresentation.sourceChoice(plan.summary)) {
+                        Button("Restore \(plan.restorableCount) profiles") { apply(plan) }
+                            .disabled(plan.restorableCount == 0)
+                            .accessibilityIdentifier("tvos.icloud.restore")
+                    }
+                    Section {
                         ForEach(plan.items) { item in
                             LabeledContent(item.label, value: HakoTVICloudRestorePresentation.itemLine(item))
                                 .accessibilityIdentifier("tvos.icloud.item.\(item.id)")
                         }
                     }
-                    Button("Restore \(plan.restorableCount) profiles") { apply(plan) }
-                        .disabled(plan.restorableCount == 0)
-                        .accessibilityIdentifier("tvos.icloud.restore")
                 }
             }
             if let failure {
