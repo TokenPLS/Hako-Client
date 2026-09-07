@@ -115,7 +115,7 @@ struct HakoTVConnectionsScreen: View {
                 HakoTVObservationNote(observation: state.observations.connections)
                 List {
                     if state.isConnected && !state.observations.connections.hasRuntimeSample {
-                        Text("Not yet confirmed").foregroundStyle(.secondary)
+                        Text(verbatim: "—").foregroundStyle(.secondary)
                     } else if let vacancy = Self.vacancy(connections: state.connections, kind: kind, isConnected: state.isConnected) {
                          
                          

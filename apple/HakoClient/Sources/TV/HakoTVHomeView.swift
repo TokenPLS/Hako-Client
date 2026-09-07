@@ -190,9 +190,8 @@ struct HakoTVHomeView: View {
                      
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                if isConnected {
-                    Text(String(localized: "Connections · \(state.observations.connections.summary)"))
-                        .font(.caption).foregroundStyle(.secondary)
+                ForEach(HakoTVHomePresentation.readFailures(state), id: \.self) { message in
+                    Text(verbatim: message).font(.caption).foregroundStyle(.secondary)
                 }
             }
 
@@ -202,9 +201,6 @@ struct HakoTVHomeView: View {
                      
                     LabeledContent("Download", value: state.observations.traffic.value(HakoTVHomePresentation.throughput(state.downloadBytesPerSecond)))
                     LabeledContent("Upload", value: state.observations.traffic.value(HakoTVHomePresentation.throughput(state.uploadBytesPerSecond)))
-                    HakoTVObservationNote(observation: state.observations.traffic)
-                    Text(String(localized: "Session total · \(state.observations.totals.summary)"))
-                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
 
@@ -215,7 +211,6 @@ struct HakoTVHomeView: View {
                     LabeledContent("Outbound mode", value: state.observations.mode.value(state.outboundMode.title))
                 }
                     .onHakoTVFocus { explained = .outbound }
-                HakoTVObservationNote(observation: state.observations.mode)
                  
                  
                 Button { showsSubscriptions = true } label: {
@@ -235,7 +230,6 @@ struct HakoTVHomeView: View {
                     LabeledContent(row.title, value: row.value)
                 }
                     .onHakoTVFocus { explained = .node }
-                HakoTVObservationNote(observation: HakoTVHomePresentation.nodeObservation(state))
             }
         }
          

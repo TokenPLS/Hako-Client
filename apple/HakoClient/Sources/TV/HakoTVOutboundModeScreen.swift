@@ -36,12 +36,15 @@ struct HakoTVOutboundModeScreen: View {
                 .font(.largeTitle)
             Spacer(minLength: 0)
             cards
-            Text(Self.footer(state: state))
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+            let footer = Self.footer(state: state)
+            if !footer.isEmpty {
+                Text(footer)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
             HakoTVObservationNote(observation: state.observations.mode)
             Spacer(minLength: 0)
         }
@@ -114,10 +117,8 @@ struct HakoTVOutboundModeScreen: View {
      
      
     static func footer(state: HakoTVProductState) -> String {
-        if state.observations.mode.source == .selection || !state.observations.mode.hasValue { return state.observations.mode.summary }
-        if state.isConnected && !state.observations.mode.confirmsCurrentValue {
-            return String(localized: "The current runtime mode has not been confirmed.")
-        }
+        guard state.observations.mode.hasValue else { return "" }
+        if state.isConnected && !state.observations.mode.confirmsCurrentValue { return "" }
         return footer(mode: state.outboundMode, isConnected: state.isConnected)
     }
 

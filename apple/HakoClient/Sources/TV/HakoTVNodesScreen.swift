@@ -51,11 +51,7 @@ struct HakoTVNodesScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HakoTVObservationNote(observation: state.observations.proxies)
-            Text(String(localized: "Outbound mode · \(state.observations.mode.summary)"))
-                .font(.caption).foregroundStyle(.secondary)
-            Text("Latency values are the last test results; reading the list does not run a test.")
-                .font(.caption).foregroundStyle(.secondary)
+            HakoTVObservationNote(observations: [state.observations.proxies, state.observations.mode])
             HStack(alignment: .top, spacing: 40) {
                  
                  
@@ -170,7 +166,7 @@ struct HakoTVNodesScreen: View {
             case .directMode:
                 directModeNotice
             case .noGroups, .none:
-                Text(state.observations.proxies.hasValue ? String(localized: "No policy groups in this configuration") : String(localized: "Not yet confirmed"))
+                Text(state.observations.proxies.hasValue ? String(localized: "No policy groups in this configuration") : "—")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

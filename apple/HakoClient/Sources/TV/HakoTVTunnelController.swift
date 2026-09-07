@@ -1426,7 +1426,7 @@ actor HakoTVIPCChannel {
 
     private static let readCommands: Set<String> = [
         "hello", "runtimeDiagnostics", "reloadStatus", "status", "traffic",
-        "connections", "proxies", "logs", "proxyShareStatus"
+        "connections", "proxies", "ruleProviders", "logs", "proxyShareStatus"
     ]
 
     private func removeQueued(id: UUID, error: Error) {
@@ -1523,6 +1523,10 @@ actor HakoTVIPCChannel {
         case "connections":
             return object["connections"] is [Any] || object["connections"] is NSNull
         case "proxies": return object["proxies"] is [String: Any]
+         
+         
+         
+        case "ruleProviders": return object["providers"] is [String: Any]
         case "urltest": return object["delay"] is NSNumber
         case "close": return object["closed"] is NSNumber
         case "proxyShareStart", "proxyShareStop", "proxyShareStatus":

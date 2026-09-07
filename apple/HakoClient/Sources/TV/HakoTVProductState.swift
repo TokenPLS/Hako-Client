@@ -597,8 +597,14 @@ struct HakoTVObservation: Equatable {
         waitingForUpdate = false
     }
 
-    func value(_ knownValue: String, unknown: String = String(localized: "Not yet confirmed")) -> String {
+    func value(_ knownValue: String, unknown: String = "—") -> String {
         hasValue ? knownValue : unknown
+    }
+
+     
+    static func failureMessages(_ observations: [Self]) -> [String] {
+        var seen = Set<String>()
+        return observations.compactMap { $0.failure?.message }.filter { seen.insert($0).inserted }
     }
 
     var summary: String {
@@ -632,14 +638,20 @@ struct HakoTVObservation: Equatable {
 
  
 struct HakoTVObservationNote: View {
-    let observation: HakoTVObservation
+    let observations: [HakoTVObservation]
+
+    init(observation: HakoTVObservation) { observations = [observation] }
+    init(observations: [HakoTVObservation]) { self.observations = observations }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(observation.summary)
-            if let failure = observation.failure { Text(verbatim: failure.message) }
+        let messages = HakoTVObservation.failureMessages(observations)
+        if !messages.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(messages, id: \.self) { Text(verbatim: $0) }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .accessibilityElement(children: .combine)
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .accessibilityElement(children: .combine)
     }
 }
