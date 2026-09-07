@@ -104,14 +104,14 @@ private final class HakoMacApplicationDelegate: NSObject, NSApplicationDelegate 
         menu.addItem(
             NSMenuItem(
                 title: HakoCopy.string(
-                    model.snapshot.connection.phase.statusTitle,
+                    model.latestSnapshot.connection.phase.statusTitle,
                     locale: locale
                 ),
                 action: nil,
                 keyEquivalent: ""
             )
         )
-        if let intent = model.snapshot.connection.primaryIntent {
+        if let intent = model.latestSnapshot.connection.primaryIntent {
             let action = NSMenuItem(
                 title: HakoCopy.string(intent.toolbarTitle, locale: locale),
                 action: #selector(performDockPrimaryAction),
@@ -854,7 +854,7 @@ private final class HakoMacSceneModel: ObservableObject {
 
      
      
-    private var latestSnapshot: AppleClientSnapshot {
+    fileprivate var latestSnapshot: AppleClientSnapshot {
         snapshotGate.latest ?? snapshot
     }
 
@@ -1226,7 +1226,7 @@ private final class HakoMacSceneModel: ObservableObject {
         prewarmEditorPreparations()
         await vpn.refresh()
         rebind()
-        connections.sync(command.isConnected)
+        connections.sync(productIsVisible && command.isConnected)
         proxyShare.updateAPIAvailability(command.isConnected)
         if command.isConnected {
             await command.refreshMetadata()
@@ -1329,7 +1329,9 @@ private final class HakoMacSceneModel: ObservableObject {
     }
 
     func performPrimaryAction() {
-        guard let intent = snapshot.connection.primaryIntent else { return }
+         
+         
+        guard let intent = latestSnapshot.connection.primaryIntent else { return }
         Task { await performConnection(intent) }
     }
 
@@ -2682,22 +2684,27 @@ private final class HakoMacSceneModel: ObservableObject {
                                     epoch: self.nextPoolEpoch()
                                 )
                             ) {
-                            SessionRulesRailRoot(
-                                command: self.command,
-                                canInspectActiveRules: self.command.isConnected,
-                                profiles: self.profiles,
-                                openProxiesGroup: { [weak self] group in
-                                    guard let self else { return }
-                                     
-                                     
-                                     
-                                     
-                                    self.stagedProxyGroup = group
-                                    self.proxiesChannels
-                                        .requestOpenGroup(group)
-                                    self.navigationRequest = .proxies
+                                HakoMacConnectionStateContent(
+                                    initialValue: self.command.isConnected,
+                                    updates: self.command.$isConnected.eraseToAnyPublisher()
+                                ) { connected in
+                                    SessionRulesRailRoot(
+                                        command: self.command,
+                                        canInspectActiveRules: connected,
+                                        profiles: self.profiles,
+                                        openProxiesGroup: { [weak self] group in
+                                            guard let self else { return }
+                                             
+                                             
+                                             
+                                             
+                                            self.stagedProxyGroup = group
+                                            self.proxiesChannels
+                                                .requestOpenGroup(group)
+                                            self.navigationRequest = .proxies
+                                        }
+                                    )
                                 }
-                            )
                             }
                             .equatable()
                         )
@@ -2890,7 +2897,7 @@ private final class HakoMacSceneModel: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] connected in
                 guard let self else { return }
-                connections.sync(connected)
+                connections.sync(productIsVisible && connected)
                 proxyShare.updateAPIAvailability(connected)
                 if connected {
                     Task {
