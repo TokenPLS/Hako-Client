@@ -881,6 +881,7 @@ final class ProfileActivationCoordinator {
              
              
              
+             
             fetchBudget: activationFetchBudget
         ).pointer
         ProviderFirstLoadRetry.noteActivation(
@@ -1302,6 +1303,12 @@ final class ProfileActivationCoordinator {
              
              
              
+            let routeSetProviders = try ConfigTransforms.routeSetProviderNames(
+                mergedYAML: materializedMerged
+            )
+             
+             
+             
              
              
             for provider in plan.providers where provider.kind == "proxy" {
@@ -1330,6 +1337,7 @@ final class ProfileActivationCoordinator {
                     configYAML: materializedMerged,
                     fallback: ClientUserAgent.resolved(profile: profile)
                 ),
+                routeSetProviders: routeSetProviders,
                 fetchBudget: fetchBudget
             )
             firstLoadPendingOfLastPublication = materialized.firstLoadPending
@@ -1343,9 +1351,14 @@ final class ProfileActivationCoordinator {
                     return (name, ProviderRuntimeUpdate(name: name, kind: kind, payload: payload))
                 }
             )
-            let providerReadPaths = Dictionary(uniqueKeysWithValues: plan.providers.map {
-                ($0.name, candidate.stagingProvidersDirectory.appendingPathComponent($0.path).path)
-            })
+             
+             
+             
+             
+             
+             
+             
+            let providerReadPaths = materialized.readPaths
              
              
             let reusedEntries = reuseDir.flatMap {

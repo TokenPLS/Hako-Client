@@ -338,6 +338,28 @@ enum ConfigTransforms {
         return keys
     }
 
+     
+     
+     
+     
+     
+     
+     
+    static func routeSetProviderNames(mergedYAML: String) throws -> Set<String> {
+        let json = try yamlToJSON(mergedYAML)
+        guard let root = try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any],
+              let tun = root["tun"] as? [String: Any] else {
+            return []
+        }
+        var names: Set<String> = []
+        for key in ["route-address-set", "route-exclude-address-set"] {
+            for case let name as String in (tun[key] as? [Any]) ?? [] where !name.isEmpty {
+                names.insert(name)
+            }
+        }
+        return names
+    }
+
     static func finalize(
         mergedYAML: String,
         providerPaths: [String: String],

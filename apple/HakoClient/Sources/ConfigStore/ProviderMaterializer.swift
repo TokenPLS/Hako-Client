@@ -88,6 +88,12 @@ enum ProviderFetchBudget: Equatable {
      
      
      
+     
+     
+     
+     
+     
+     
     case activation
 }
 
@@ -125,6 +131,11 @@ struct ProviderFetchedByCore: LocalizedError, Equatable {
 
 struct ProviderMaterializationResult: Equatable {
     let paths: [String: String]
+     
+     
+     
+     
+    var readPaths: [String: String] = [:]
     let entryCounts: [String: Int]
     let subscriptionUserInfo: [String: String]
     let refreshedNames: Set<String>
@@ -380,11 +391,22 @@ final class ProviderMaterializer {
         localOverrides: [String: Data] = [:],
         captureRefreshedPayloads: Set<String> = [],
         userAgent: String? = nil,
+         
+         
+         
+        routeSetProviders: Set<String> = [],
         fetchBudget: ProviderFetchBudget = .patient
     ) async throws -> ProviderMaterializationResult {
         var mapping: [String: String] = [:]
+        var readPaths: [String: String] = [:]
         var entryCounts: [String: Int] = [:]
         var subscriptionUserInfo: [String: String] = [:]
+         
+         
+         
+        let isRouteSet: (RemoteResourcePlan.Provider) -> Bool = {
+            $0.kind == "rule" && routeSetProviders.contains($0.name)
+        }
         var refreshedNames: Set<String> = []
         var refreshedPayloads: [String: Data] = [:]
         var validationWarnings: [ProviderValidationWarning] = []
@@ -547,7 +569,8 @@ final class ProviderMaterializer {
             requests: requests,
             onHand: onHand,
             maxBytesEach: maxBytesEach,
-            budget: fetchBudget
+            budget: fetchBudget,
+            routeSetProviders: routeSetProviders
         )
         var firstLoadPendingNames: [String] = []
 
@@ -619,10 +642,26 @@ final class ProviderMaterializer {
                             "download failed (\($0)): \(failure.underlying.localizedDescription)"
                         } ?? "download failed: \(failure.underlying.localizedDescription)"
                 ))
+                if isRouteSet(provider) {
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                    firstLoadPendingNames.append(provider.name)
+                    continue
+                }
                 let target = providersDir.appendingPathComponent(provider.path)
                 try Data().write(to: target, options: Self.writeOptions)
                 mapping[provider.name] = publishedProvidersDir
                     .appendingPathComponent(provider.path).path
+                readPaths[provider.name] = target.path
                 firstLoadPendingNames.append(provider.name)
                 continue
             }
@@ -729,6 +768,7 @@ final class ProviderMaterializer {
             }
             mapping[provider.name] = publishedProvidersDir
                 .appendingPathComponent(provider.path).path
+            readPaths[provider.name] = target.path
             entryCounts[provider.name] = count
             if captureRefreshedPayloads.contains(provider.name),
                refreshedNames.contains(provider.name) {
@@ -740,6 +780,7 @@ final class ProviderMaterializer {
         }
         return ProviderMaterializationResult(
             paths: mapping,
+            readPaths: readPaths,
             entryCounts: entryCounts,
             subscriptionUserInfo: subscriptionUserInfo,
             refreshedNames: refreshedNames,
@@ -803,7 +844,8 @@ final class ProviderMaterializer {
         requests: [Int: URLRequest],
         onHand: [Int: AcquiredPayload],
         maxBytesEach: Int,
-        budget: ProviderFetchBudget = .patient
+        budget: ProviderFetchBudget = .patient,
+        routeSetProviders: Set<String> = []
     ) async throws -> [Int: AcquiredPayload] {
         let fetcher: HTTPFetching = budget == .patient ? downloader : quickDownloader
         var acquired = onHand
@@ -820,7 +862,17 @@ final class ProviderMaterializer {
             let cap = provider.maximumBytes > 0
                 ? Int(clamping: provider.maximumBytes)
                 : maxBytesEach
-            if budget == .activation {
+            if budget == .activation,
+               !(provider.kind == "rule" && routeSetProviders.contains(provider.name)) {
+                 
+                 
+                 
+                 
+                 
+                 
+                 
+                 
+                 
                  
                  
                  
