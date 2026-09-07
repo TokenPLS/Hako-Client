@@ -13,6 +13,10 @@ struct RemoteResourcePlan: Decodable {
          
          
         let updateIntervalSeconds: Int64
+         
+         
+         
+        let maximumBytes: Int64
 
         init(
             name: String,
@@ -25,7 +29,8 @@ struct RemoteResourcePlan: Decodable {
             headers: [String: [String]],
             proxy: String,
             resourceKey: String?,
-            updateIntervalSeconds: Int64 = 0
+            updateIntervalSeconds: Int64 = 0,
+            maximumBytes: Int64 = 0
         ) {
             self.name = name
             self.kind = kind
@@ -38,11 +43,13 @@ struct RemoteResourcePlan: Decodable {
             self.proxy = proxy
             self.resourceKey = resourceKey
             self.updateIntervalSeconds = updateIntervalSeconds
+            self.maximumBytes = maximumBytes
         }
 
         private enum CodingKeys: String, CodingKey {
             case name, kind, behavior, type, url, path, format, headers, proxy, resourceKey
             case updateIntervalSeconds
+            case maximumBytes
         }
 
         init(from decoder: Decoder) throws {
@@ -60,6 +67,10 @@ struct RemoteResourcePlan: Decodable {
             updateIntervalSeconds = try values.decodeIfPresent(
                 Int64.self,
                 forKey: .updateIntervalSeconds
+            ) ?? 0
+            maximumBytes = try values.decodeIfPresent(
+                Int64.self,
+                forKey: .maximumBytes
             ) ?? 0
         }
     }

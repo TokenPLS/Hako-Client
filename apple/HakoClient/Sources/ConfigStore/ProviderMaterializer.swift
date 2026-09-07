@@ -761,9 +761,19 @@ final class ProviderMaterializer {
     ) async throws -> [Int: AcquiredPayload] {
         let fetcher: HTTPFetching = budget == .patient ? downloader : quickDownloader
         var acquired = onHand
-        var toFetch: [(index: Int, request: URLRequest, name: String, url: String?)] = []
+        var toFetch: [(index: Int, request: URLRequest, name: String, url: String?, cap: Int)] = []
         for (index, provider) in plan.providers.enumerated() {
             guard acquired[index] == nil, let request = requests[index] else { continue }
+             
+             
+             
+             
+             
+             
+             
+            let cap = provider.maximumBytes > 0
+                ? Int(clamping: provider.maximumBytes)
+                : maxBytesEach
             if budget == .activation {
                  
                  
@@ -777,7 +787,7 @@ final class ProviderMaterializer {
                 )
                 continue
             }
-            toFetch.append((index, request, provider.name, provider.url))
+            toFetch.append((index, request, provider.name, provider.url, cap))
         }
         guard !toFetch.isEmpty else { return acquired }
 
@@ -789,12 +799,12 @@ final class ProviderMaterializer {
          
          
          
-        var leaders: [(index: Int, request: URLRequest, name: String, url: String?)] = []
+        var leaders: [(index: Int, request: URLRequest, name: String, url: String?, cap: Int)] = []
         var leaderIndex: [URLRequest: Int] = [:]
-        var followers: [Int: [(index: Int, name: String, url: String?)]] = [:]
+        var followers: [Int: [(index: Int, name: String, url: String?, cap: Int)]] = [:]
         for item in toFetch {
             if let leader = leaderIndex[item.request] {
-                followers[leader, default: []].append((item.index, item.name, item.url))
+                followers[leader, default: []].append((item.index, item.name, item.url, item.cap))
             } else {
                 leaderIndex[item.request] = item.index
                 leaders.append(item)
@@ -804,7 +814,7 @@ final class ProviderMaterializer {
         try await withThrowingTaskGroup(of: (Int, AcquiredPayload).self) { group in
             var next = 0
             let inFlight = min(budget == .patient ? Self.concurrentFetches : Self.quickConcurrentFetches, leaders.count)
-            func start(_ item: (index: Int, request: URLRequest, name: String, url: String?)) {
+            func start(_ item: (index: Int, request: URLRequest, name: String, url: String?, cap: Int)) {
                 group.addTask { [fetcher] in
                     let result: DownloadResult
                     do {
@@ -815,7 +825,7 @@ final class ProviderMaterializer {
                          
                         result = try await fetcher.fetch(
                             item.request,
-                            maxBytes: maxBytesEach,
+                            maxBytes: item.cap,
                             redirectPolicy: .followAcrossOrigins(maxHops: 5)
                         )
                     } catch {
@@ -834,8 +844,22 @@ final class ProviderMaterializer {
                      
                      
                      
+                     
+                     
+                     
                     guard result.data.count <= maxBytesEach else {
                         throw DownloadError.tooLarge(result.data.count)
+                    }
+                     
+                     
+                    guard result.data.count <= item.cap else {
+                        return (item.index, AcquiredPayload(
+                            data: nil, refreshed: false, subscriptionUserInfo: nil,
+                            failure: ProviderDownloadFailure(
+                                provider: item.name, url: item.url,
+                                underlying: DownloadError.tooLarge(result.data.count)
+                            )
+                        ))
                     }
                     return (item.index, AcquiredPayload(
                         data: result.data,
@@ -852,6 +876,18 @@ final class ProviderMaterializer {
             for try await (index, payload) in group {
                 acquired[index] = payload
                 for follower in followers[index] ?? [] {
+                     
+                     
+                    if let data = payload.data, data.count > follower.cap {
+                        acquired[follower.index] = AcquiredPayload(
+                            data: nil, refreshed: false, subscriptionUserInfo: nil,
+                            failure: ProviderDownloadFailure(
+                                provider: follower.name, url: follower.url,
+                                underlying: DownloadError.tooLarge(data.count)
+                            )
+                        )
+                        continue
+                    }
                     acquired[follower.index] = payload.failure.map { failure in
                         AcquiredPayload(
                             data: nil, refreshed: false, subscriptionUserInfo: nil,
