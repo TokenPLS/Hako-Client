@@ -237,6 +237,7 @@ struct AppShellView: View {
         .tint(preferences.accent.color)
         .background(HakoTheme.canvas(pureBlack: preferences.pureBlack).ignoresSafeArea())
         .task {
+            command.syncConnectionObservationScene(isActive: scenePhase == .active, isBackground: scenePhase == .background)
 
 
             proxyShare.bind(command: command)
@@ -395,6 +396,7 @@ struct AppShellView: View {
             ICloudAutoBackup.shared.start()
         }
         .onChange(of: scenePhase) { phase in
+            command.syncConnectionObservationScene(isActive: phase == .active, isBackground: phase == .background)
              
              
             ICloudAutoBackup.shared.setForeground(phase == .active)

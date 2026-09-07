@@ -41,7 +41,8 @@ struct HakoTVNodesScreen: View {
 
      
     private var visibleGroups: [HakoProxyGroupSnapshot] {
-        Self.visibleGroups(state.proxyGroups, mode: state.outboundMode)
+        guard state.observations.proxies.hasValue else { return [] }
+        return Self.visibleGroups(state.proxyGroups, mode: state.observations.mode.hasValue ? state.outboundMode : .rule)
     }
 
     private var shownGroup: HakoProxyGroupSnapshot? {
@@ -49,29 +50,37 @@ struct HakoTVNodesScreen: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 40) {
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-            if vacancy != .directMode {
-                groups
-                    .frame(maxWidth: 520)
+        VStack(alignment: .leading, spacing: 12) {
+            HakoTVObservationNote(observation: state.observations.proxies)
+            Text(String(localized: "Outbound mode · \(state.observations.mode.summary)"))
+                .font(.caption).foregroundStyle(.secondary)
+            Text("Latency values are the last test results; reading the list does not run a test.")
+                .font(.caption).foregroundStyle(.secondary)
+            HStack(alignment: .top, spacing: 40) {
+                 
+                 
+                 
+                 
+                 
+                 
+                 
+                 
+                 
+                 
+                 
+                if vacancy != .directMode {
+                    groups
+                        .frame(maxWidth: 520)
+                }
+                grid
+                    .focusSection()
             }
-            grid
-                .focusSection()
         }
     }
 
     private var vacancy: Vacancy? {
-        Self.vacancy(mode: state.outboundMode, visibleGroups: visibleGroups)
+        guard state.observations.proxies.hasValue else { return .noGroups }
+        return Self.vacancy(mode: state.observations.mode.hasValue ? state.outboundMode : .rule, visibleGroups: visibleGroups)
     }
 
      
@@ -161,7 +170,7 @@ struct HakoTVNodesScreen: View {
             case .directMode:
                 directModeNotice
             case .noGroups, .none:
-                Text("No policy groups in this configuration")
+                Text(state.observations.proxies.hasValue ? String(localized: "No policy groups in this configuration") : String(localized: "Not yet confirmed"))
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

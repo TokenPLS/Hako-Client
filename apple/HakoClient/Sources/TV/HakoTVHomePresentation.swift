@@ -141,7 +141,15 @@ struct HakoTVHomePresentation: Equatable {
      
      
      
+     
+    static func nodeObservation(_ state: HakoTVProductState) -> HakoTVObservation {
+        state.outboundMode == .direct ? state.observations.mode : state.observations.proxies
+    }
+
     static func nodeRow(_ state: HakoTVProductState) -> (title: String, value: String) {
+        guard nodeObservation(state).hasValue else {
+            return (String(localized: "Node"), String(localized: "Not yet confirmed"))
+        }
         if state.outboundMode == .direct { return (String(localized: "Node"), "DIRECT") }
         if state.nodeName.isEmpty { return (String(localized: "Node"), "—") }
         return (state.nodeName, state.nodeGroup)
@@ -169,7 +177,9 @@ struct HakoTVHomePresentation: Equatable {
      
     static func connectedLine(_ state: HakoTVProductState, now: Date = Date()) -> String {
         let seconds = state.connectedSince.map { Int(now.timeIntervalSince($0)) } ?? 0
-        return String(localized: "Connected · \(duration(secondsElapsed: seconds)) · \(HakoTVBytes.text(state.sessionBytes)) this session · \(state.connectionCount) connections")
+        let total = state.observations.totals.value(HakoTVBytes.text(state.sessionBytes), unknown: "—")
+        let count = state.observations.connections.value(String(state.connectionCount), unknown: "—")
+        return String(localized: "Connected · \(duration(secondsElapsed: seconds)) · \(total) this session · \(count) connections")
     }
 
     static func throughput(_ bytesPerSecond: Int64) -> String {

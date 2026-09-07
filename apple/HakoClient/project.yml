@@ -605,6 +605,7 @@ targets:
         - $(HAKO_ICLOUD_CONTAINER)
         com.apple.developer.icloud-services:
         - CloudKit
+        aps-environment: development
     dependencies:
     - package: HakoClientKit
     - framework: ../../Hako.xcframework

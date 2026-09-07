@@ -489,7 +489,13 @@ enum HakoMacMenuBarSpeed {
      
      
     @MainActor
-    static func menuBarImage(upLine: String, downLine: String) -> NSImage? {
+     
+     
+     
+     
+     
+     
+    static func menuBarImage(upLine: String, downLine: String, catAlpha: CGFloat) -> NSImage? {
         guard !upLine.isEmpty, !downLine.isEmpty,
               let cat = NSImage(named: HakoMacAsset.menuBarTemplate.rawValue)
         else { return nil }
@@ -542,7 +548,10 @@ enum HakoMacMenuBarSpeed {
                     y: (height - cat18) / 2,
                     width: cat18,
                     height: cat18
-                )
+                ),
+                from: .zero,
+                operation: .sourceOver,
+                fraction: catAlpha
             )
              
              
@@ -3195,12 +3204,12 @@ extension HakoMacSceneModel {
     private func refreshStatusButton() {
         guard let button = statusItem?.button else { return }
         let showsSpeed = UserDefaults.standard.bool(forKey: HakoMacMenuBarSpeed.key)
+         
+         
         button.image = HakoMacStatusItemLabel.image(
             showsSpeed: showsSpeed,
             upLine: menuBarTraffic.upLine,
-            downLine: menuBarTraffic.downLine
-        )
-        button.appearsDisabled = HakoMacStatusItemLabel.appearsDisabled(
+            downLine: menuBarTraffic.downLine,
             tunnelIsUp: HakoMacQuit.tunnelIsUp(status: vpn.status)
         )
         button.setAccessibilityLabel(HakoMacStatusItemLabel.accessibilityLabel(

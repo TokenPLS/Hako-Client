@@ -14,6 +14,7 @@ import SwiftUI
  
  
 struct HakoTVProductState {
+    var observations = HakoTVControlObservations()
      
      
      
@@ -135,6 +136,7 @@ struct HakoTVProductState {
      
     static var empty: HakoTVProductState {
         var state = HakoTVProductState(fixture: .prototype)
+        state.observations = .init()
         state.stage = .disconnected
         state.profileName = ""
         state.profileAge = ""
@@ -177,6 +179,7 @@ struct HakoTVProductState {
         ruleCount = rules.count
         connections = Self.buildConnectionsFixture()
         connectionCount = connections.count
+        observations = .fixture()
     }
 
      
@@ -487,5 +490,156 @@ enum HakoTVOutboundMode: String, CaseIterable, Equatable, Sendable {
         case .rule: String(localized: "Route traffic by the profile rules")
         case .direct: String(localized: "Connect directly, without a proxy")
         }
+    }
+}
+
+
+ 
+struct HakoTVControlObservations: Equatable {
+    var generation: UInt64 = 0
+    var lastEndedGeneration: UInt64?
+    var traffic = HakoTVObservation()
+    var totals = HakoTVObservation()
+    var memory = HakoTVObservation()
+    var proxies = HakoTVObservation()
+    var connections = HakoTVObservation()
+    var mode = HakoTVObservation()
+
+    private static let fields: [WritableKeyPath<Self, HakoTVObservation>] = [
+        \.traffic, \.totals, \.memory, \.proxies, \.connections, \.mode
+    ]
+
+    mutating func beginGeneration() {
+        generation &+= 1
+        for field in Self.fields { self[keyPath: field].forgetRuntime() }
+    }
+
+    mutating func waitForUpdate() {
+        for field in Self.fields { self[keyPath: field].waitForUpdate() }
+    }
+
+    static func fixture(at date: Date = Date()) -> Self {
+        var result = Self()
+        for field in Self.fields { result[keyPath: field].accept(.init(date: date)) }
+        return result
+    }
+}
+
+struct HakoTVObservation: Equatable {
+    enum Source { case unknown, configuration, selection, operation, runtime }
+    enum FailureKind { case notSent, resultUnknown, invalidReply, readFailed }
+    struct Failure: Equatable {
+        let kind: FailureKind
+        let message: String
+    }
+    struct Moment: Equatable {
+        var date: Date
+        var instant: ContinuousClock.Instant = .now
+    }
+
+    private(set) var source: Source = .unknown
+    private(set) var lastSuccess: Date?
+    private(set) var lastSuccessInstant: ContinuousClock.Instant?
+    private(set) var version: UInt64 = 0
+    private(set) var failure: Failure?
+    private(set) var waitingForUpdate = false
+    private(set) var operationConfirmedAt: Date?
+
+    var hasRuntimeSample: Bool { source == .runtime && lastSuccess != nil }
+    var hasValue: Bool { source != .unknown }
+    var confirmsCurrentValue: Bool {
+        (hasRuntimeSample || source == .operation) && failure == nil && !waitingForUpdate
+    }
+
+    mutating func accept(_ moment: Moment) {
+        source = .runtime
+        lastSuccess = moment.date
+        lastSuccessInstant = moment.instant
+        version &+= 1
+        failure = nil
+        waitingForUpdate = false
+        operationConfirmedAt = nil
+    }
+
+    mutating func fail(_ failure: Failure) {
+        self.failure = failure
+        waitingForUpdate = false
+    }
+
+    mutating func waitForUpdate() {
+        if source == .runtime || source == .operation { waitingForUpdate = true }
+    }
+
+    mutating func useConfiguration() {
+        forgetRuntime()
+        source = .configuration
+    }
+
+    mutating func selectLocally() {
+        forgetRuntime()
+        source = .selection
+    }
+
+    mutating func acknowledgeOperation(at date: Date) {
+        source = .operation
+        operationConfirmedAt = date
+        waitingForUpdate = false
+        failure = nil
+         
+    }
+
+    mutating func forgetRuntime() {
+        if source != .configuration && source != .selection { source = .unknown }
+        lastSuccess = nil
+        lastSuccessInstant = nil
+        operationConfirmedAt = nil
+        failure = nil
+        waitingForUpdate = false
+    }
+
+    func value(_ knownValue: String, unknown: String = String(localized: "Not yet confirmed")) -> String {
+        hasValue ? knownValue : unknown
+    }
+
+    var summary: String {
+        if let lastSuccess, hasRuntimeSample {
+            let when = Self.timestamp(lastSuccess)
+            if failure != nil { return String(localized: "Update unsuccessful · Last read \(when)") }
+            if waitingForUpdate { return String(localized: "Waiting for update · Last read \(when)") }
+            return String(localized: "Last read \(when)")
+        }
+        switch source {
+        case .configuration:
+            return failure == nil ? String(localized: "From configuration") : String(localized: "From configuration · Update unsuccessful")
+        case .selection:
+            return String(localized: "Selected locally · Runtime not confirmed")
+        case .operation:
+            guard let operationConfirmedAt else { return String(localized: "Not yet confirmed") }
+            let when = Self.timestamp(operationConfirmedAt)
+            if failure != nil { return String(localized: "Update unsuccessful · Choice confirmed \(when)") }
+            if waitingForUpdate { return String(localized: "Waiting for runtime confirmation") }
+            return String(localized: "Choice confirmed \(when)")
+        case .unknown, .runtime:
+            return failure == nil ? String(localized: "Not yet confirmed") : String(localized: "Update unsuccessful · Not yet confirmed")
+        }
+    }
+
+    private static func timestamp(_ date: Date) -> String {
+         
+        date.formatted(date: .numeric, time: .standard)
+    }
+}
+
+ 
+struct HakoTVObservationNote: View {
+    let observation: HakoTVObservation
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(observation.summary)
+            if let failure = observation.failure { Text(verbatim: failure.message) }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .combine)
     }
 }

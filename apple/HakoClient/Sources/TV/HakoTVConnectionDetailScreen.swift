@@ -30,10 +30,9 @@ import SwiftUI
  
  
  
- 
 struct HakoTVConnectionDetailScreen: View {
      
-    enum Liveness: Equatable { case live, ended }
+    enum Liveness: Equatable { case live, ended, unconfirmed }
 
      
      
@@ -51,10 +50,54 @@ struct HakoTVConnectionDetailScreen: View {
     struct Model: Equatable {
         private(set) var connection: HakoActivityConnectionSnapshot
         private(set) var liveness: Liveness
+        private(set) var lastObservedAt: Date?
+        private(set) var observation = HakoTVObservation()
+        private var generation: UInt64?
 
-        init(_ seed: HakoActivityConnectionSnapshot) {
+        init(_ seed: HakoActivityConnectionSnapshot, observedAt: Date? = nil, generation: UInt64? = nil) {
             connection = seed
             liveness = .live
+            lastObservedAt = observedAt
+            self.generation = generation
+        }
+
+        mutating func observe(_ connections: [HakoActivityConnectionSnapshot], observation: HakoTVObservation,
+                              generation: UInt64, isConnected: Bool, endedGeneration: UInt64? = nil) {
+            if let held = self.generation, held == endedGeneration { liveness = .ended; return }
+            if let held = self.generation, held != generation {
+                self.observation.waitForUpdate()
+                if liveness != .ended { liveness = .unconfirmed }
+                return
+            }
+            guard isConnected else {
+                self.observation.waitForUpdate()
+                if liveness != .ended { liveness = .unconfirmed }
+                return
+            }
+            self.generation = generation
+            self.observation = observation
+            guard observation.hasRuntimeSample, observation.confirmsCurrentValue else {
+                 
+                if liveness != .ended { liveness = .unconfirmed }
+                return
+            }
+            if let fresh = connections.first(where: { $0.id == connection.id }) {
+                connection = fresh
+                lastObservedAt = observation.lastSuccess
+                liveness = .live
+            } else {
+                liveness = .ended
+            }
+        }
+
+        func displayedFields(now: Date) -> [Field] {
+            let fields = HakoTVConnectionDetailScreen.fields(for: connection, now: liveness == .live ? now : (lastObservedAt ?? now))
+            guard liveness != .live else { return fields }
+            return fields.compactMap { field in
+                guard field.label == String(localized: "Duration") else { return field }
+                guard lastObservedAt != nil else { return nil }
+                return Field(label: String(localized: "Last observed duration"), value: field.value)
+            }
         }
 
         mutating func update(from connections: [HakoActivityConnectionSnapshot]) {
@@ -76,13 +119,15 @@ struct HakoTVConnectionDetailScreen: View {
     @State private var clockNow = Date()
     @Environment(\.hakoTVPollingPresentation) private var pollingPresentation
     private var clockActive: Bool {
-        pollingPresentation.active && pollingPresentation.page == .connectionDetail
+        pollingPresentation.active && pollingPresentation.page == .connectionDetail && model.liveness == .live
     }
 
-    init(state: Binding<HakoTVProductState>, seed: HakoActivityConnectionSnapshot) {
+    init(state: Binding<HakoTVProductState>, seed: HakoActivityConnectionSnapshot,
+         observedAt: Date? = nil, generation: UInt64? = nil) {
         _state = state
         self.seed = seed
-        _model = State(initialValue: Model(seed))
+        _model = State(initialValue: Model(seed, observedAt: observedAt ?? state.wrappedValue.observations.connections.lastSuccess,
+                                           generation: generation ?? state.wrappedValue.observations.generation))
     }
 
     var body: some View {
@@ -95,10 +140,11 @@ struct HakoTVConnectionDetailScreen: View {
                 .font(.caption)
                 .textCase(.uppercase)
                 .foregroundStyle(model.liveness == .ended ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
+            HakoTVObservationNote(observation: model.observation)
             List {
                  
                  
-                ForEach(Self.fields(for: model.connection, now: clockNow)) { field in
+                ForEach(model.displayedFields(now: clockNow)) { field in
                     LabeledContent(field.label) {
                         Text(field.value)
                             .accessibilityIdentifier("tvos.connection.field.\(field.id)")
@@ -116,9 +162,16 @@ struct HakoTVConnectionDetailScreen: View {
             guard clockActive else { return }
             await HakoTVDisplayClock.run { clockNow = $0 }
         }
-        .onChange(of: state.connections) { _, connections in
-            model.update(from: connections)
-        }
+        .onChange(of: state.observations.connections, initial: true) { _, _ in observeConnection() }
+        .onChange(of: state.observations.generation) { _, _ in observeConnection() }
+        .onChange(of: state.isConnected) { _, _ in observeConnection() }
+        .onChange(of: state.observations.lastEndedGeneration) { _, _ in observeConnection() }
+    }
+
+    private func observeConnection() {
+        model.observe(state.connections, observation: state.observations.connections,
+                      generation: state.observations.generation, isConnected: state.isConnected,
+                      endedGeneration: state.observations.lastEndedGeneration)
     }
 
      
@@ -127,6 +180,7 @@ struct HakoTVConnectionDetailScreen: View {
         switch liveness {
         case .live: String(localized: "Live")
         case .ended: String(localized: "Ended")
+        case .unconfirmed: String(localized: "Current status not confirmed")
         }
     }
 

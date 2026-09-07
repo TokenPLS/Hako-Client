@@ -386,34 +386,43 @@ final class HakoMacStatusMenuController: NSObject, NSMenuDelegate {
  
  
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 @MainActor
 enum HakoMacStatusItemLabel {
-    static func image(showsSpeed: Bool, upLine: String, downLine: String) -> NSImage? {
+     
+     
+    static let dimmedCatAlpha: CGFloat = 0.5
+
+    static func image(showsSpeed: Bool, upLine: String, downLine: String, tunnelIsUp: Bool) -> NSImage? {
+        let catAlpha: CGFloat = tunnelIsUp ? 1 : dimmedCatAlpha
         if showsSpeed,
-           let drawn = HakoMacMenuBarSpeed.menuBarImage(upLine: upLine, downLine: downLine) {
+           let drawn = HakoMacMenuBarSpeed.menuBarImage(upLine: upLine, downLine: downLine, catAlpha: catAlpha) {
             drawn.isTemplate = true
             return drawn
         }
          
          
-        let cat = NSImage(named: HakoMacAsset.menuBarTemplate.rawValue)
-        cat?.isTemplate = true
-        return cat
+        guard let cat = NSImage(named: HakoMacAsset.menuBarTemplate.rawValue) else { return nil }
+        cat.isTemplate = true
+        if catAlpha == 1 { return cat }
+        let dimmed = NSImage(size: cat.size, flipped: false) { rect in
+            cat.draw(in: rect, from: .zero, operation: .sourceOver, fraction: catAlpha)
+            return true
+        }
+        dimmed.isTemplate = true
+        return dimmed
     }
 
     static func accessibilityLabel(showsSpeed: Bool, upLine: String, downLine: String) -> String {
         showsSpeed ? "Clash — \(upLine), \(downLine)" : "Clash"
-    }
-
-     
-     
-     
-     
-     
-     
-     
-    static func appearsDisabled(tunnelIsUp: Bool) -> Bool {
-        !tunnelIsUp
     }
 }
 

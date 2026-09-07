@@ -12,6 +12,7 @@
 "1 never matches here" = "1 never matches here";
 "A load-balance group spreads connections across its members, so it has no single route to pin." = "A load-balance group spreads connections across its members, so it has no single route to pin.";
 "A relay sends traffic through its members in order, so there is no one member to choose." = "A relay sends traffic through its members in order, so there is no one member to choose.";
+"A valid memory sample was not included in the reply." = "A valid memory sample was not included in the reply.";
 "About" = "About";
 "Add a profile" = "Add a profile";
 "Add a profile to get started. Type its address here, or on your iPhone when the keyboard appears there." = "Add a profile to get started. Type its address here, or on your iPhone when the keyboard appears there.";
@@ -29,6 +30,7 @@
 "Cancel" = "Cancel";
 "Check that the subscription address is still reachable, then update it once from its own screen." = "Check that the subscription address is still reachable, then update it once from its own screen.";
 "Checking…" = "Checking…";
+"Choice confirmed %@" = "Choice confirmed %@";
 "Choose the device to restore from" = "Choose the device to restore from";
 "Clash" = "Clash";
 "Clash could not open its secure shared container." = "Clash could not open its secure shared container.";
@@ -41,11 +43,14 @@
 "Connect directly, without a proxy" = "Connect directly, without a proxy";
 "Connect the tunnel first. Sharing runs inside it." = "Connect the tunnel first. Sharing runs inside it.";
 "Connected" = "Connected";
+"Connected · %@ · %@ this session · %@ connections" = "Connected · %@ · %@ this session · %@ connections";
 "Connected · %@ · %@ this session · %lld connections" = "Connected · %@ · %@ this session · %lld connections";
 "Connection" = "Connection";
 "Connection Not Completed" = "Connection Not Completed";
 "Connections" = "Connections";
+"Connections · %@" = "Connections · %@";
 "Could not update: %@" = "Could not update: %@";
+"Current status not confirmed" = "Current status not confirmed";
 "Currently in force: %@ · changing this takes effect immediately, without reconnecting" = "Currently in force: %@ · changing this takes effect immediately, without reconnecting";
 "DNS" = "DNS";
 "DNS mode" = "DNS mode";
@@ -63,6 +68,8 @@
 "Ended" = "Ended";
 "Every rule in the profile, in the order the tunnel tries them. Read-only here: see what a connection will do, then edit on your phone." = "Every rule in the profile, in the order the tunnel tries them. Read-only here: see what a connection will do, then edit on your phone.";
 "Failed" = "Failed";
+"From configuration" = "From configuration";
+"From configuration · Update unsuccessful" = "From configuration · Update unsuccessful";
 "From iCloud · %@ · %@" = "From iCloud · %@ · %@";
 "Geo data" = "Geo data";
 "Global" = "Global";
@@ -72,7 +79,11 @@
 "In force" = "In force";
 "In use" = "In use";
 "In use. The tunnel fetches its configuration from this address." = "In use. The tunnel fetches its configuration from this address.";
+"Last known choice" = "Last known choice";
+"Last observed duration" = "Last observed duration";
 "Last problem" = "Last problem";
+"Last read %@" = "Last read %@";
+"Latency values are the last test results; reading the list does not run a test." = "Latency values are the last test results; reading the list does not run a test.";
 "Let other devices on your network use this Apple TV as their HTTP or SOCKS5 proxy, with the port, username and password your profile names. The tunnel has to be running." = "Let other devices on your network use this Apple TV as their HTTP or SOCKS5 proxy, with the port, username and password your profile names. The tunnel has to be running.";
 "Let profiles listen on the local network" = "Let profiles listen on the local network";
 "Live" = "Live";
@@ -136,6 +147,7 @@
 "Not running" = "Not running";
 "Not sent." = "Not sent.";
 "Not sharing." = "Not sharing.";
+"Not yet confirmed" = "Not yet confirmed";
 "Not yet updated" = "Not yet updated";
 "Nothing is going through the tunnel yet" = "Nothing is going through the tunnel yet";
 "Off" = "Off";
@@ -143,6 +155,7 @@
 "On" = "On";
 "Optional" = "Optional";
 "Outbound mode" = "Outbound mode";
+"Outbound mode · %@" = "Outbound mode · %@";
 "Overrides not applied — back up again on your iPhone" = "Overrides not applied — back up again on your iPhone";
 "Password" = "Password";
 "Plain addresses used to look up the resolvers above, before any of them can be reached by name." = "Plain addresses used to look up the resolvers above, before any of them can be reached by name.";
@@ -190,7 +203,9 @@
 "STOPPING" = "STOPPING";
 "Save" = "Save";
 "Saving configuration…" = "Saving configuration…";
+"Selected locally · Runtime not confirmed" = "Selected locally · Runtime not confirmed";
 "Send all traffic through the selected proxy" = "Send all traffic through the selected proxy";
+"Session total · %@" = "Session total · %@";
 "Share on this network" = "Share on this network";
 "Share with a username and password" = "Share with a username and password";
 "Sharing did not start." = "Sharing did not start.";
@@ -223,7 +238,10 @@
 "The configuration is in use. Try again in a moment." = "The configuration is in use. Try again in a moment.";
 "The configuration was refused: %@" = "The configuration was refused: %@";
 "The connection changed while waiting." = "The connection changed while waiting.";
+"The connection list was incomplete." = "The connection list was incomplete.";
 "The core's own name, with this Apple TV behind it. Keep this unless a panel of yours answers better to another client." = "The core's own name, with this Apple TV behind it. Keep this unless a panel of yours answers better to another client.";
+"The current runtime mode has not been confirmed." = "The current runtime mode has not been confirmed.";
+"The last memory sample received from the tunnel. Its read time is shown below; an unsuccessful update keeps the last sample." = "The last memory sample received from the tunnel. Its read time is shown below; an unsuccessful update keeps the last sample.";
 "The most recent thing that went wrong, kept after it stopped being true. It covers this app session only; it does not know about a start that failed while the app was closed." = "The most recent thing that went wrong, kept after it stopped being true. It covers this app session only; it does not know about a start that failed while the app was closed.";
 "The name is only what this Apple TV calls the address. The address itself, and what is downloaded from it, do not change." = "The name is only what this Apple TV calls the address. The address itself, and what is downloaded from it, do not change.";
 "The name this app gives when it downloads a profile or a provider. Panels read it to decide which format to hand back, so Clash — the core's own name — is the one to keep unless a panel of yours answers better to another client." = "The name this app gives when it downloads a profile or a provider. Panels read it to decide which format to hand back, so Clash — the core's own name — is the one to keep unless a panel of yours answers better to another client.";
@@ -246,6 +264,7 @@
 "The resolvers asked first, in this order." = "The resolvers asked first, in this order.";
 "The saved configuration is damaged. Import it again." = "The saved configuration is damaged. Import it again.";
 "The server answered %lld. Check the address on your phone." = "The server answered %lld. Check the address on your phone.";
+"The subscription could not be fetched: the request timed out." = "The subscription could not be fetched: the request timed out.";
 "The system did not answer in time." = "The system did not answer in time.";
 "The system did not take the change — the switch is back where it was." = "The system did not take the change — the switch is back where it was.";
 "The system has not answered yet — the change may still take. The switch shows what you asked for; the next Connect applies it again." = "The system has not answered yet — the change may still take. The switch shows what you asked for; the next Connect applies it again.";
@@ -270,6 +289,9 @@
 "Type a profile address, here or on your iPhone. The address is what this Apple TV remembers; what it points at is fetched again whenever it is needed." = "Type a profile address, here or on your iPhone. The address is what this Apple TV remembers; what it points at is fetched again whenever it is needed.";
 "Type on your phone instead — the keyboard is already waiting there." = "Type on your phone instead — the keyboard is already waiting there.";
 "Update now" = "Update now";
+"Update unsuccessful · Choice confirmed %@" = "Update unsuccessful · Choice confirmed %@";
+"Update unsuccessful · Last read %@" = "Update unsuccessful · Last read %@";
+"Update unsuccessful · Not yet confirmed" = "Update unsuccessful · Not yet confirmed";
 "Updated %@" = "Updated %@";
 "Updated just now" = "Updated just now";
 "Updating…" = "Updating…";
@@ -280,8 +302,12 @@
 "Uses %lld local resource files — not supported on Apple TV yet" = "Uses %lld local resource files — not supported on Apple TV yet";
 "Using" = "Using";
 "Utilities" = "Utilities";
+"Valid session totals were not included in the reply." = "Valid session totals were not included in the reply.";
+"Valid traffic rates were not included in the reply." = "Valid traffic rates were not included in the reply.";
 "Version" = "Version";
 "Version %@" = "Version %@";
+"Waiting for runtime confirmation" = "Waiting for runtime confirmation";
+"Waiting for update · Last read %@" = "Waiting for update · Last read %@";
 "What happens" = "What happens";
 "What is going through the tunnel right now, newest first, and which rule sent each one where it went." = "What is going through the tunnel right now, newest first, and which rule sent each one where it went.";
 "What the tunnel is using now. The system stops an extension that grows too large; if that happens, the item below prices every rule set and resource by name." = "What the tunnel is using now. The system stops an extension that grows too large; if that happens, the item below prices every rule set and resource by name.";

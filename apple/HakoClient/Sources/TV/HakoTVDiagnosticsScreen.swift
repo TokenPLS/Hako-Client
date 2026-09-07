@@ -52,7 +52,7 @@ struct HakoTVDiagnosticsScreen: View {
             case .tunnel:
                 String(localized: "Whether the packet tunnel is up. Everything else on this screen is read from it while it runs.")
             case .memory:
-                String(localized: "What the tunnel is using now. The system stops an extension that grows too large; if that happens, the item below prices every rule set and resource by name.")
+                String(localized: "The last memory sample received from the tunnel. Its read time is shown below; an unsuccessful update keeps the last sample.")
             case .geodata:
                 String(localized: "Which copy of the GeoIP and GeoSite databases the tunnel loaded.")
             case .lastProblem:
@@ -80,7 +80,7 @@ struct HakoTVDiagnosticsScreen: View {
                     row(.tunnel, value: Self.tunnelValue(state)) {}
                     row(.lastProblem, value: Self.lastProblemValue(state.lastProblem)) {}
                         .lineLimit(2)
-                    row(.memory, value: Self.memoryValue(state.memoryBytes)) {}
+                    row(.memory, value: state.observations.memory.value(Self.memoryValue(state.memoryBytes))) {}
                     row(.geodata, value: state.geodataSource.localizedForTelevision) {}
                     row(.providers, value: Self.providersValue(ready: state.providers.count { $0.failure == nil }, total: state.providers.count), action: openProviders)
                 }
@@ -100,7 +100,7 @@ struct HakoTVDiagnosticsScreen: View {
                 if explained == .memory {
                      
                      
-                    Text(Self.memoryValue(state.memoryBytes))
+                    Text(state.observations.memory.value(Self.memoryValue(state.memoryBytes)))
                         .font(.largeTitle)
                         .monospacedDigit()
                 }
@@ -131,6 +131,7 @@ struct HakoTVDiagnosticsScreen: View {
                         .foregroundStyle(.tertiary)
                 }
                 if explained == .memory {
+                    HakoTVObservationNote(observation: state.observations.memory)
                     Text(Self.memoryCeilingLine)
                         .font(.body)
                         .foregroundStyle(.tertiary)

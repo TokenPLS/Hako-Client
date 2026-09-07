@@ -146,6 +146,8 @@ struct RuntimeRouteEvidence: Codable, Equatable, Sendable {
         case selectionConfirmed = "selection-confirmed"
         case selectionRejected = "selection-rejected"
         case trafficRouteObserved = "traffic-route-observed"
+        case observationsPaused = "observations-paused"
+        case observationsResumed = "observations-resumed"
     }
 
     let schemaVersion: Int
@@ -168,6 +170,9 @@ struct RuntimeRouteEvidence: Codable, Equatable, Sendable {
     let confirmedMember: String?
     let resolvedMember: String?
     let failureCategory: String?
+    let observationPauseID: String?
+    let observationPauseStartedAt: Date?
+    let observationPauseReason: ConnectionObservationPauseReason?
 
     init(
         kind: Kind,
@@ -185,7 +190,10 @@ struct RuntimeRouteEvidence: Codable, Equatable, Sendable {
         requestedMember: String? = nil,
         confirmedMember: String? = nil,
         resolvedMember: String? = nil,
-        failureCategory: String? = nil
+        failureCategory: String? = nil,
+        observationPauseID: String? = nil,
+        observationPauseStartedAt: Date? = nil,
+        observationPauseReason: ConnectionObservationPauseReason? = nil
     ) {
         schemaVersion = 1
         self.kind = kind
@@ -204,6 +212,9 @@ struct RuntimeRouteEvidence: Codable, Equatable, Sendable {
         self.confirmedMember = confirmedMember
         self.resolvedMember = resolvedMember
         self.failureCategory = failureCategory
+        self.observationPauseID = observationPauseID
+        self.observationPauseStartedAt = observationPauseStartedAt
+        self.observationPauseReason = observationPauseReason
     }
 
     func jsonLine() throws -> String {
@@ -484,11 +495,23 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
     private var connectTask: Task<Void, Never>?
     private var nativeConnectTask: Task<Void, Never>?
     private var nativeCleanup: Task<Void, Never>?
-    private var connectionDiagnosticsLease: ConnectionSourceLease?
+    private var connectionDiagnosticsLease: ConnectionDiagnosticLease?
+    private enum DiagnosticScene { case active, inactive, background }
+    private var diagnosticScene: DiagnosticScene = .background
+    private let sceneManagedDiagnostics: Bool
+    private let runtimeDiagnosticsReader: (() async throws -> HakoRuntimeDiagnostics)?
+    private var observationEpoch: UInt64 = 0
+    private var confirmedObservationEpoch: UInt64?
+    private var runtimeDiagnosticsRequest: UInt64 = 0
+    private var diagnosticsRequestInFlight = false
+    private var scheduledDiagnosticsTask: Task<Void, Never>?
+    private var diagnosticPublication: HakoRuntimeDiagnostics?
+    private var publishingDiagnostics = false
     private var logBatchTask: Task<Void, Never>?
     private var pendingLogs: [String] = []
     private var trafficReducer = ClashTrafficReducer()
-    private let routeEvidenceJournal = ConnectionRuntimeFeed.shared.routeJournal
+    private let connectionRuntimeFeed: ConnectionRuntimeFeed
+    private var routeEvidenceJournal: RuntimeRouteEvidenceJournal { connectionRuntimeFeed.routeJournal }
     private var lastConfirmedRuntimeEvidenceKey = ""
     private var runtimeConfirmedAt: UInt64 = 0
     private var generation: UInt64 = 0
@@ -502,6 +525,7 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
     deinit {
         connectTask?.cancel()
         logBatchTask?.cancel()
+        scheduledDiagnosticsTask?.cancel()
         let oldClient = client
         let connecting = nativeConnectTask
         let previous = nativeCleanup
@@ -539,11 +563,21 @@ final class ClashCommandClient: ObservableObject, ProxyShareCommanding {
     private let enqueueMemory: ClashMemoryDelivery
 
     init(
+        connectionRuntimeFeed: ConnectionRuntimeFeed? = nil,
+        sceneManagedDiagnostics: Bool? = nil,
+        runtimeDiagnosticsReader: (() async throws -> HakoRuntimeDiagnostics)? = nil,
         memoryNow: @escaping @Sendable () -> UInt64 = ClashMemoryClock.now,
         enqueueMemory: @escaping ClashMemoryDelivery = { action in
             Task { @MainActor in action() }
         }
     ) {
+        self.connectionRuntimeFeed = connectionRuntimeFeed ?? .shared
+#if os(iOS)
+        self.sceneManagedDiagnostics = sceneManagedDiagnostics ?? true
+#else
+        self.sceneManagedDiagnostics = sceneManagedDiagnostics ?? false
+#endif
+        self.runtimeDiagnosticsReader = runtimeDiagnosticsReader
         self.memoryNow = memoryNow
         self.enqueueMemory = enqueueMemory
 return 
@@ -655,7 +689,7 @@ return
             peerSchemaVersion = 0
             peerCoreVersion = "—"
             peerCapabilities = []
-            runtimeDiagnostics = nil
+            publishRuntimeDiagnostics(nil)
              
              
              
@@ -681,7 +715,8 @@ return
         generation &+= 1
         memoryState = MemoryState(inuse: memoryState.inuse, footprint: nil)
         lastMemorySequence = 0
-        connectionDiagnosticsLease?.release()
+        invalidateDiagnosticRequests()
+        connectionDiagnosticsLease?.release(reason: .controlDisconnected)
         connectionDiagnosticsLease = nil
         let oldClient = client
         let connecting = nativeConnectTask
@@ -1164,26 +1199,132 @@ return
         }
     }
 
-    func refreshRuntimeDiagnostics() async {
-        guard let providerSession else { return }
-        let token = generation
-        do {
-            let diagnostics =
-                try await HakoClient(
-                    session: providerSession
-                ).runtimeDiagnostics()
-            guard token == generation else { return }
-            runtimeDiagnostics = diagnostics
+    private struct DiagnosticRequest {
+        let control: UInt64
+        let epoch: UInt64
+        let sequence: UInt64
+        let read: () async throws -> HakoRuntimeDiagnostics
+    }
+
+    private func invalidateDiagnosticRequests() {
+        observationEpoch &+= 1
+        confirmedObservationEpoch = nil
+        diagnosticsRequestInFlight = false
+        scheduledDiagnosticsTask?.cancel(); scheduledDiagnosticsTask = nil
+    }
+
+     
+    func syncConnectionObservationScene(isActive: Bool, isBackground: Bool) {
+        guard sceneManagedDiagnostics else { return }
+        let next: DiagnosticScene = isActive ? .active : (isBackground ? .background : .inactive)
+        guard next != diagnosticScene else { return }
+        diagnosticScene = next
+         
+        invalidateDiagnosticRequests()
+        if next == .background {
+            connectionDiagnosticsLease?.release(reason: .noForegroundScene)
+            connectionDiagnosticsLease = nil
+        }
+        reconcileConnectionDiagnostics()
+    }
+
+    private func reconcileConnectionDiagnostics() {
+        guard isConnected else { return }
+        if sceneManagedDiagnostics {
+            guard diagnosticScene == .active else { return }
+            guard connectionDiagnosticsLease == nil else { return }
+            guard confirmedObservationEpoch == observationEpoch else {
+                if !diagnosticsRequestInFlight { scheduleRuntimeDiagnosticsRefresh() }
+                return
+            }
+            let route = currentRouteContext()
+            guard runtimeDiagnostics?.running == true, route.coreProcessIdentifier > 0, route.coreStartTimeUnix > 0,
+                  route.profileID != "unavailable", !route.profileID.isEmpty,
+                  route.profileRevision != "unavailable", !route.profileRevision.isEmpty else { return }
+        }
+        guard connectionDiagnosticsLease == nil else { return }
+        connectionDiagnosticsLease = connectionRuntimeFeed.acquireDiagnostics(sceneManaged: sceneManagedDiagnostics,
+            context: { [weak self] in
+                guard let self, self.isConnected, self.runtimeDiagnostics != nil else { return nil }
+                if self.sceneManagedDiagnostics, self.runtimeDiagnostics?.running != true { return nil }
+                return ConnectionDiagnosticContext(route: self.currentRouteContext(), confirmedAt: self.runtimeConfirmedAt)
+            }, receive: { [weak self] lines in self?.enqueueLogLines(lines) })
+    }
+
+    private func beginDiagnosticRequest() -> DiagnosticRequest? {
+        let read: () async throws -> HakoRuntimeDiagnostics
+        if let runtimeDiagnosticsReader { read = runtimeDiagnosticsReader }
+        else if let providerSession { read = { try await HakoClient(session: providerSession).runtimeDiagnostics() } }
+        else { return nil }
+        scheduledDiagnosticsTask?.cancel(); scheduledDiagnosticsTask = nil
+        runtimeDiagnosticsRequest &+= 1
+        diagnosticsRequestInFlight = true
+        if sceneManagedDiagnostics, diagnosticScene == .active, connectionDiagnosticsLease == nil {
+            runtimeIdentityCache.invalidate()
+        }
+        return DiagnosticRequest(control: generation, epoch: observationEpoch, sequence: runtimeDiagnosticsRequest, read: read)
+    }
+
+    private func isCurrent(_ request: DiagnosticRequest) -> Bool {
+        request.control == generation && request.epoch == observationEpoch && request.sequence == runtimeDiagnosticsRequest
+    }
+
+    private func publishRuntimeDiagnostics(_ value: HakoRuntimeDiagnostics?) {
+        diagnosticPublication = value
+        guard !publishingDiagnostics else { return }
+        publishingDiagnostics = true
+        defer { publishingDiagnostics = false }
+        repeat {
+            let current = diagnosticPublication
+            runtimeDiagnostics = current
+        } while runtimeDiagnostics != diagnosticPublication
+    }
+
+    private func finishDiagnosticRequest(_ result: Result<HakoRuntimeDiagnostics, Error>, request: DiagnosticRequest) {
+        guard isCurrent(request) else { return }
+        diagnosticsRequestInFlight = false
+        scheduledDiagnosticsTask = nil
+        switch result {
+        case let .success(diagnostics):
+            let previous = diagnosticPublication
+            publishRuntimeDiagnostics(diagnostics)
+            guard isCurrent(request) else {
+                 
+                if diagnosticPublication == diagnostics { publishRuntimeDiagnostics(previous) }
+                return
+            }
             runtimeConfirmedAt = DispatchTime.now().uptimeNanoseconds
+            confirmedObservationEpoch = observationEpoch
+            if sceneManagedDiagnostics, diagnosticScene == .active, connectionDiagnosticsLease == nil {
+                runtimeIdentityCache.invalidate()
+            }
             let context = currentRouteContext()
             if context.generationKey != lastConfirmedRuntimeEvidenceKey {
                 lastConfirmedRuntimeEvidenceKey = context.generationKey
                 recordRouteControl(kind: .runtimeCoreConfirmed)
             }
-        } catch {
-            guard token == generation else { return }
-            lastError = error.localizedDescription
+            reconcileConnectionDiagnostics()
+        case let .failure(error): lastError = error.localizedDescription
         }
+    }
+
+    private func scheduleRuntimeDiagnosticsRefresh() {
+        guard let request = beginDiagnosticRequest() else { return }
+         
+        scheduledDiagnosticsTask = Task { [weak self] in
+            let result: Result<HakoRuntimeDiagnostics, Error>
+            do { result = .success(try await request.read()) }
+            catch { result = .failure(error) }
+            self?.finishDiagnosticRequest(result, request: request)
+        }
+    }
+
+    func refreshRuntimeDiagnostics() async {
+        guard let request = beginDiagnosticRequest() else { return }
+        let result: Result<HakoRuntimeDiagnostics, Error>
+        do { result = .success(try await request.read()) }
+        catch { result = .failure(error) }
+        finishDiagnosticRequest(result, request: request)
     }
 
     func requestGarbageCollection() async {
@@ -2039,15 +2180,7 @@ return
         isConnecting = false
         connectTask = nil
         isConnected = true
-        if connectionDiagnosticsLease == nil {
-            connectionDiagnosticsLease = ConnectionRuntimeFeed.shared.acquireDiagnostics(
-                context: { [weak self] in
-                    guard let self, self.isConnected, self.runtimeDiagnostics != nil else { return nil }
-                    return ConnectionDiagnosticContext(route: self.currentRouteContext(), confirmedAt: self.runtimeConfirmedAt)
-                },
-                receive: { [weak self] lines in self?.enqueueLogLines(lines) }
-            )
-        }
+        reconcileConnectionDiagnostics()
          
          
          
@@ -2057,7 +2190,9 @@ return
         traffic = ClashTrafficSnapshot()
         recordRouteControl(kind: .runtimeControlConnected)
         Task { await refreshMetadata() }
-        Task { await refreshRuntimeDiagnostics() }
+        if !sceneManagedDiagnostics || diagnosticScene != .active {
+            scheduleRuntimeDiagnosticsRefresh()
+        }
         Task { await consumeStartupOOMEvidence() }
     }
 
@@ -2081,7 +2216,7 @@ return
         peerSchemaVersion = 0
         peerCoreVersion = "—"
         peerCapabilities = []
-        runtimeDiagnostics = nil
+        publishRuntimeDiagnostics(nil)
         if !message.isEmpty { lastError = message }
         scheduleReconnect(token: generation)
     }
@@ -2253,7 +2388,7 @@ return
      
      
      
-    private var runtimeIdentityCache: RuntimeIdentityCache { ConnectionRuntimeFeed.shared.runtimeIdentityCache }
+    private var runtimeIdentityCache: RuntimeIdentityCache { connectionRuntimeFeed.runtimeIdentityCache }
 
     private func currentRouteContext() -> RuntimeRouteContext {
         let identity = runtimeIdentityCache.current()

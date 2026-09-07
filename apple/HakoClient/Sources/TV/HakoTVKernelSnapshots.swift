@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
  
  
@@ -53,6 +54,8 @@ enum HakoTVKernelSnapshots {
         let upTotal: Int64
         let downTotal: Int64
         let memory: Int64
+        var hasTotals: Bool = true
+        var hasRates: Bool = true
     }
 
     struct Status: Equatable {
@@ -120,7 +123,16 @@ enum HakoTVKernelSnapshots {
      
      
      
+    struct ConnectionRead {
+        let rows: [HakoActivityConnectionSnapshot]
+        let isComplete: Bool
+    }
+
     static func connections(from data: Data) throws -> [HakoActivityConnectionSnapshot] {
+        try connectionRead(from: data).rows
+    }
+
+    static func connectionRead(from data: Data) throws -> ConnectionRead {
         let root = try object(data, what: "connections")
          
          
@@ -128,13 +140,13 @@ enum HakoTVKernelSnapshots {
         let list: [[String: Any]]
         if let array = root["connections"] as? [[String: Any]] {
             list = array
-        } else if root["connections"] is NSNull || (root["connections"] == nil && root["downloadTotal"] != nil) {
+        } else if root["connections"] is NSNull {
             list = []
         } else {
             throw DecodingError.notAnObject("connections")
         }
-        return list.compactMap { entry in
-            guard let id = entry["id"] as? String else { return nil }
+        let rows: [HakoActivityConnectionSnapshot] = list.compactMap { entry in
+            guard let id = entry["id"] as? String, !id.isEmpty else { return nil }
             let metadata = entry["metadata"] as? [String: Any] ?? [:]
             let host = metadata["host"] as? String ?? ""
             let destinationIP = metadata["destinationIP"] as? String ?? ""
@@ -165,20 +177,40 @@ enum HakoTVKernelSnapshots {
                 rulePayload: entry["rulePayload"] as? String ?? ""
             )
         }
+        let ids = Set(rows.map(\.id))
+        return ConnectionRead(rows: rows, isComplete: rows.count == list.count && ids.count == rows.count)
     }
 
     static func traffic(from data: Data) throws -> Traffic {
         let root = try object(data, what: "traffic")
-        guard let up = root["up"] as? NSNumber, let down = root["down"] as? NSNumber else {
-            throw DecodingError.notAnObject("traffic")
-        }
+        let up = nonnegativeInteger(root["up"])
+        let down = nonnegativeInteger(root["down"])
+        let upTotal = nonnegativeInteger(root["upTotal"])
+        let downTotal = nonnegativeInteger(root["downTotal"])
+        let validTotals = upTotal != nil && downTotal != nil
+            && !(upTotal ?? 0).addingReportingOverflow(downTotal ?? 0).overflow
         return Traffic(
-            up: up.int64Value,
-            down: down.int64Value,
-            upTotal: (root["upTotal"] as? NSNumber)?.int64Value ?? 0,
-            downTotal: (root["downTotal"] as? NSNumber)?.int64Value ?? 0,
-            memory: (root["memory"] as? NSNumber)?.int64Value ?? 0
+            up: up ?? 0,
+            down: down ?? 0,
+            upTotal: upTotal ?? 0,
+            downTotal: downTotal ?? 0,
+            memory: nonnegativeInteger(root["memory"]) ?? 0,
+            hasTotals: validTotals,
+            hasRates: up != nil && down != nil
         )
+    }
+
+     
+     
+    private static func nonnegativeInteger(_ value: Any?) -> Int64? {
+        guard let number = value as? NSNumber,
+              CFGetTypeID(number) != CFBooleanGetTypeID(),
+              var decimal = Decimal(string: number.stringValue, locale: Locale(identifier: "en_US_POSIX")),
+              decimal >= 0, decimal <= Decimal(Int64.max) else { return nil }
+        var integral = Decimal()
+        NSDecimalRound(&integral, &decimal, 0, .down)
+        guard integral == decimal else { return nil }
+        return NSDecimalNumber(decimal: integral).int64Value
     }
 
     static func status(from data: Data) throws -> Status {

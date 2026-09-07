@@ -78,6 +78,8 @@ struct HakoTVConnectionsScreen: View {
      
     struct Door: Hashable {
         let connection: HakoActivityConnectionSnapshot
+        var observedAt: Date? = nil
+        var generation: UInt64? = nil
 
         static func == (lhs: Door, rhs: Door) -> Bool {
             lhs.connection.id == rhs.connection.id
@@ -101,17 +103,20 @@ struct HakoTVConnectionsScreen: View {
     @State private var anchor: FocusAnchor?
 
     var body: some View {
-        let rows = Self.rows(state.connections, kind: kind)
+        let rows = state.observations.connections.hasRuntimeSample ? Self.rows(state.connections, kind: kind) : []
         HStack(alignment: .top, spacing: 40) {
             filters
                 .frame(maxWidth: 520)
             VStack(alignment: .leading, spacing: 16) {
-                Text(Self.header(count: rows.count))
+                Text(state.observations.connections.hasRuntimeSample ? Self.header(count: rows.count) : String(localized: "Connections"))
                     .font(.caption)
                     .textCase(.uppercase)
                     .foregroundStyle(.tertiary)
+                HakoTVObservationNote(observation: state.observations.connections)
                 List {
-                    if let vacancy = Self.vacancy(connections: state.connections, kind: kind, isConnected: state.isConnected) {
+                    if state.isConnected && !state.observations.connections.hasRuntimeSample {
+                        Text("Not yet confirmed").foregroundStyle(.secondary)
+                    } else if let vacancy = Self.vacancy(connections: state.connections, kind: kind, isConnected: state.isConnected) {
                          
                          
                          
@@ -122,7 +127,8 @@ struct HakoTVConnectionsScreen: View {
                     ForEach(rows) { connection in
                         Button {
                             anchor = Self.anchor(for: connection.id, in: rows)
-                            opened = Door(connection: connection)
+                            opened = Door(connection: connection, observedAt: state.observations.connections.lastSuccess,
+                                          generation: state.observations.generation)
                         } label: { row(connection) }
                         .focused($focused, equals: connection.id)
                     }

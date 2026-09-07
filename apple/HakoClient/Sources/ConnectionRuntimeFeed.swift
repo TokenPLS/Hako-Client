@@ -1,6 +1,27 @@
 import Foundation
 import Hako
 
+enum ConnectionObservationPauseReason: String, Codable {
+    case noForegroundScene = "no-foreground-ios-scene"
+    case controlDisconnected = "control-disconnected"
+}
+
+@MainActor
+final class ConnectionDiagnosticLease {
+    private var finish: ((ConnectionObservationPauseReason) -> Void)?
+    private let defaultReason: ConnectionObservationPauseReason
+    init(defaultReason: ConnectionObservationPauseReason, finish: @escaping (ConnectionObservationPauseReason) -> Void) {
+        self.defaultReason = defaultReason; self.finish = finish
+    }
+    func release(reason: ConnectionObservationPauseReason? = nil) {
+        let action = finish; finish = nil; action?(reason ?? defaultReason)
+    }
+    deinit {
+        let action = finish, reason = defaultReason
+        Task { @MainActor in action?(reason) }
+    }
+}
+
 struct ConnectionDiagnosticContext {
     let route: RuntimeRouteContext
     let confirmedAt: UInt64
@@ -14,29 +35,41 @@ final class ConnectionRuntimeFeed {
     let source: ConnectionObservationSource<[HakoConnection]>
     let routeProjector: RuntimeRouteEvidenceProjector
     let routeJournal: RuntimeRouteEvidenceJournal
-    let runtimeIdentityCache = RuntimeIdentityCache(ttl: 5) { NodesRuntimeIdentity.load() }
+    let runtimeIdentityCache: RuntimeIdentityCache
 
     private struct DiagnosticSink {
         let id: UUID
+        let sceneManaged: Bool
         let context: () -> ConnectionDiagnosticContext?
         let receive: ([String]) -> Void
     }
     private var sinks: [DiagnosticSink] = []
     private var diagnosticLease: ConnectionSourceLease?
     private var acceptedContext: ConnectionDiagnosticContext?
+    private struct ObservationPause {
+        let id: String
+        let start: Date
+        let reason: ConnectionObservationPauseReason
+    }
+    private var observationPause: ObservationPause?
+    private var journalTask: Task<Void, Never>?
+    private let now: () -> Date
 
     init(source: ConnectionObservationSource<[HakoConnection]>,
          projector: RuntimeRouteEvidenceProjector = RuntimeRouteEvidenceProjector(),
-         journal: RuntimeRouteEvidenceJournal = RuntimeRouteEvidenceJournal(fileURL: RuntimeRouteEvidenceJournal.defaultFileURL())) {
+         journal: RuntimeRouteEvidenceJournal = RuntimeRouteEvidenceJournal(fileURL: RuntimeRouteEvidenceJournal.defaultFileURL()),
+         runtimeIdentityCache: RuntimeIdentityCache? = nil, now: @escaping () -> Date = Date.init) {
         self.source = source
+        self.now = now
         routeProjector = projector
         routeJournal = journal
+        self.runtimeIdentityCache = runtimeIdentityCache ?? RuntimeIdentityCache(ttl: 5) { NodesRuntimeIdentity.load() }
     }
 
-    func acquireDiagnostics(context: @escaping () -> ConnectionDiagnosticContext?,
-                            receive: @escaping ([String]) -> Void) -> ConnectionSourceLease {
+    func acquireDiagnostics(sceneManaged: Bool = false, context: @escaping () -> ConnectionDiagnosticContext?,
+                            receive: @escaping ([String]) -> Void) -> ConnectionDiagnosticLease {
         let id = UUID()
-        sinks.append(DiagnosticSink(id: id, context: context, receive: receive))
+        sinks.append(DiagnosticSink(id: id, sceneManaged: sceneManaged, context: context, receive: receive))
         if diagnosticLease == nil {
             diagnosticLease = source.acquire(diagnostic: true) { [weak self] event in
                 guard let self else { return }
@@ -50,11 +83,36 @@ final class ConnectionRuntimeFeed {
                 }
             }
         }
-        return ConnectionSourceLease { [self] in
+        return ConnectionDiagnosticLease(defaultReason: sceneManaged ? .noForegroundScene : .controlDisconnected) { [self] reason in
             sinks.removeAll { $0.id == id }
-            if sinks.isEmpty { diagnosticLease?.release(); diagnosticLease = nil }
+            guard sinks.isEmpty else { return }
+            diagnosticLease?.release(); diagnosticLease = nil
+             
+            guard sceneManaged, observationPause == nil, let acceptedContext else { return }
+            let pause = ObservationPause(id: UUID().uuidString, start: now(), reason: reason)
+            observationPause = pause
+            appendJournal([boundary(.observationsPaused, pause: pause, context: acceptedContext.route, at: pause.start)])
         }
     }
+
+    private func boundary(_ kind: RuntimeRouteEvidence.Kind, pause: ObservationPause,
+                          context: RuntimeRouteContext, at: Date) -> RuntimeRouteEvidence {
+        RuntimeRouteEvidence(kind: kind, timestamp: at, profilePointerID: context.profileID,
+            profilePointerRevision: context.profileRevision, coreProcessIdentifier: context.coreProcessIdentifier,
+            coreStartTimeUnix: context.coreStartTimeUnix, mode: context.mode,
+            observationPauseID: pause.id, observationPauseStartedAt: pause.start, observationPauseReason: pause.reason)
+    }
+
+    private func appendJournal(_ evidence: [RuntimeRouteEvidence]) {
+        guard !evidence.isEmpty else { return }
+        let previous = journalTask, journal = routeJournal
+        journalTask = Task {
+            await previous?.value
+            try? await journal.append(evidence)
+        }
+    }
+
+    func waitForJournalWrites() async { await journalTask?.value }
 
     private func project(_ frame: ConnectionObservation<[HakoConnection]>) {
          
@@ -70,7 +128,8 @@ final class ConnectionRuntimeFeed {
            (context.route.coreProcessIdentifier != acceptedContext.route.coreProcessIdentifier ||
             context.route.coreStartTimeUnix != acceptedContext.route.coreStartTimeUnix),
            context.confirmedAt < acceptedContext.confirmedAt { return }
-        acceptedContext = context
+        let sceneManaged = sinks.contains(where: \.sceneManaged)
+        if !sceneManaged { acceptedContext = context }
         source.identifyRuntime(context.route.generationKey)
          
          
@@ -78,12 +137,21 @@ final class ConnectionRuntimeFeed {
             source.reportDiagnosticGap(reason: "Frame crossed a runtime confirmation boundary")
             return
         }
-        let evidence = routeProjector.project(connections: frame.value, context: context.route,
-                                             observedAt: frame.observedDate)
+         
+        if sceneManaged {
+            guard source.isEligibleForDiagnosticProjection(frame) else { return }
+            acceptedContext = context
+        }
+        var evidence: [RuntimeRouteEvidence] = []
+        if let pause = observationPause {
+            evidence.append(boundary(.observationsResumed, pause: pause, context: context.route, at: frame.observedDate))
+            observationPause = nil
+        }
+        evidence += routeProjector.project(connections: frame.value, context: context.route,
+                                           observedAt: frame.observedDate)
         guard !evidence.isEmpty else { return }
+        appendJournal(evidence)
         fanOut(evidence.compactMap { try? $0.logLine() })
-        let journal = routeJournal
-        Task { try? await journal.append(evidence) }
     }
 
     private func fanOut(_ lines: [String]) {

@@ -36,12 +36,13 @@ struct HakoTVOutboundModeScreen: View {
                 .font(.largeTitle)
             Spacer(minLength: 0)
             cards
-            Text(Self.footer(mode: state.outboundMode, isConnected: state.isConnected))
+            Text(Self.footer(state: state))
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
+            HakoTVObservationNote(observation: state.observations.mode)
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -71,13 +72,13 @@ struct HakoTVOutboundModeScreen: View {
                 HStack(spacing: 12) {
                     Text(mode.title)
                         .font(.title2)
-                    if state.outboundMode == mode {
+                    if state.outboundMode == mode && state.observations.mode.hasValue {
                          
                          
                          
                         Image(systemName: HakoSymbol.checkmark.rawValue)
                             .font(.title3)
-                            .accessibilityLabel("In force")
+                            .accessibilityLabel(state.observations.mode.confirmsCurrentValue ? String(localized: "In force") : String(localized: "Last known choice"))
                     }
                 }
                 Text(mode.kernelToken)
@@ -96,7 +97,7 @@ struct HakoTVOutboundModeScreen: View {
             .padding(.vertical, 8)
         }
         .accessibilityIdentifier("tvos.outbound.\(mode.rawValue)")
-        .accessibilityAddTraits(state.outboundMode == mode ? .isSelected : [])
+        .accessibilityAddTraits(state.outboundMode == mode && state.observations.mode.hasValue ? .isSelected : [])
     }
 
      
@@ -105,12 +106,21 @@ struct HakoTVOutboundModeScreen: View {
      
     static func select(_ mode: HakoTVOutboundMode, in state: inout HakoTVProductState) {
         state.outboundMode = mode
+        state.observations.mode.selectLocally()
     }
 
      
      
      
      
+    static func footer(state: HakoTVProductState) -> String {
+        if state.observations.mode.source == .selection || !state.observations.mode.hasValue { return state.observations.mode.summary }
+        if state.isConnected && !state.observations.mode.confirmsCurrentValue {
+            return String(localized: "The current runtime mode has not been confirmed.")
+        }
+        return footer(mode: state.outboundMode, isConnected: state.isConnected)
+    }
+
     static func footer(mode: HakoTVOutboundMode, isConnected: Bool) -> String {
         if isConnected {
             return String(localized: "Currently in force: \(mode.title) · changing this takes effect immediately, without reconnecting")

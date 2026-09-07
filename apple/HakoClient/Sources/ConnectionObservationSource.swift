@@ -237,6 +237,8 @@ final class ConnectionObservationSource<Value> {
     private var pendingMutations = 0
     private var refreshRequest: UInt64 = 0
     private var historyFloor: UInt64 = 0
+     
+    private var diagnosticFloor: UInt64 = 0
     private var identityFloor: UInt64 = 0
     private var lastDecodedSequence: UInt64 = 0
     private var closingIDs: Set<String> = []
@@ -260,7 +262,9 @@ final class ConnectionObservationSource<Value> {
 
     func acquire(diagnostic: Bool = false, receive: @escaping (Event) -> Void) -> ConnectionSourceLease {
         let id = UUID()
+        let previousOwner = diagnosticOwnerID
         subscribers.append(Subscriber(id: id, diagnostic: diagnostic, receive: receive))
+        if previousOwner != diagnosticOwnerID { diagnosticFloor = clock.current() }
         receive(.state(connected: connected, error: ""))
         if let latest, !diagnostic { publishHistory(latest, only: id, immediate: true) }
         startIfNeeded()
@@ -304,6 +308,11 @@ final class ConnectionObservationSource<Value> {
      
     func tick() {
         if let latest { publishHistory(latest) }
+    }
+
+    func isEligibleForDiagnosticProjection(_ frame: ConnectionObservation<Value>) -> Bool {
+        frame.transportGeneration == generation && frame.runtimeIdentity == runtimeIdentity &&
+        frame.sequence > diagnosticFloor && frame.sequence > identityFloor
     }
 
     private func isHistoryEligible(_ frame: ConnectionObservation<Value>) -> Bool {
@@ -440,6 +449,7 @@ final class ConnectionObservationSource<Value> {
     }
 
     private func revokeRuntimeConfirmation() {
+        diagnosticFloor = clock.current()
         confirmingOwnerID = nil
         confirmedOwnerID = nil
         guard requiresRuntimeIdentification else { return }

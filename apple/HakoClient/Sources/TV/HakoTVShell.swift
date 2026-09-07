@@ -499,7 +499,8 @@ struct HakoTVShell: View {
                  
                  
                 .navigationDestination(item: $connectionDoor) { door in
-                    HakoTVConnectionDetailScreen(state: state, seed: door.connection)
+                    HakoTVConnectionDetailScreen(state: state, seed: door.connection,
+                                                 observedAt: door.observedAt, generation: door.generation)
                 }
         }
     }

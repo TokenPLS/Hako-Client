@@ -12,6 +12,7 @@
 "1 never matches here" = "1 条在此永不匹配";
 "A load-balance group spreads connections across its members, so it has no single route to pin." = "load-balance 组会把连接分散到各成员，因此没有可固定的单一线路。";
 "A relay sends traffic through its members in order, so there is no one member to choose." = "relay 组会按顺序把流量依次经过各成员，因此没有单独可选的成员。";
+"A valid memory sample was not included in the reply." = "回复未包含有效的内存样本。";
 "About" = "关于";
 "Add a profile" = "添加配置";
 "Add a profile to get started. Type its address here, or on your iPhone when the keyboard appears there." = "添加一个配置即可开始。可以在这里输入地址，也可以在键盘出现时用 iPhone 输入。";
@@ -29,6 +30,7 @@
 "Cancel" = "取消";
 "Check that the subscription address is still reachable, then update it once from its own screen." = "先确认订阅地址仍可访问，然后在它自己的页面里更新一次。";
 "Checking…" = "正在检查…";
+"Choice confirmed %@" = "选择确认于 %@";
 "Choose the device to restore from" = "选择要从哪台设备恢复";
 "Clash" = "Clash";
 "Clash could not open its secure shared container." = "Clash 无法打开其安全共享容器。";
@@ -41,11 +43,14 @@
 "Connect directly, without a proxy" = "直连，不经过代理";
 "Connect the tunnel first. Sharing runs inside it." = "请先连接隧道。共享在隧道内运行。";
 "Connected" = "已连接";
+"Connected · %@ · %@ this session · %@ connections" = "已连接 · %@ · 本次会话 %@ · %@ 个连接";
 "Connected · %@ · %@ this session · %lld connections" = "已连接 · %@ · 本次会话 %@ · %lld 个连接";
 "Connection" = "连接";
 "Connection Not Completed" = "连接未完成";
 "Connections" = "连接";
+"Connections · %@" = "连接 · %@";
 "Could not update: %@" = "无法更新：%@";
+"Current status not confirmed" = "当前状态尚未确认";
 "Currently in force: %@ · changing this takes effect immediately, without reconnecting" = "当前生效：%@ · 更改立即生效，无需重连";
 "DNS" = "DNS";
 "DNS mode" = "DNS 模式";
@@ -63,6 +68,8 @@
 "Ended" = "已结束";
 "Every rule in the profile, in the order the tunnel tries them. Read-only here: see what a connection will do, then edit on your phone." = "配置中的全部规则，按隧道尝试它们的顺序排列。这里只读：看清一条连接会怎么走，再到手机上编辑。";
 "Failed" = "失败";
+"From configuration" = "来自配置文件";
+"From configuration · Update unsuccessful" = "来自配置文件 · 更新未成功";
 "From iCloud · %@ · %@" = "来自 iCloud · %@ · %@";
 "Geo data" = "Geo 数据";
 "Global" = "全局";
@@ -72,7 +79,11 @@
 "In force" = "生效中";
 "In use" = "使用中";
 "In use. The tunnel fetches its configuration from this address." = "使用中。隧道从这个地址获取配置。";
+"Last known choice" = "上次已知的选择";
+"Last observed duration" = "最后观测到的时长";
 "Last problem" = "最近一次问题";
+"Last read %@" = "上次读取 %@";
+"Latency values are the last test results; reading the list does not run a test." = "延迟数值来自上次测试；读取列表不会进行测试。";
 "Let other devices on your network use this Apple TV as their HTTP or SOCKS5 proxy, with the port, username and password your profile names. The tunnel has to be running." = "让本网络上的其它设备把这台 Apple TV 当作 HTTP 或 SOCKS5 代理使用，端口、用户名和密码都按你的配置文件来。隧道必须在运行。";
 "Let profiles listen on the local network" = "允许配置文件在本地网络上监听";
 "Live" = "实时";
@@ -136,6 +147,7 @@
 "Not running" = "未运行";
 "Not sent." = "未发送。";
 "Not sharing." = "未共享。";
+"Not yet confirmed" = "尚未确认";
 "Not yet updated" = "尚未更新";
 "Nothing is going through the tunnel yet" = "还没有流量经过隧道";
 "Off" = "关";
@@ -143,6 +155,7 @@
 "On" = "开";
 "Optional" = "可选";
 "Outbound mode" = "出站模式";
+"Outbound mode · %@" = "出站模式 · %@";
 "Overrides not applied — back up again on your iPhone" = "覆写未应用——请在 iPhone 上重新备份";
 "Password" = "密码";
 "Plain addresses used to look up the resolvers above, before any of them can be reached by name." = "上面那些解析器在能按域名访问之前，先用这些纯 IP 地址来查它们。";
@@ -190,7 +203,9 @@
 "STOPPING" = "正在停止";
 "Save" = "保存";
 "Saving configuration…" = "正在保存配置…";
+"Selected locally · Runtime not confirmed" = "已在本机选择 · 尚未确认运行状态";
 "Send all traffic through the selected proxy" = "所有流量都走选中的代理";
+"Session total · %@" = "会话总量 · %@";
 "Share on this network" = "在本网络共享";
 "Share with a username and password" = "用这里设置的用户名和密码共享";
 "Sharing did not start." = "共享未能开始。";
@@ -223,7 +238,10 @@
 "The configuration is in use. Try again in a moment." = "配置正被占用，请稍后重试。";
 "The configuration was refused: %@" = "配置被拒绝：%@";
 "The connection changed while waiting." = "等待期间连接已发生变化。";
+"The connection list was incomplete." = "连接列表不完整。";
 "The core's own name, with this Apple TV behind it. Keep this unless a panel of yours answers better to another client." = "内核自己的名字，后面跟着这台 Apple TV。除非你的面板对另一个客户端答得更好，否则保持这个。";
+"The current runtime mode has not been confirmed." = "当前运行模式尚未确认。";
+"The last memory sample received from the tunnel. Its read time is shown below; an unsuccessful update keeps the last sample." = "最近收到的隧道内存样本。下方显示读取时间；更新未成功时会保留上次样本。";
 "The most recent thing that went wrong, kept after it stopped being true. It covers this app session only; it does not know about a start that failed while the app was closed." = "最近一次出问题的事，问题过去之后仍然留着。它只覆盖本次打开的 App；App 关着时启动失败它不知道。";
 "The name is only what this Apple TV calls the address. The address itself, and what is downloaded from it, do not change." = "名称只是这台 Apple TV 对这个地址的称呼。地址本身以及从它下载的内容都不会改变。";
 "The name this app gives when it downloads a profile or a provider. Panels read it to decide which format to hand back, so Clash — the core's own name — is the one to keep unless a panel of yours answers better to another client." = "本 App 下载配置或 provider 时自称的名字。面板会按它决定回哪种格式，所以一般保持 Clash——那是内核自己的名字；除非你的面板对另一个客户端答得更好。";
@@ -246,6 +264,7 @@
 "The resolvers asked first, in this order." = "最先询问的解析器，按此顺序。";
 "The saved configuration is damaged. Import it again." = "保存的配置已损坏，请重新导入。";
 "The server answered %lld. Check the address on your phone." = "服务器返回了 %lld。请在手机上核对地址。";
+"The subscription could not be fetched: the request timed out." = "无法获取订阅：请求超时。";
 "The system did not answer in time." = "系统没有及时响应。";
 "The system did not take the change — the switch is back where it was." = "系统没有接受这次更改，开关已回到原来的位置。";
 "The system has not answered yet — the change may still take. The switch shows what you asked for; the next Connect applies it again." = "系统还没有回应，这次更改可能仍会生效。开关显示的是你要的状态；下一次按「连接」时会再应用一次。";
@@ -270,6 +289,9 @@
 "Type a profile address, here or on your iPhone. The address is what this Apple TV remembers; what it points at is fetched again whenever it is needed." = "在这里或在 iPhone 上输入配置地址。这台 Apple TV 记住的是地址；它指向的内容会在需要时重新获取。";
 "Type on your phone instead — the keyboard is already waiting there." = "也可以改在手机上输入——键盘已经在那里等着了。";
 "Update now" = "立即更新";
+"Update unsuccessful · Choice confirmed %@" = "更新未成功 · 选择确认于 %@";
+"Update unsuccessful · Last read %@" = "更新未成功 · 上次读取 %@";
+"Update unsuccessful · Not yet confirmed" = "更新未成功 · 尚未确认";
 "Updated %@" = "更新于%@";
 "Updated just now" = "刚刚更新";
 "Updating…" = "正在更新…";
@@ -280,8 +302,12 @@
 "Uses %lld local resource files — not supported on Apple TV yet" = "引用 %lld 个本地资源文件——Apple TV 暂不支持";
 "Using" = "正在使用";
 "Utilities" = "工具";
+"Valid session totals were not included in the reply." = "回复未包含有效的会话流量总量。";
+"Valid traffic rates were not included in the reply." = "回复未包含有效的流量速率。";
 "Version" = "版本";
 "Version %@" = "版本 %@";
+"Waiting for runtime confirmation" = "等待确认运行状态";
+"Waiting for update · Last read %@" = "等待更新 · 上次读取 %@";
 "What happens" = "会发生什么";
 "What is going through the tunnel right now, newest first, and which rule sent each one where it went." = "此刻正经过隧道的连接，最新在上，以及每一条是被哪条规则送去哪里的。";
 "What the tunnel is using now. The system stops an extension that grows too large; if that happens, the item below prices every rule set and resource by name." = "隧道此刻占用的内存。扩展长得太大会被系统停掉；若发生这种情况，下面那一项会按名称列出每个规则集与资源的开销。";

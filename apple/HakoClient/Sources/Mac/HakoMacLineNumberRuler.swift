@@ -144,35 +144,41 @@ final class HakoMacLineNumberRuler: NSRulerView {
      
      
      
-     
-     
-     
-     
-     
+    private var reservedDigits = 2
     private var sizedDigits = 0
+    private var sizedFontSize: CGFloat?
+    private var thicknessScheduled = false
 
     private func scheduleThickness(deferred: Bool) {
-        let digits = max(2, String(lineStarts.count).count)
-        if digits == sizedDigits, !deferred { return }
-        let width = (String(repeating: "8", count: digits) as NSString)
-            .size(withAttributes: numberAttributes).width
-        let thickness = ceil(width + padding * 2)
-        guard abs(thickness - ruleThickness) >= 1 else {
-            sizedDigits = digits
-            return
+        let requiredDigits = String(lineStarts.count).count
+        if requiredDigits > reservedDigits {
+            reservedDigits = requiredDigits + 1
         }
+        let fontSize = numberFont.pointSize
+        guard reservedDigits != sizedDigits || fontSize != sizedFontSize else { return }
         if deferred || isDrawing {
+            guard !thicknessScheduled else { return }
+            thicknessScheduled = true
+             
              
              
             RunLoop.main.perform { [weak self] in
-                guard let self, abs(thickness - self.ruleThickness) >= 1 else { return }
-                self.ruleThickness = thickness
-                self.sizedDigits = digits
+                guard let self else { return }
+                self.thicknessScheduled = false
+                self.scheduleThickness(deferred: false)
             }
-        } else {
-            ruleThickness = thickness
-            sizedDigits = digits
+            return
         }
+        let width = (String(repeating: "8", count: reservedDigits) as NSString)
+            .size(withAttributes: numberAttributes).width
+        let thickness = ceil(width + padding * 2)
+        if abs(thickness - ruleThickness) >= 1 {
+            ruleThickness = thickness
+        }
+         
+         
+        sizedDigits = reservedDigits
+        sizedFontSize = fontSize
     }
 
     func rebuildLineStarts() {
