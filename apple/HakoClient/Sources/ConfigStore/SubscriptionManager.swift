@@ -273,21 +273,12 @@ enum SubscriptionSourceRefresher {
          
          
          
-        let nameIsUserAssigned = ProfileLabelPolicy.isUserAssigned(profile)
-        if let suggested = fetched.suggestedName, !suggested.isEmpty,
-           !nameIsUserAssigned {
-            updated.label = ProfileLabelPolicy.deduplicate(
-                suggested,
-                existing: profileStore.load()
-                    .filter { $0.id != profile.id }
-                    .map(\.label)
-            )
-        }
-         
-         
-         
-         
-        updated.labelIsUserAssigned = nameIsUserAssigned
+        ProfileLabelPolicy.adoptPanelName(
+            fetched.suggestedName,
+            into: &updated,
+            for: profile,
+            otherLabels: profileStore.load().filter { $0.id != profile.id }.map(\.label)
+        )
         updated.subscriptionETag = fetched.etag ?? updated.subscriptionETag
         updated.subscriptionLastModified =
             fetched.lastModified ?? updated.subscriptionLastModified

@@ -802,6 +802,7 @@ final class ProfileActivationCoordinator {
         var fetchedInfo: SubscriptionInfo?
         var fetchedETag: String?
         var fetchedLastModified: String?
+        var fetchedName: String?
         let raw: String
         if let sourceYAML {
             raw = sourceYAML
@@ -818,6 +819,7 @@ final class ProfileActivationCoordinator {
                 fetchedInfo = fetched.subscriptionInfo
                 fetchedETag = fetched.etag
                 fetchedLastModified = fetched.lastModified
+                fetchedName = fetched.suggestedName
             } else {
                  
                  
@@ -849,6 +851,7 @@ final class ProfileActivationCoordinator {
                     fetchedInfo = fetched.subscriptionInfo
                     fetchedETag = fetched.etag
                     fetchedLastModified = fetched.lastModified
+                    fetchedName = fetched.suggestedName
                 } else {
                     throw PipelineError.notModifiedWithoutActive
                 }
@@ -908,6 +911,16 @@ final class ProfileActivationCoordinator {
         if sourceYAML == nil { updated.lastUpdatedAt = Date() }   
         if let fetchedInfo { updated.subscriptionInfo = fetchedInfo }
         if sourceYAML == nil {
+             
+             
+             
+             
+            ProfileLabelPolicy.adoptPanelName(
+                fetchedName,
+                into: &updated,
+                for: profile,
+                otherLabels: profileStore.load().filter { $0.id != profile.id }.map(\.label)
+            )
             updated.subscriptionETag = fetchedETag ?? updated.subscriptionETag
             updated.subscriptionLastModified = fetchedLastModified ?? updated.subscriptionLastModified
         }

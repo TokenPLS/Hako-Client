@@ -67,6 +67,28 @@ enum ProfileLabelPolicy {
      
      
      
+     
+     
+     
+     
+     
+     
+    static func adoptPanelName(
+        _ suggested: String?,
+        into updated: inout Profile,
+        for profile: Profile,
+        otherLabels: [String]
+    ) {
+        let nameIsUserAssigned = isUserAssigned(profile)
+        if let suggested, !suggested.isEmpty, !nameIsUserAssigned {
+            updated.label = deduplicate(suggested, existing: otherLabels)
+        }
+         
+         
+         
+        updated.labelIsUserAssigned = nameIsUserAssigned
+    }
+
     static func isUserAssigned(_ profile: Profile) -> Bool {
         if let recorded = profile.labelIsUserAssigned { return recorded }
         return !generatedNames(for: profile.source)
