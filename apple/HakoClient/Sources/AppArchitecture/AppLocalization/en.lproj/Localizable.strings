@@ -50,6 +50,7 @@
 "%@ missing · %@ references" = "%@ missing · %@ references";
 "%@ needs a name after it." = "%@ needs a name after it.";
 "%@ of %@" = "%1$@ of %2$@";
+"%@ of %@ used" = "%@ of %@ used";
 "%@ on a node is not used here: this platform picks the physical network itself." = "%@ on a node is not used here: this platform picks the physical network itself.";
 "%@ ordered network rule" = "%@ ordered network rule";
 "%@ ordered network rules" = "%@ ordered network rules";
@@ -59,6 +60,7 @@
 "%@ profiles" = "%@ profiles";
 "%@ protected values" = "%@ protected values";
 "%@ provider source(s) were excluded. Those groups and rules stay empty until you point them at a source again." = "%@ provider source(s) were excluded. Those groups and rules stay empty until you point them at a source again.";
+"%@ proxies" = "%@ proxies";
 "%@ relay migrations" = "%@ relay migrations";
 "%@ remote subscription link(s) were excluded. Their cached sources restore as local profiles." = "%@ remote subscription link(s) were excluded. Their cached sources restore as local profiles.";
 "%@ request in this session" = "%@ request in this session";
@@ -987,6 +989,7 @@
 "Expected status" = "Expected status";
 "Expired %@ ago, still in use while it refreshes" = "Expired %@ ago, still in use while it refreshes";
 "Expires" = "Expires";
+"Expires %@" = "Expires %@";
 "Expires today" = "Expires today";
 "Explicit Routes" = "Explicit Routes";
 "Explicit routes" = "Explicit routes";
@@ -1153,7 +1156,6 @@
 "Headers" = "Headers";
 "Headers could not be saved" = "Headers could not be saved";
 "Health Check" = "Health Check";
-"Health check not configured" = "Health check not configured";
 "Health checks and overrides are applied by Core after the provider has been validated and materialized." = "Health checks and overrides are applied by Core after the provider has been validated and materialized.";
 "Held Back by Your Settings" = "Held Back by Your Settings";
 "Hidden Utility" = "Hidden Utility";
@@ -1628,7 +1630,6 @@
 "No optional cards. The Connection card always stays on Overview." = "No optional cards. The Connection card always stays on Overview.";
 "No policy matched, so the main resolvers answer" = "No policy matched, so the main resolvers answer";
 "No profiles yet" = "No profiles yet";
-"No proxy health results" = "No proxy health results";
 "No proxy sources yet." = "No proxy sources yet.";
 "No resolver answered" = "No resolver answered";
 "No resolver answered in time. The record type may not exist for this name, or the resolvers are unreachable right now." = "No resolver answered in time. The record type may not exist for this name, or the resolvers are unreachable right now.";
@@ -2955,6 +2956,7 @@
 "Up to Date" = "Up to Date";
 "Update" = "Update";
 "Update All" = "Update All";
+"Update All Sources" = "Update All Sources";
 "Update applies at the next activation" = "Update applies at the next activation";
 "Update cancelled" = "Update cancelled";
 "Update every" = "Update every";

@@ -1,3 +1,4 @@
+import Combine
 import HakoClientUI
 import SwiftUI
 import UniformTypeIdentifiers
@@ -85,6 +86,13 @@ final class ProvidersModel: ObservableObject {
     private var runtimeGeneration: UInt64 = 0
     private var retryOperation: RetryOperation?
     private var batchTask: Task<Void, Never>?
+     
+     
+     
+     
+    private var requestedRefresh = 0
+    private var honoredRefresh = 0
+    private var hasLoaded = false
 
     private enum RetryOperation {
         case all
@@ -149,6 +157,22 @@ final class ProvidersModel: ObservableObject {
         let activeID = (try? store.activeIdentity())?.profileID
         activeProfile = profiles.first { $0.id == activeID }
         refreshRuntimeCatalog()
+        hasLoaded = true
+        fireRequestedRefreshIfReady()
+    }
+
+     
+    func honorRefreshRequest(_ token: Int) {
+        requestedRefresh = token
+        fireRequestedRefreshIfReady()
+    }
+
+    private func fireRequestedRefreshIfReady() {
+        guard ProvidersRefreshRequestPolicy.fires(
+            requested: requestedRefresh, honored: honoredRefresh, loaded: hasLoaded
+        ) else { return }
+        honoredRefresh = requestedRefresh
+        refreshAll()
     }
 
     static func rows(providersDir: URL) -> [Row] {
@@ -727,6 +751,10 @@ struct ProviderNoticesSection: View {
 }
 
 struct ProvidersView: View {
+     
+     
+    @Environment(\.hakoProvidersRefreshRequests) private var refreshRequests
+    @Environment(\.locale) private var locale
     @StateObject private var model: ProvidersModel
     @ObservedObject private var command: ClashCommandClient
     private let scope: ProviderDisplayScope
@@ -869,7 +897,20 @@ struct ProvidersView: View {
         }
         .refreshable { await model.refreshAllAwaiting() }
         .hakoDetailPageInsets()
-        .onAppear { model.load() }
+        .onAppear {
+            model.load()
+             
+             
+            if let refreshRequests { model.honorRefreshRequest(refreshRequests.token) }
+        }
+        .onReceive(
+            refreshRequests?.$token.eraseToAnyPublisher()
+                ?? Empty<Int, Never>().eraseToAnyPublisher()
+        ) { token in
+             
+             
+            model.honorRefreshRequest(token)
+        }
         .onChange(of: command.isConnected) { _ in
             model.refreshRuntimeCatalog()
         }
@@ -974,31 +1015,33 @@ struct ProvidersView: View {
     }
 
     private func statusLine(_ row: ProvidersModel.Row) -> String {
+        ProviderRowSummary.text(for: row, locale: locale, now: Date())
+    }
+}
+
+ 
+ 
+ 
+ 
+enum ProviderRowSummary {
+    static func text(for row: ProvidersModel.Row, locale: Locale, now: Date) -> String {
         var parts: [String] = []
-        if let vehicleType = row.runtime?.vehicleType, !vehicleType.isEmpty {
-            parts.append(vehicleType)
-        } else if let kind = row.kind {
-            parts.append(kind)
-        }
-        if let runtime = row.runtime {
-            let singular = row.kind?.lowercased() == "rule" ? "rule" : "proxy"
-            let plural = row.kind?.lowercased() == "rule" ? "rules" : "proxies"
-            let unit = runtime.entryCount == 1 ? singular : plural
-            parts.append("\(runtime.entryCount) \(unit)")
-        } else if let count = row.count {
-            parts.append("\(count) \(count == 1 ? "entry" : "entries")")
+        let isRule = row.kind?.lowercased() == "rule"
+        if let count = row.runtime?.entryCount ?? row.count {
+            parts.append(HakoCopy.format(isRule ? "%@ rules" : "%@ proxies", locale: locale, String(count)))
         }
         if let size = row.sizeBytes { parts.append(ByteCountFormatter.string(Int64(size))) }
         if let updatedAt = row.runtime?.updatedAt ?? row.updatedAt {
             let formatter = RelativeDateTimeFormatter()
             formatter.unitsStyle = .abbreviated
-            parts.append(formatter.localizedString(for: updatedAt, relativeTo: Date()))
+            formatter.locale = locale
+            parts.append(formatter.localizedString(for: updatedAt, relativeTo: now))
         }
         return parts.isEmpty ? "—" : parts.joined(separator: " · ")
     }
 }
 
-private struct ProviderRow: View {
+struct ProviderRow: View {
     let row: ProvidersModel.Row
     let status: String
     let isBusy: Bool
@@ -1040,9 +1083,9 @@ private struct ProviderRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("providers.row.loadFailure.\(row.name)")
                 }
-                if !isRule, let runtime = row.runtime {
+                if !isRule, let runtime = row.runtime, let health = Self.healthText(runtime) {
                     Label {
-                        Text(hako: healthText(runtime))
+                        Text(hako: health)
                     } icon: {
                         Image(systemName: healthSymbol(runtime).name)
                     }
@@ -1076,29 +1119,15 @@ private struct ProviderRow: View {
                         height: HakoClientUI.HakoTheme.Control
                             .minimumHitTarget
                     )
-            } else if canConfigure || (!isRule && canCheckHealth) {
+            } else if canConfigure || (!isRule && canCheckHealth),
+                      !HakoPlatformLayout.pageUsesSystemSettingsIdiom {
+                 
+                 
+                 
+                 
+                 
                 Menu {
-                    if !isRule {
-                        Button(action: checkHealth) {
-                            Label("Check health", systemImage: HakoSymbol.waveformPathEcg.name)
-                        }
-                        .disabled(!canCheckHealth)
-                        .accessibilityIdentifier("provider.health.\(row.name)")
-                        if canConfigure { Divider() }
-                    }
-                    if canConfigure, row.canRefresh {
-                        Button(action: refresh) {
-                            Label("Sync provider", systemImage: HakoSymbol.arrowClockwise.name)
-                        }
-                        .accessibilityLabel("Refresh \(row.name)")
-                        .accessibilityIdentifier("provider.refresh.\(row.name)")
-                    }
-                    if canConfigure {
-                        Button(action: sideLoad) {
-                            Label("Load local file", systemImage: HakoSymbol.squareAndArrowDown.name)
-                        }
-                        .accessibilityIdentifier("provider.sideload.\(row.name)")
-                    }
+                    rowActions
                 } label: {
                     Image(systemName: HakoSymbol.ellipsisCircle.name)
                         .font(.title3)
@@ -1113,12 +1142,46 @@ private struct ProviderRow: View {
                 .accessibilityIdentifier("provider.menu.\(row.name)")
             }
         }
+        .contextMenu {
+            if HakoPlatformLayout.pageUsesSystemSettingsIdiom, canConfigure || (!isRule && canCheckHealth) {
+                rowActions
+            }
+        }
         .padding(.vertical, HakoTheme.Spacing.tight)
     }
 
-    private func healthText(_ runtime: ProviderRuntimeSummary) -> HakoDisplayText {
-        guard runtime.healthCheckAvailable else { return .copy("Health check not configured") }
-        if runtime.entryCount == 0 { return .copy("No proxy health results") }
+     
+     
+    @ViewBuilder
+    private var rowActions: some View {
+                if !isRule {
+                    Button(action: checkHealth) {
+                        Label("Check health", systemImage: HakoSymbol.waveformPathEcg.name)
+                    }
+                    .disabled(!canCheckHealth)
+                    .accessibilityIdentifier("provider.health.\(row.name)")
+                    if canConfigure { Divider() }
+                }
+                if canConfigure, row.canRefresh {
+                    Button(action: refresh) {
+                        Label("Sync provider", systemImage: HakoSymbol.arrowClockwise.name)
+                    }
+                    .accessibilityLabel("Refresh \(row.name)")
+                    .accessibilityIdentifier("provider.refresh.\(row.name)")
+                }
+                if canConfigure {
+                    Button(action: sideLoad) {
+                        Label("Load local file", systemImage: HakoSymbol.squareAndArrowDown.name)
+                    }
+                    .accessibilityIdentifier("provider.sideload.\(row.name)")
+                }
+    }
+
+     
+     
+     
+    static func healthText(_ runtime: ProviderRuntimeSummary) -> HakoDisplayText? {
+        guard runtime.healthCheckAvailable, runtime.entryCount > 0 else { return nil }
         return .format(
             "%@ available · %@ unavailable",
             [String(runtime.healthyCount ?? 0), String(runtime.unhealthyCount ?? 0)]

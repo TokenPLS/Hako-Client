@@ -864,6 +864,16 @@ private final class HakoMacSceneModel: ObservableObject {
      
      
      
+    let providersRefreshRequests = ProvidersRefreshRequests()
+
+    func requestUpdateAllSources() {
+        navigationRequest = .utility(.providers)
+        providersRefreshRequests.request()
+    }
+     
+     
+     
+     
      
      
      
@@ -1741,6 +1751,10 @@ private final class HakoMacSceneModel: ObservableObject {
                     loadsPersistedLogs:
                         !false
                 )
+                 
+                 
+                 
+                .environment(\.hakoProvidersRefreshRequests, providersRefreshRequests)
             )
         case .more(let destination):
             AnyView(
@@ -2952,6 +2966,23 @@ private struct HakoMacProductCommands: Commands {
                 Text(hako: .copy("Settings…"))
             }
             .keyboardShortcut(",", modifiers: .command)
+        }
+
+         
+         
+         
+         
+        CommandGroup(replacing: .newItem) {
+            Button {
+                Task { @MainActor in
+                    guard let model = HakoMacSceneModel.current else { return }
+                    model.focusMainWindow(openWindow)
+                    model.requestUpdateAllSources()
+                }
+            } label: {
+                Text(hako: .copy("Update All Sources"))
+            }
+            .keyboardShortcut("r", modifiers: [.command, .shift])
         }
 
         CommandGroup(replacing: .help) {}

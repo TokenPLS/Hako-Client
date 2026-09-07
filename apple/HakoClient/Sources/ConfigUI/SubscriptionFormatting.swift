@@ -1,3 +1,4 @@
+import HakoClientUI
 import SwiftUI
 
 enum SubscriptionExpiryStatus: Equatable {
@@ -63,6 +64,34 @@ extension SubscriptionInfo {
         return summary
     }
 
+     
+     
+     
+     
+     
+    func humanSummary(locale: Locale) -> String {
+        [usageSentence(locale: locale), expirySentence(locale: locale)]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
+
+    func usageSentence(locale: Locale) -> String {
+        let used = ByteCountFormatter.string(usedBytes)
+        if total > 0 {
+            return HakoCopy.format("%@ of %@ used", locale: locale, used, ByteCountFormatter.string(total))
+        }
+        return HakoCopy.format("%@ used", locale: locale, used)
+    }
+
+    func expirySentence(locale: Locale) -> String? {
+        guard expire > 0 else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        let day = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(expire)))
+        return HakoCopy.format("Expires %@", locale: locale, day)
+    }
+
     func expiryPresentation(now: Date = Date()) -> SubscriptionExpiryPresentation {
         guard expire > 0 else {
             return SubscriptionExpiryPresentation(status: .never, text: "No expiry")
@@ -96,18 +125,16 @@ extension SubscriptionInfo {
 
 struct SubscriptionInfoView: View {
     let info: SubscriptionInfo
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(alignment: .leading, spacing: HakoTheme.Spacing.tight) {
              
              
-             
-             
             summaryLine
-                .font(.system(size: 10))
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .font(HakoPlatformLayout.pageUsesSystemSettingsIdiom ? HakoMacSettingsType.value : .caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             if let fraction = info.usageFraction {
                 ProgressView(value: fraction)
                      
@@ -122,20 +149,9 @@ struct SubscriptionInfoView: View {
     }
 
     private var summaryLine: Text {
-        var line = Text(
-            "↑:\(SubscriptionInfo.compactBytes(info.upload)),↓:\(SubscriptionInfo.compactBytes(info.download))"
-        )
-        if info.total > 0 {
-            line = line + Text(",TOT:\(SubscriptionInfo.compactBytes(info.total))")
-        }
-        if info.expire > 0 {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            formatter.timeZone = TimeZone(identifier: "UTC")
-            let date = formatter.string(
-                from: Date(timeIntervalSince1970: TimeInterval(info.expire))
-            )
-            line = line + Text(",EXPIRE:\(date)").foregroundColor(expiryTint)
+        var line = Text(verbatim: info.usageSentence(locale: locale))
+        if let expiry = info.expirySentence(locale: locale) {
+            line = line + Text(verbatim: " · ") + Text(verbatim: expiry).foregroundColor(expiryTint)
         }
         return line
     }
