@@ -139,7 +139,11 @@ struct GoldenFlowUtilitiesDestinationAdapter: View {
         AppNavigationDestination.UtilitiesDestination
     @Binding var activityLens: HakoActivityLens
     var usesRegularDetailLayout: Bool
-    var loadsPersistedLogs = true
+     
+     
+     
+     
+    var loadsPersistedLogs = !false
 
     var body: some View {
          

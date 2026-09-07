@@ -1456,6 +1456,17 @@ private struct HakoActivityLogRow: View {
             }
         }
         .padding(.vertical, HakoTheme.Spacing.tight)
+        .contextMenu {
+             
+             
+             
+             
+            Button {
+                onCopy()
+            } label: {
+                Label("Copy", systemImage: HakoSymbol.docOnDoc.rawValue)
+            }
+        }
         .accessibilityElement(children: .contain)
     }
 
