@@ -71,7 +71,22 @@ enum ProxyEnvironmentCommand {
         case .nushell:
             return pairs.map { "$env.\($0) = \"\($1)\"" }.joined(separator: "; ")
         case .cmd:
-            return pairs.map { "set \($0)=\($1)" }.joined(separator: " && ")
+             
+             
+             
+             
+             
+             
+             
+            guard let scratch = pairs.first else { return "" }
+            guard pairs.contains(where: { $0.1.contains("%") }) else {
+                return pairs.map { "set \($0)=\($1)" }.joined(separator: "\r\n") + "\r\n"
+            }
+            let ordered = Array(pairs.dropFirst()) + [scratch]
+            let lines = ["set \(scratch.0)=%"] + ordered.map { name, value in
+                "set \(name)=\(value.replacingOccurrences(of: "%", with: "%\(scratch.0)%"))"
+            }
+            return lines.joined(separator: "\r\n") + "\r\n"
         case .powershell:
             return pairs.map { "$env:\($0)=\"\($1)\"" }.joined(separator: "; ")
         }

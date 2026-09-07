@@ -245,11 +245,10 @@ struct AppShellView: View {
              
              
             proxyShare.bind(
-                profileListener: { [profiles] in
-                    guard let active = profiles.profiles.first(where: { $0.id == profiles.activeProfileID }),
-                          let yaml = profiles.effectiveYAML(for: active)
+                profileYAML: { [profiles] in
+                    guard let active = profiles.profiles.first(where: { $0.id == profiles.activeProfileID })
                     else { return nil }
-                    return ProfileListenerPorts.parse(yaml: yaml)
+                    return profiles.effectiveYAML(for: active)
                 },
                 lanListenerPermitted: {
                     LocalNetworkPermission.isPermitted(UserDefaults(suiteName: HakoAppIdentifiers.appGroup))

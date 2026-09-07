@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import Combine
 import Hako
 
 enum ProxyShareProtocol: String, CaseIterable, Hashable {
@@ -570,6 +571,15 @@ final class ProxyShareModel: ObservableObject {
 
     private weak var command: ProxyShareCommanding?
     private var profileListener: () -> ProfileListenerPorts? = { nil }
+    private var profileYAML: (() -> String?)?
+     
+     
+    let terminalListenerDidChange = PassthroughSubject<Void, Never>()
+    private let profileListenerParser: @Sendable (String) -> ProfileListenerPorts?
+    private lazy var preparedProfileListener = PreparedProfileListener(parse: profileListenerParser) { [weak self] in
+        self?.objectWillChange.send()
+        self?.terminalListenerDidChange.send()
+    }
     private var lanListenerPermitted: () -> Bool = { false }
     private let vault: ProxyShareCredentialVault
     private let preferences: ProxySharePreferences
@@ -582,12 +592,14 @@ final class ProxyShareModel: ObservableObject {
         vault: ProxyShareCredentialVault = ProxyShareCredentialVault(),
         preferences: ProxySharePreferences = ProxySharePreferences(),
         addressProvider: @escaping () -> [String] = LANAddressInventory.current,
-        timeoutNanoseconds: UInt64 = 5_000_000_000
+        timeoutNanoseconds: UInt64 = 5_000_000_000,
+        profileListenerParser: @escaping @Sendable (String) -> ProfileListenerPorts? = { ProfileListenerPorts.parse(yaml: $0) }
     ) {
         self.vault = vault
         self.preferences = preferences
         self.addressProvider = addressProvider
         self.timeoutNanoseconds = timeoutNanoseconds
+        self.profileListenerParser = profileListenerParser
         rememberedPort = preferences.port()
         refreshCredentialSummary()
         refreshAddresses()
@@ -601,6 +613,17 @@ final class ProxyShareModel: ObservableObject {
         lanListenerPermitted: @escaping () -> Bool
     ) {
         self.profileListener = profileListener
+        self.profileYAML = nil
+        self.lanListenerPermitted = lanListenerPermitted
+    }
+
+     
+     
+    func bind(
+        profileYAML: @escaping () -> String?,
+        lanListenerPermitted: @escaping () -> Bool
+    ) {
+        self.profileYAML = profileYAML
         self.lanListenerPermitted = lanListenerPermitted
     }
 
@@ -611,7 +634,16 @@ final class ProxyShareModel: ObservableObject {
      
      
     var terminalListener: ProxyTerminalListener? {
-        if let profile = profileListener() {
+        let profile: ProfileListenerPorts?
+        if let profileYAML {
+            switch preparedProfileListener.read(yaml: profileYAML()) {
+            case .preparing: return nil
+            case .ready(let prepared): profile = prepared
+            }
+        } else {
+            profile = profileListener()
+        }
+        if let profile {
             let http = profile.mixedPort ?? profile.httpPort
             let socks = profile.mixedPort ?? profile.socksPort
             if http != nil || socks != nil {

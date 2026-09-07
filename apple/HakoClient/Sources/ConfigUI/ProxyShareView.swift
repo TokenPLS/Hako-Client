@@ -357,7 +357,7 @@ struct ProxyShareView: View {
                         Text("Copy")
                     }
                 }
-                .disabled(model.phase.isBusy)
+                .disabled(model.phase.isBusy || !localLineIsAvailable)
                 .accessibilityIdentifier("proxyShare.environment.copy")
 #if os(macOS)
                 Button(action: { copyEnvironment(externalIP: true) }) {
@@ -380,7 +380,12 @@ struct ProxyShareView: View {
      
     private var externalLineIsAvailable: Bool {
         guard let listener = model.terminalListener else { return false }
-        return listener.lanReachable && reachableAddresses.first != nil
+        return listener.host(forExternalMachine: true, addresses: reachableAddresses) != nil
+    }
+
+    private var localLineIsAvailable: Bool {
+        guard let listener = model.terminalListener else { return false }
+        return environmentHost(for: listener, externalIP: false) != nil
     }
 
     private var environmentShell: Binding<ProxyEnvironmentShell> {
@@ -390,17 +395,17 @@ struct ProxyShareView: View {
         )
     }
 
-    private var environmentHost: String {
+    private func environmentHost(for listener: ProxyTerminalListener, externalIP: Bool) -> String? {
 #if os(macOS)
-        "127.0.0.1"
+        listener.host(forExternalMachine: externalIP, addresses: reachableAddresses)
 #else
-        reachableAddresses.first ?? "127.0.0.1"
+        listener.host(forExternalMachine: true, addresses: reachableAddresses)
 #endif
     }
 
     private func copyEnvironment(externalIP: Bool) {
         guard let listener = model.terminalListener else { return }
-        guard let host = externalIP ? reachableAddresses.first : environmentHost else { return }
+        guard let host = environmentHost(for: listener, externalIP: externalIP) else { return }
         let text = ProxyEnvironmentCommand.text(
             shell: environmentShell.wrappedValue,
             endpoint: ProxyEnvironmentEndpoint(

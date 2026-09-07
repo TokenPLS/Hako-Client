@@ -332,6 +332,7 @@ final class HakoMacStatusMenuController: NSObject, NSMenuDelegate {
     private let tunnelIsUp: () -> Bool
     private let latency: AnyPublisher<[String: HakoProxyLatencyState], Never>?
     private let testing: AnyPublisher<Bool, Never>?
+    private let listenerUpdates: AnyPublisher<Void, Never>?
     private var listening: Set<AnyCancellable> = []
 
      
@@ -345,7 +346,8 @@ final class HakoMacStatusMenuController: NSObject, NSMenuDelegate {
         optionIsHeld: @escaping () -> Bool = { NSEvent.modifierFlags.contains(.option) },
         tunnelIsUp: @escaping () -> Bool = { false },
         latency: AnyPublisher<[String: HakoProxyLatencyState], Never>? = nil,
-        testing: AnyPublisher<Bool, Never>? = nil
+        testing: AnyPublisher<Bool, Never>? = nil,
+        listenerUpdates: AnyPublisher<Void, Never>? = nil
     ) {
         self.snapshot = snapshot
         self.actions = actions
@@ -354,6 +356,7 @@ final class HakoMacStatusMenuController: NSObject, NSMenuDelegate {
         self.tunnelIsUp = tunnelIsUp
         self.latency = latency
         self.testing = testing
+        self.listenerUpdates = listenerUpdates
         super.init()
         menu.autoenablesItems = false
         menu.delegate = self
@@ -383,12 +386,31 @@ final class HakoMacStatusMenuController: NSObject, NSMenuDelegate {
      
     func menuWillOpen(_ menu: NSMenu) {
         listening.removeAll()
+        listenerUpdates?
+            .sink { [weak self] in self?.refreshCopyCommand() }
+            .store(in: &listening)
+         
+        if listenerUpdates != nil { refreshCopyCommand() }
         latency?
             .sink { [weak self] latency in self?.apply(latency: latency) }
             .store(in: &listening)
         testing?
             .sink { [weak self] isTesting in self?.setTesting(isTesting) }
             .store(in: &listening)
+    }
+
+    private func refreshCopyCommand() {
+        guard let item = menu.items.first(where: {
+            ["menu-bar.copy-shell-command", "menu-bar.copy-shell-command-loopback"].contains($0.accessibilityIdentifier())
+        }) else { return }
+        let current = snapshot()
+        let external = item.accessibilityIdentifier() != "menu-bar.copy-shell-command-loopback"
+            && current.offersExternalShellCommand
+        let copy = actions.copyShellCommand
+        let target = HakoMacMenuRowAction { copy(external) }
+        item.target = target
+        item.representedObject = target
+        item.isEnabled = current.offersShellCommand
     }
 
     func menuDidClose(_ menu: NSMenu) {

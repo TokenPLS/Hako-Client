@@ -2545,12 +2545,11 @@ private final class HakoMacSceneModel: ObservableObject {
          
          
          
-        proxyShare.bind(profileListener: { [weak self] in
+        proxyShare.bind(profileYAML: { [weak self] in
             guard let self,
-                  let active = self.profiles.profiles.first(where: { $0.id == self.profiles.activeProfileID }),
-                  let yaml = self.profiles.effectiveYAML(for: active)
+                  let active = self.profiles.profiles.first(where: { $0.id == self.profiles.activeProfileID })
             else { return nil }
-            return ProfileListenerPorts.parse(yaml: yaml)
+            return self.profiles.effectiveYAML(for: active)
         }, lanListenerPermitted: {
             LocalNetworkPermission.isPermitted(UserDefaults(suiteName: HakoAppIdentifiers.appGroup))
         })
@@ -3191,7 +3190,8 @@ extension HakoMacSceneModel {
                     self?.menuBarLatency(delays: delays, testing: testing) ?? [:]
                 }
                 .eraseToAnyPublisher(),
-            testing: nodes.$isTestingLatency.eraseToAnyPublisher()
+            testing: nodes.$isTestingLatency.eraseToAnyPublisher(),
+            listenerUpdates: proxyShare.terminalListenerDidChange.eraseToAnyPublisher()
         )
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.menu = controller.menu
@@ -3232,7 +3232,8 @@ extension HakoMacSceneModel {
     }
 
     private func makeStatusMenuSnapshot() -> HakoMacStatusMenuSnapshot {
-        HakoMacStatusMenuSnapshot(
+        let listener = proxyShare.terminalListener
+        return HakoMacStatusMenuSnapshot(
             phase: snapshot.connection.phase,
             primaryIntent: snapshot.connection.primaryIntent,
             outboundMode: currentOutboundMode,
@@ -3243,8 +3244,8 @@ extension HakoMacSceneModel {
             upLine: menuBarTraffic.upLine,
             downLine: menuBarTraffic.downLine,
             offersQuitLeavingTunnel: false,
-            offersShellCommand: proxyShare.terminalListener != nil,
-            offersExternalShellCommand: proxyShare.terminalListener?.lanReachable == true && proxyShare.reachableAddresses.first != nil,
+            offersShellCommand: listener != nil,
+            offersExternalShellCommand: listener?.host(forExternalMachine: true, addresses: proxyShare.reachableAddresses) != nil,
              
             prefersLoopbackShellCommand: false
         )
@@ -3256,7 +3257,7 @@ extension HakoMacSceneModel {
      
     private func copyShellCommand(externalIP: Bool) {
         guard let listener = proxyShare.terminalListener else { return }
-        guard let host = externalIP ? proxyShare.reachableAddresses.first : "127.0.0.1" else { return }
+        guard let host = listener.host(forExternalMachine: externalIP, addresses: proxyShare.reachableAddresses) else { return }
         let text = ProxyEnvironmentCommand.text(
             shell: ProxyEnvironmentShell.remembered(in: .standard),
             endpoint: ProxyEnvironmentEndpoint(
