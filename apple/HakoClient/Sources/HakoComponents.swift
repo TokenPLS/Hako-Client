@@ -135,14 +135,6 @@ struct HakoGlassEffectContainer<Content: View>: View {
 extension View {
      
      
-    @ViewBuilder
-    func hakoPrimaryActionButtonStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            buttonStyle(.glassProminent)
-        } else {
-            buttonStyle(.borderedProminent)
-        }
-    }
 
      
     @ViewBuilder
@@ -607,7 +599,7 @@ struct HakoFeedbackOverlay: View {
                     if presentation.requiresExplicitDismissal {
                         Button(dismissTitle.hakoLocalized, action: onDismiss)
                             .font(.headline)
-                            .buttonStyle(.borderedProminent)
+                            .hakoPrimaryActionButtonStyle()
                             .controlSize(.large)
                             .frame(
                                 minWidth: 140,

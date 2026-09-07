@@ -281,7 +281,7 @@ struct ProxyNodeDetailSheet: View {
             } label: {
                 Text(HakoCopy.key("Done"))
             }
-            .buttonStyle(.borderedProminent)
+            .hakoPrimaryActionButtonStyle()
             .keyboardShortcut(.defaultAction)
             .accessibilityIdentifier("proxy-detail.done")
         }

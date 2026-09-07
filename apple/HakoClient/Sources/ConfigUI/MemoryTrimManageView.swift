@@ -133,7 +133,7 @@ struct MemoryTrimManageView: View {
                     .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .hakoPrimaryActionButtonStyle()
             .hakoCapsuleButtonBorderShape()
             .controlSize(.large)
             .shadow(

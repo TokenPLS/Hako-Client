@@ -495,7 +495,7 @@ private struct HakoMacFeedbackOverlay: View {
                 }
                 if presentation.requiresExplicitDismissal {
                     Button(dismissTitle, action: onDismiss)
-                        .buttonStyle(.borderedProminent)
+                        .hakoPrimaryActionButtonStyle()
                 }
             }
             .padding(HakoTheme.Spacing.section)
@@ -631,10 +631,6 @@ extension View {
         _ type: HakoMacTextContentType?
     ) -> some View {
         self
-    }
-
-    func hakoPrimaryActionButtonStyle() -> some View {
-        buttonStyle(.borderedProminent)
     }
 
     func hakoSecondaryActionButtonStyle() -> some View {

@@ -1313,7 +1313,7 @@ private struct HakoProductModalChildModifier: ViewModifier {
                             switch actionRole {
                             case .primary:
                                 Button(actionTitle, action: action)
-                                    .buttonStyle(.borderedProminent)
+                                    .hakoPrimaryActionButtonStyle()
                                     .controlSize(.small)
                                     .disabled(actionDisabled)
                                     .accessibilityIdentifier(
@@ -1490,7 +1490,7 @@ private struct HakoNativeSheetChildModifier: ViewModifier {
                     }
                     if let actionTitle, let action {
                         Button(actionTitle, action: action)
-                            .buttonStyle(.borderedProminent)
+                            .hakoPrimaryActionButtonStyle()
                             .controlSize(.small)
                             .disabled(actionDisabled)
                             .accessibilityIdentifier(

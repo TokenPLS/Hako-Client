@@ -641,7 +641,7 @@ public struct HakoHomeView<Icon: View>: View, Equatable {
                 } label: {
                     primaryActionLabel(title, compaction: compaction)
                 }
-                .modifier(HakoHomePrimaryButtonStyle())
+                .hakoPrimaryActionButtonStyle()
                 .modifier(HakoHomeCapsuleButtonShape())
                 .controlSize(.regular)
                 .tint(
@@ -935,7 +935,7 @@ public struct HakoHomeView<Icon: View>: View, Equatable {
                 } label: {
                     Text(HakoCopy.key("Open Profiles"))
                 }
-                .modifier(HakoHomePrimaryButtonStyle())
+                .hakoPrimaryActionButtonStyle()
                 .modifier(HakoHomeCapsuleButtonShape())
                 .accessibilityIdentifier(
                     "home.unavailable.open-profiles"
@@ -948,17 +948,6 @@ public struct HakoHomeView<Icon: View>: View, Equatable {
     private func send(_ command: HakoHomeCommand) {
         Task {
             try? await actions.perform(.home(command), allowedBy: snapshot)
-        }
-    }
-}
-
-private struct HakoHomePrimaryButtonStyle: ViewModifier {
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-            content.buttonStyle(.glassProminent)
-        } else {
-            content.buttonStyle(.borderedProminent)
         }
     }
 }

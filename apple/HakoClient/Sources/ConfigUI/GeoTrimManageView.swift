@@ -61,7 +61,7 @@ struct GeoTrimManageView: View {
                     .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .hakoPrimaryActionButtonStyle()
             .hakoCapsuleButtonBorderShape()
             .controlSize(.large)
             .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 4)
