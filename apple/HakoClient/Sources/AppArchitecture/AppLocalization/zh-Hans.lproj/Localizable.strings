@@ -20,6 +20,7 @@
 "%@ active sessions" = "%@ 条活动会话";
 "%@ affected." = "%@ 处受影响。";
 "%@ asked for the system resolver, which the tunnel cannot use; it was removed." = "%@ 要用系统解析器，隧道里用不了，已移除。";
+"%@ available · %@ unavailable" = "%@ 个可用 · %@ 个不可用";
 "%@ cannot be reached from inside the tunnel." = "%@ 在隧道内无法访问。";
 "%@ chain overrides" = "%@ 项链式覆写";
 "%@ chain overrides · %@ relay migrations" = "%@ 项链式覆写 · %@ 项 relay 迁移";
@@ -505,7 +506,6 @@
 "Clash always uses the memory-conservative, memory-mapped loader on iOS so large GeoIP and GeoSite databases stay off the app heap." = "iOS 上 Clash 始终使用省内存的内存映射加载器，大体积 GeoIP 与 GeoSite 数据库不进应用堆。";
 "Clash by Hako" = "Clash by Hako";
 "Clash by Hako DNS" = "Clash by Hako DNS";
-"Clash checks every update and keeps the current working copy if the update cannot be used." = "Clash 会检查每次更新；若更新不可用，将保留当前可用副本。";
 "Clash could not apply the LAN proxy setting. Check the port and try again." = "Clash 无法应用局域网代理设置。请检查端口后重试。";
 "Clash could not open its secure shared container." = "Clash 无法打开其安全共享容器。";
 "Clash could not prepare its local Direct profile. Open Profiles to retry without replacing your data." = "Clash 无法准备本地直连配置。请打开配置重试；现有数据不会被替换。";
@@ -2021,7 +2021,6 @@
 "Refresh System Status" = "刷新系统状态";
 "Refresh all providers" = "刷新全部 provider";
 "Refresh backup list" = "刷新备份列表";
-"Refresh live status" = "刷新实时状态";
 "Refreshing providers…" = "正在刷新集合…";
 "Refused" = "被拒";
 "Reject" = "拒绝";

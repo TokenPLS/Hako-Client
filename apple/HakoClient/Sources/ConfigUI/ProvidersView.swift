@@ -755,40 +755,32 @@ struct ProvidersView: View {
                     }
                 }
                 Section {
-                    Button {
-                        model.refreshAll()
-                    } label: {
-                        if model.busy && model.busyProvider == nil {
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                    HStack(spacing: HakoTheme.Spacing.compact) {
+                        Label {
+                            Text(hako: .copy(
+                                model.runtimeStatus.isEmpty
+                                    ? "Connect Clash to view live provider status."
+                                    : model.runtimeStatus
+                            ))
+                        } icon: {
+                            Image(systemName: HakoSymbol.network.name)
+                                .accessibilityHidden(true)
+                        }
+                        .foregroundStyle(.secondary)
+                        Spacer()
+                        if model.runtimeLoading {
                             ProgressView()
-                        } else {
-                            Label("Refresh all providers", systemImage: HakoSymbol.arrowTriangle2Circlepath.name)
                         }
                     }
-                    .disabled(model.busy)
-                    Button {
-                        model.refreshRuntimeCatalog()
-                    } label: {
-                        HStack(spacing: HakoTheme.Spacing.compact) {
-                             
-                             
-                            Label {
-                                Text(hako: .copy(
-                                    model.runtimeStatus.isEmpty
-                                        ? "Refresh live status"
-                                        : model.runtimeStatus
-                                ))
-                            } icon: {
-                                Image(systemName: HakoSymbol.network.name)
-                                    .accessibilityHidden(true)
-                            }
-                            Spacer()
-                            if model.runtimeLoading {
-                                ProgressView()
-                            }
-                        }
-                    }
-                    .disabled(model.runtimeLoading)
-                    .accessibilityIdentifier("providers.runtime.refresh")
+                    .accessibilityIdentifier("providers.runtime.status")
                     if !model.status.isEmpty {
                         if let failure = model.lastFailure {
                             ConfigurationFailureView(
@@ -810,8 +802,6 @@ struct ProvidersView: View {
                     }
                 } header: {
                     Text(hako: .format("Active profile · %@", [profile.label]))
-                } footer: {
-                    Text("Clash checks every update and keeps the current working copy if the update cannot be used.")
                 }
             }
 
@@ -952,7 +942,9 @@ struct ProvidersView: View {
     @ViewBuilder
     private func providerSection(title: String, rows: [ProvidersModel.Row]) -> some View {
         if !rows.isEmpty {
-            Section(title) {
+             
+             
+            Section {
                 ForEach(rows) { row in
                     ProviderRow(
                         row: row,
@@ -975,6 +967,8 @@ struct ProvidersView: View {
                                 && model.healthCheckingProvider != row.name)
                     )
                 }
+            } header: {
+                Text(hako: .copy(title))
             }
         }
     }
@@ -1047,7 +1041,11 @@ private struct ProviderRow: View {
                     .accessibilityIdentifier("providers.row.loadFailure.\(row.name)")
                 }
                 if !isRule, let runtime = row.runtime {
-                    Label(healthText(runtime), systemImage: healthSymbol(runtime).name)
+                    Label {
+                        Text(hako: healthText(runtime))
+                    } icon: {
+                        Image(systemName: healthSymbol(runtime).name)
+                    }
                         .font(HakoPlatformLayout.pageUsesSystemSettingsIdiom ? HakoMacSettingsType.value : .caption)
                         .foregroundStyle(healthColor(runtime))
                         .fixedSize(horizontal: false, vertical: true)
@@ -1118,10 +1116,13 @@ private struct ProviderRow: View {
         .padding(.vertical, HakoTheme.Spacing.tight)
     }
 
-    private func healthText(_ runtime: ProviderRuntimeSummary) -> String {
-        guard runtime.healthCheckAvailable else { return "Health check not configured" }
-        if runtime.entryCount == 0 { return "No proxy health results" }
-        return "\(runtime.healthyCount ?? 0) available · \(runtime.unhealthyCount ?? 0) unavailable"
+    private func healthText(_ runtime: ProviderRuntimeSummary) -> HakoDisplayText {
+        guard runtime.healthCheckAvailable else { return .copy("Health check not configured") }
+        if runtime.entryCount == 0 { return .copy("No proxy health results") }
+        return .format(
+            "%@ available · %@ unavailable",
+            [String(runtime.healthyCount ?? 0), String(runtime.unhealthyCount ?? 0)]
+        )
     }
 
     private func healthSymbol(_ runtime: ProviderRuntimeSummary) -> HakoSymbol {

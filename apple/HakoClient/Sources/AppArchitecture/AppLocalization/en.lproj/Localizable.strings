@@ -20,6 +20,7 @@
 "%@ active sessions" = "%@ active sessions";
 "%@ affected." = "%@ affected.";
 "%@ asked for the system resolver, which the tunnel cannot use; it was removed." = "%@ asked for the system resolver, which the tunnel cannot use; it was removed.";
+"%@ available · %@ unavailable" = "%@ available · %@ unavailable";
 "%@ cannot be reached from inside the tunnel." = "%@ cannot be reached from inside the tunnel.";
 "%@ chain overrides" = "%@ chain overrides";
 "%@ chain overrides · %@ relay migrations" = "%@ chain overrides · %@ relay migrations";
@@ -505,7 +506,6 @@
 "Clash always uses the memory-conservative, memory-mapped loader on iOS so large GeoIP and GeoSite databases stay off the app heap." = "Clash always uses the memory-conservative, memory-mapped loader on iOS so large GeoIP and GeoSite databases stay off the app heap.";
 "Clash by Hako" = "Clash by Hako";
 "Clash by Hako DNS" = "Clash by Hako DNS";
-"Clash checks every update and keeps the current working copy if the update cannot be used." = "Clash checks every update and keeps the current working copy if the update cannot be used.";
 "Clash could not apply the LAN proxy setting. Check the port and try again." = "Clash could not apply the LAN proxy setting. Check the port and try again.";
 "Clash could not open its secure shared container." = "Clash could not open its secure shared container.";
 "Clash could not prepare its local Direct profile. Open Profiles to retry without replacing your data." = "Clash could not prepare its local Direct profile. Open Profiles to retry without replacing your data.";
@@ -2021,7 +2021,6 @@
 "Refresh System Status" = "Refresh System Status";
 "Refresh all providers" = "Refresh all providers";
 "Refresh backup list" = "Refresh backup list";
-"Refresh live status" = "Refresh live status";
 "Refreshing providers…" = "Refreshing providers…";
 "Refused" = "Refused";
 "Reject" = "Reject";
