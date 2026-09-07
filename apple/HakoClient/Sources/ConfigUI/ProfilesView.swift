@@ -1926,6 +1926,18 @@ final class ProfilesViewModel: ObservableObject {
      
      
      
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
     private func updateGlobalConfiguration(
         _ candidate: Profile,
         replacing keys: Set<String>,
@@ -1960,50 +1972,6 @@ final class ProfilesViewModel: ObservableObject {
         )
         var updatedProfiles = previousProfiles
         updatedProfiles[candidateIndex] = sanitizedCandidate
-
-        var validationIDs: Set<String> = [candidate.id]
-        if let activeProfileID {
-            validationIDs.insert(activeProfileID)
-        }
-        for profile in updatedProfiles where validationIDs.contains(
-            profile.id
-        ) {
-            guard let rawYAML = runtimeSourceYAML(for: profile) else {
-                continue
-            }
-            let preview = try ProfileRuntimeConfigBuilder.runtimePreview(
-                raw: rawYAML,
-                profile: profile,
-                runtimeOverride: updatedRuntime
-            )
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-             
-            if let container {
-                do {
-                    try coreAcceptsDocument(preview, container)
-                } catch let refusal where Self.refusalBelongsToActivation(
-                    refusal.localizedDescription
-                ) {
-                     
-                }
-            }
-        }
 
         do {
             try profileStore.save(updatedProfiles)
