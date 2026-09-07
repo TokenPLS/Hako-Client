@@ -1025,6 +1025,10 @@ final class NodesModel: ObservableObject {
     var testing: Bool { isTestingLatency }
 
     private weak var command: NodesCommanding?
+     
+     
+     
+    var isConnected: Bool { command?.isConnected ?? false }
     private let preferences: NodeProfilePreferencesStore?
     private let protocolDetailsLoader: () -> [String: ProxyProtocolDetails]
     private let groupConfigurationDetailsLoader: () -> [String: ProxyGroupConfigurationDetails]

@@ -627,6 +627,14 @@ public struct HakoProxiesView<Icon: View>: View, Equatable {
                     await prepareDisplayPreferences(pendingDisplayPreferences)
                 }
             }
+            .onChange(of: preferences.groupIconImages) { on in
+                 
+                 
+                 
+                 
+                guard on else { return }
+                Task { await ProxyGroupIconStore.shared.forgetRefusals() }
+            }
             .onChange(of: preferences) { value in
                 HakoPerf.markDisplayPreferencesChange()
                 send(.setDisplayPreferences(value))
@@ -2699,7 +2707,8 @@ private struct HakoProxyGroupHeader<Icon: View>: View, Equatable {
              
             ProxyGroupIconView(
                 address: group.icon,
-                size: HakoTheme.Layout.proxyGroupIconSize
+                size: HakoTheme.Layout.proxyGroupIconSize,
+                connected: isConnected
             ) {
                 RoundedRectangle(
                     cornerRadius: HakoTheme.Layout.proxyGroupIconCornerRadius,

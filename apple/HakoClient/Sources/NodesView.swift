@@ -23,6 +23,7 @@ struct NodesView: View {
                 delays: nodes.delays,
                 testingNames: nodes.testingNames,
                 isTestingLatency: nodes.isTestingLatency,
+                isConnected: nodes.isConnected,
                 latencyCompletedCount: nodes.latencyCompletedCount,
                 latencyTotalCount: nodes.latencyTotalCount,
                 query: $nodes.query,
@@ -82,6 +83,7 @@ struct NodesContent: View {
     let delays: [String: Int]
     let testingNames: Set<String>
     let isTestingLatency: Bool
+    let isConnected: Bool
     let latencyCompletedCount: Int
     let latencyTotalCount: Int
     @Binding var query: String
@@ -194,6 +196,7 @@ struct NodesContent: View {
                             group: group,
                             iconStyle: presentation.iconStyle,
                             isTesting: group.members.contains { testingNames.contains($0) },
+                            connected: isConnected,
                             test: { testGroup(group) }
                         )
                     }
@@ -227,6 +230,7 @@ struct NodesContent: View {
                             group: group,
                             iconStyle: presentation.iconStyle,
                             isTesting: group.members.contains { testingNames.contains($0) },
+                            connected: isConnected,
                             test: { testGroup(group) }
                         )
 
@@ -368,6 +372,7 @@ private struct NodeGroupHeader: View {
     let group: ProxyGroup
     let iconStyle: NodeIconStyle
     let isTesting: Bool
+    let connected: Bool
     let test: () -> Void
 
     var body: some View {
@@ -399,14 +404,14 @@ private struct NodeGroupHeader: View {
         case .none:
             EmptyView()
         case .standard:
-            ProxyGroupIconView(address: group.iconURL, size: 34) {
+            ProxyGroupIconView(address: group.iconURL, size: 34, connected: connected) {
                 HakoIconWell(
                     symbol: ProxyTypePresentation.symbol(for: group.type),
                     tint: .blue
                 )
             }
         case .iconOnly:
-            ProxyGroupIconView(address: group.iconURL, size: 34) {
+            ProxyGroupIconView(address: group.iconURL, size: 34, connected: connected) {
                 Image(systemName: ProxyTypePresentation.symbol(for: group.type).name)
                     .font(.title3)
                     .foregroundStyle(.tint)

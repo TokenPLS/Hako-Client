@@ -709,7 +709,8 @@ struct HakoProxyGroupHeaderRow: View, Equatable {
         case .remote:
             ProxyGroupIconView(
                 address: group.icon,
-                size: HakoTheme.Layout.proxyGroupIconSize
+                size: HakoTheme.Layout.proxyGroupIconSize,
+                connected: canTest
             ) {
                 RoundedRectangle(
                     cornerRadius: HakoTheme.Layout.proxyGroupIconCornerRadius,

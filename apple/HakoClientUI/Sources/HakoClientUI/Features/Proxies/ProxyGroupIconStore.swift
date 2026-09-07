@@ -243,6 +243,21 @@ public actor ProxyGroupIconStore {
         return directory
     }()
 
+     
+     
+     
+     
+    public func forgetRefusal(for address: String) {
+        refusedUntil[address] = nil
+    }
+
+     
+     
+     
+    public func forgetRefusals() {
+        refusedUntil.removeAll()
+    }
+
     public func image(for address: String) async -> CGImage? {
         if let until = refusedUntil[address] {
             if until > Self.now() { return nil }
@@ -408,13 +423,22 @@ public struct ProxyGroupIconView<Placeholder: View>: View {
     let size: CGFloat
     @ViewBuilder let placeholder: () -> Placeholder
 
+     
+     
+     
+     
+     
+    let connected: Bool
+
     public init(
         address: String?,
         size: CGFloat,
+        connected: Bool,
         @ViewBuilder placeholder: @escaping () -> Placeholder
     ) {
         self.address = address
         self.size = size
+        self.connected = connected
         self.placeholder = placeholder
     }
 
@@ -432,8 +456,28 @@ public struct ProxyGroupIconView<Placeholder: View>: View {
      
      
     @State private var resolved = false
+     
+     
+    @State private var lastConnected: Bool?
 
     public enum Presentation: Equatable, Sendable { case image, placeholder, nothing }
+
+     
+    public struct LoadIdentity: Hashable, Sendable {
+        public let address: String?
+        public let connected: Bool
+    }
+
+    nonisolated static func loadIdentity(address: String?, connected: Bool) -> LoadIdentity {
+        LoadIdentity(address: address, connected: connected)
+    }
+
+     
+     
+     
+    nonisolated static func forgetsRefusal(previouslyConnected: Bool?, connected: Bool) -> Bool {
+        previouslyConnected == false && connected
+    }
 
      
     nonisolated static func presentation(hasImage: Bool, resolved: Bool) -> Presentation {
@@ -456,13 +500,16 @@ public struct ProxyGroupIconView<Placeholder: View>: View {
                 EmptyView()
             }
         }
-        .task(id: address) {
+        .task(id: Self.loadIdentity(address: address, connected: connected)) {
+            let cameUp = Self.forgetsRefusal(previouslyConnected: lastConnected, connected: connected)
+            lastConnected = connected
             resolved = false
             guard let address, !address.isEmpty else {
                 image = nil
                 resolved = true
                 return
             }
+            if cameUp { await ProxyGroupIconStore.shared.forgetRefusal(for: address) }
             image = await ProxyGroupIconStore.shared.image(for: address)
             resolved = true
         }
