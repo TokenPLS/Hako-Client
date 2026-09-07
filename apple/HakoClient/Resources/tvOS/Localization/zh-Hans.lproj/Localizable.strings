@@ -19,7 +19,9 @@
 "Address" = "地址";
 "Advanced metadata" = "高级元数据";
 "All" = "全部";
+"An earlier tunnel request is still unresolved." = "较早的隧道请求仍未完成。";
 "Asked when the first answer looks wrong or is not trusted for the destination." = "当第一组解析器的答案看起来不对、或对该目标不可信时，改问这些。";
+"Asynchronous reload is not supported here." = "此处不支持异步重载。";
 "Bad HTTP" = "异常";
 "Branches into the named sub-rule list when the condition matches." = "条件匹配时，跳转到指定的 sub-rule 列表。";
 "Bring the profiles your iPhone or Mac keeps in iCloud onto this Apple TV, and keep them current. Nothing is written back." = "把 iPhone 或 Mac 存在 iCloud 里的配置带到这台 Apple TV，并保持最新。不会写回任何内容。";
@@ -132,6 +134,7 @@
 "Not Connected · %lld nodes · %lld policy groups · %lld rules" = "未连接 · %lld 个节点 · %lld 个策略组 · %lld 条规则";
 "Not in use. The address stays remembered." = "未在使用。地址仍会记着。";
 "Not running" = "未运行";
+"Not sent." = "未发送。";
 "Not sharing." = "未共享。";
 "Not yet updated" = "尚未更新";
 "Nothing is going through the tunnel yet" = "还没有流量经过隧道";
@@ -219,6 +222,7 @@
 "The configuration failed the tunnel's check: %@" = "配置没有通过隧道的检查：%@";
 "The configuration is in use. Try again in a moment." = "配置正被占用，请稍后重试。";
 "The configuration was refused: %@" = "配置被拒绝：%@";
+"The connection changed while waiting." = "等待期间连接已发生变化。";
 "The core's own name, with this Apple TV behind it. Keep this unless a panel of yours answers better to another client." = "内核自己的名字，后面跟着这台 Apple TV。除非你的面板对另一个客户端答得更好，否则保持这个。";
 "The most recent thing that went wrong, kept after it stopped being true. It covers this app session only; it does not know about a start that failed while the app was closed." = "最近一次出问题的事，问题过去之后仍然留着。它只覆盖本次打开的 App；App 关着时启动失败它不知道。";
 "The name is only what this Apple TV calls the address. The address itself, and what is downloaded from it, do not change." = "名称只是这台 Apple TV 对这个地址的称呼。地址本身以及从它下载的内容都不会改变。";
@@ -233,7 +237,12 @@
 "The profile this Apple TV is using. Press to see the others, switch to one, or remove one. The address is what gets remembered; what it points at is downloaded again when needed." = "这台 Apple TV 正在使用的配置。按下可查看其他配置、切换到某一个或移除某一个。记住的是地址；它指向的内容会在需要时重新下载。";
 "The profile's rule sets and node lists, of both kinds, and whether the tunnel can read each one. Press to see them by name." = "配置里的规则集与节点列表，两类都在，以及隧道能不能读到每一个。按下逐个看。";
 "The provider “%@” is larger than this Apple TV accepts." = "provider“%@”超过了这台 Apple TV 接受的大小。";
+"The proxy provider “%@” could not be decrypted: %@" = "代理 provider“%@”无法解密：%@";
 "The proxy provider “%@” could not be downloaded: %@" = "代理 provider“%@”下载失败：%@";
+"The proxy provider “%@” is encrypted and the profile carries no key for it." = "代理 provider“%@”已加密，但配置里没有它的密钥。";
+"The request expired while waiting." = "请求在等待期间已过期。";
+"The request was sent, but its result could not be confirmed. It will not be sent again automatically." = "请求已发送，但无法确认结果。不会自动再次发送。";
+"The request's reply belongs to an earlier connection." = "请求的回复属于之前的连接。";
 "The resolvers asked first, in this order." = "最先询问的解析器，按此顺序。";
 "The saved configuration is damaged. Import it again." = "保存的配置已损坏，请重新导入。";
 "The server answered %lld. Check the address on your phone." = "服务器返回了 %lld。请在手机上核对地址。";
@@ -242,6 +251,8 @@
 "The system has not answered yet — the change may still take. The switch shows what you asked for; the next Connect applies it again." = "系统还没有回应，这次更改可能仍会生效。开关显示的是你要的状态；下一次按「连接」时会再应用一次。";
 "The tunnel is not running" = "隧道未运行";
 "The tunnel refused: %@" = "隧道拒绝了请求：%@";
+"The tunnel request is invalid." = "隧道请求无效。";
+"The tunnel request queue is full." = "隧道请求队列已满。";
 "The tunnel stopped before it came up." = "隧道在建立前就停止了。";
 "The tunnel stopped on its own. Connect again to bring it back." = "隧道自行停止了。再次连接即可恢复。";
 "The tunnel's own resolvers, as the profile names them." = "隧道自己的解析器，按配置中的写法。";

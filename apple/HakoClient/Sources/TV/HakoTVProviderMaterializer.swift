@@ -19,6 +19,10 @@ import Hako
  
  
  
+ 
+ 
+ 
+ 
 enum HakoTVProviderMaterializer {
     struct Outcome: Equatable {
          
@@ -51,9 +55,14 @@ enum HakoTVProviderMaterializer {
         provider.resourceKey ?? "\(provider.kind):\(provider.name)"
     }
 
-    enum MaterializeError: LocalizedError {
+    enum MaterializeError: LocalizedError, Equatable {
         case proxyProviderUnavailable(name: String, reason: String)
         case tooLarge(name: String)
+         
+        case ageKeyMissing(name: String)
+         
+         
+        case ageDecryptFailed(name: String, reason: String)
 
         var errorDescription: String? {
             switch self {
@@ -61,9 +70,27 @@ enum HakoTVProviderMaterializer {
                 String(localized: "The proxy provider “\(name)” could not be downloaded: \(reason)")
             case .tooLarge(let name):
                 String(localized: "The provider “\(name)” is larger than this Apple TV accepts.")
+            case .ageKeyMissing(let name):
+                String(localized: "The proxy provider “\(name)” is encrypted and the profile carries no key for it.")
+            case .ageDecryptFailed(let name, let reason):
+                String(localized: "The proxy provider “\(name)” could not be decrypted: \(reason)")
+            }
+        }
+
+         
+         
+         
+         
+        var isAboutTheSeal: Bool {
+            switch self {
+            case .ageKeyMissing, .ageDecryptFailed: true
+            case .proxyProviderUnavailable, .tooLarge: false
             }
         }
     }
+
+     
+    static let ageArmorPrefix = "-----BEGIN AGE ENCRYPTED FILE-----"
 
      
     static let maximumBytes = 8 * 1024 * 1024
@@ -106,6 +133,10 @@ enum HakoTVProviderMaterializer {
         userAgent: String,
         maximumBytes: Int = maximumBytes,
         inspect: Inspector = coreInspector,
+         
+         
+         
+        ageSecretKeys: [String: String] = [:],
         now: @escaping () -> Date = Date.init
     ) async throws -> Outcome {
         var paths: [String: String] = [:]
@@ -155,7 +186,10 @@ enum HakoTVProviderMaterializer {
                         throw error
                     }
                 }
-                payload = Self.slimmedForRuntime(kind: provider.kind, payload: rawPayload)
+                payload = Self.slimmedForRuntime(
+                    kind: provider.kind,
+                    payload: try Self.unsealed(rawPayload, provider: provider, ageSecretKeys: ageSecretKeys)
+                )
                 do {
                     try inspect(provider.kind, provider.behavior, provider.format, payload)
                 } catch {
@@ -166,6 +200,8 @@ enum HakoTVProviderMaterializer {
                     warnings.append("\(provider.name): \(error.localizedDescription)")
                     failure = error.localizedDescription
                 }
+            } catch let refusal as MaterializeError where refusal.isAboutTheSeal {
+                throw refusal
             } catch {
                  
                  
@@ -241,6 +277,32 @@ enum HakoTVProviderMaterializer {
               )
         else { return payload }
         return slim
+    }
+
+     
+     
+     
+     
+     
+     
+     
+    private static func unsealed(
+        _ payload: Data,
+        provider: RemoteResourcePlan.Provider,
+        ageSecretKeys: [String: String]
+    ) throws -> Data {
+        guard provider.kind == "proxy", payload.starts(with: Data(ageArmorPrefix.utf8)) else { return payload }
+        guard let key = ageSecretKeys[resourceKey(for: provider)], !key.isEmpty else {
+            throw MaterializeError.ageKeyMissing(name: provider.name)
+        }
+        var error: NSError?
+        guard let plaintext = HakoDecryptAgeForIOS(payload, key, &error) else {
+            throw MaterializeError.ageDecryptFailed(
+                name: provider.name,
+                reason: error?.localizedDescription ?? "the core could not open the payload"
+            )
+        }
+        return plaintext
     }
 
     private static func download(

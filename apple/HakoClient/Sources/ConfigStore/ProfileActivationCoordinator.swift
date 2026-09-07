@@ -1175,20 +1175,9 @@ final class ProfileActivationCoordinator {
      
      
     static func providerAgeSecretKeys(in mergedYAML: String) throws -> [String: String] {
-        let json = try ConfigTransforms.yamlToJSON(mergedYAML)
-        guard let root = try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any],
-              let providers = root["proxy-providers"] as? [String: Any] else {
-            return [:]
-        }
-        var keys: [String: String] = [:]
-        for (name, raw) in providers {
-            guard let definition = raw as? [String: Any],
-                  (definition["type"] as? String)?.lowercased() == "http",
-                  let key = definition["age-secret-key"] as? String,
-                  !key.isEmpty else { continue }
-            keys["proxy:\(name)"] = key
-        }
-        return keys
+         
+         
+        try ConfigTransforms.providerAgeSecretKeys(mergedYAML: mergedYAML)
     }
 
      

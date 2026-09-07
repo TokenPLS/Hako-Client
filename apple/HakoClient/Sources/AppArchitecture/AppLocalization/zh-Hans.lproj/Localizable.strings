@@ -1217,6 +1217,7 @@
 "If YES, all traffic destined for local networks will be included from the tunnel." = "如果是，所有发送到本地网络的流量将包括在隧道中。";
 "If YES, route rules for this tunnel will take precedence over any locally-defined routes. The default is NO." = "如果是，这个隧道的路由规则将优先于任何本地定义的路由。默认是否。";
 "If YES, the VPN badge stays off the status bar: the tunnel leaves 0.0.0.0/31 and ::/127 outside its routes. Takes effect on the next connection." = "开启后状态栏不显示 VPN 标记：隧道把 0.0.0.0/31 与 ::/127 留在路由之外。下次连接生效。";
+"If YES, the VPN badge stays off the status bar: the tunnel leaves 0.0.0.0/31 and ::/127 outside its routes. Takes effect on the next connection. With Include All Networks on, the badge still shows." = "开启后状态栏不显示 VPN 标记：隧道把 0.0.0.0/31 与 ::/127 留在路由之外。下次连接生效。「包括所有网络」开启时标记仍会显示。";
 "If YES, the VPN connection will be always on. The default is NO" = "如果是，VPN连接将始终开启，默认值是否。";
 "If YES, the VPN connection will be disconnected when the device goes to sleep. The default is NO" = "如果是，VPN 连接将在设备进入睡眠状态时断开。默认值是否";
 "If YES, the network traffic for the Apple Push Notification service (APNs) will be included from the tunnel." = "如果是，苹果推送通知服务（APNs）的网络流量将包括在隧道中。";

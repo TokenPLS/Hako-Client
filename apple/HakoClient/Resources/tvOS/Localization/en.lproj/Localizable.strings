@@ -19,7 +19,9 @@
 "Address" = "Address";
 "Advanced metadata" = "Advanced metadata";
 "All" = "All";
+"An earlier tunnel request is still unresolved." = "An earlier tunnel request is still unresolved.";
 "Asked when the first answer looks wrong or is not trusted for the destination." = "Asked when the first answer looks wrong or is not trusted for the destination.";
+"Asynchronous reload is not supported here." = "Asynchronous reload is not supported here.";
 "Bad HTTP" = "Bad HTTP";
 "Branches into the named sub-rule list when the condition matches." = "Branches into the named sub-rule list when the condition matches.";
 "Bring the profiles your iPhone or Mac keeps in iCloud onto this Apple TV, and keep them current. Nothing is written back." = "Bring the profiles your iPhone or Mac keeps in iCloud onto this Apple TV, and keep them current. Nothing is written back.";
@@ -132,6 +134,7 @@
 "Not Connected · %lld nodes · %lld policy groups · %lld rules" = "Not Connected · %lld nodes · %lld policy groups · %lld rules";
 "Not in use. The address stays remembered." = "Not in use. The address stays remembered.";
 "Not running" = "Not running";
+"Not sent." = "Not sent.";
 "Not sharing." = "Not sharing.";
 "Not yet updated" = "Not yet updated";
 "Nothing is going through the tunnel yet" = "Nothing is going through the tunnel yet";
@@ -219,6 +222,7 @@
 "The configuration failed the tunnel's check: %@" = "The configuration failed the tunnel's check: %@";
 "The configuration is in use. Try again in a moment." = "The configuration is in use. Try again in a moment.";
 "The configuration was refused: %@" = "The configuration was refused: %@";
+"The connection changed while waiting." = "The connection changed while waiting.";
 "The core's own name, with this Apple TV behind it. Keep this unless a panel of yours answers better to another client." = "The core's own name, with this Apple TV behind it. Keep this unless a panel of yours answers better to another client.";
 "The most recent thing that went wrong, kept after it stopped being true. It covers this app session only; it does not know about a start that failed while the app was closed." = "The most recent thing that went wrong, kept after it stopped being true. It covers this app session only; it does not know about a start that failed while the app was closed.";
 "The name is only what this Apple TV calls the address. The address itself, and what is downloaded from it, do not change." = "The name is only what this Apple TV calls the address. The address itself, and what is downloaded from it, do not change.";
@@ -233,7 +237,12 @@
 "The profile this Apple TV is using. Press to see the others, switch to one, or remove one. The address is what gets remembered; what it points at is downloaded again when needed." = "The profile this Apple TV is using. Press to see the others, switch to one, or remove one. The address is what gets remembered; what it points at is downloaded again when needed.";
 "The profile's rule sets and node lists, of both kinds, and whether the tunnel can read each one. Press to see them by name." = "The profile's rule sets and node lists, of both kinds, and whether the tunnel can read each one. Press to see them by name.";
 "The provider “%@” is larger than this Apple TV accepts." = "The provider “%@” is larger than this Apple TV accepts.";
+"The proxy provider “%@” could not be decrypted: %@" = "The proxy provider “%@” could not be decrypted: %@";
 "The proxy provider “%@” could not be downloaded: %@" = "The proxy provider “%@” could not be downloaded: %@";
+"The proxy provider “%@” is encrypted and the profile carries no key for it." = "The proxy provider “%@” is encrypted and the profile carries no key for it.";
+"The request expired while waiting." = "The request expired while waiting.";
+"The request was sent, but its result could not be confirmed. It will not be sent again automatically." = "The request was sent, but its result could not be confirmed. It will not be sent again automatically.";
+"The request's reply belongs to an earlier connection." = "The request's reply belongs to an earlier connection.";
 "The resolvers asked first, in this order." = "The resolvers asked first, in this order.";
 "The saved configuration is damaged. Import it again." = "The saved configuration is damaged. Import it again.";
 "The server answered %lld. Check the address on your phone." = "The server answered %lld. Check the address on your phone.";
@@ -242,6 +251,8 @@
 "The system has not answered yet — the change may still take. The switch shows what you asked for; the next Connect applies it again." = "The system has not answered yet — the change may still take. The switch shows what you asked for; the next Connect applies it again.";
 "The tunnel is not running" = "The tunnel is not running";
 "The tunnel refused: %@" = "The tunnel refused: %@";
+"The tunnel request is invalid." = "The tunnel request is invalid.";
+"The tunnel request queue is full." = "The tunnel request queue is full.";
 "The tunnel stopped before it came up." = "The tunnel stopped before it came up.";
 "The tunnel stopped on its own. Connect again to bring it back." = "The tunnel stopped on its own. Connect again to bring it back.";
 "The tunnel's own resolvers, as the profile names them." = "The tunnel's own resolvers, as the profile names them.";

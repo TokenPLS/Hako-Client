@@ -189,6 +189,14 @@ final class HakoTVConfigPipeline {
         guard plan.errors.isEmpty else {
             throw PipelineError.planRejected(plan.errors.map { "\($0.field): \($0.reason)" })
         }
+         
+         
+        let ageSecretKeys: [String: String]
+        do {
+            ageSecretKeys = try ConfigTransforms.providerAgeSecretKeys(mergedYAML: sourceYAML)
+        } catch {
+            throw PipelineError.invalidConfiguration(error.localizedDescription)
+        }
 
         let store = try ConfigResourceStore(containerURL: container)
         let candidate = try store.beginCandidate(profileID: profileID)
@@ -197,7 +205,8 @@ final class HakoTVConfigPipeline {
                 plan: plan,
                 candidate: candidate,
                 session: session,
-                userAgent: userAgent
+                userAgent: userAgent,
+                ageSecretKeys: ageSecretKeys
             )
             try Task.checkCancellation()
             let finalYAML = try ConfigTransforms.finalize(
