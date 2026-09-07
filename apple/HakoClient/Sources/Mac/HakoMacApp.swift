@@ -3209,11 +3209,14 @@ extension HakoMacSceneModel {
         vpn.$status
             .removeDuplicates()
             .dropFirst()
-            .sink { [weak self] _ in self?.refreshStatusButton() }
+             
+             
+             
+            .sink { [weak self] status in self?.refreshStatusButton(status: status) }
             .store(in: &statusItemSubscriptions)
     }
 
-    private func refreshStatusButton() {
+    private func refreshStatusButton(status: String? = nil) {
         guard let button = statusItem?.button else { return }
         let showsSpeed = UserDefaults.standard.bool(forKey: HakoMacMenuBarSpeed.key)
          
@@ -3222,7 +3225,7 @@ extension HakoMacSceneModel {
             showsSpeed: showsSpeed,
             upLine: menuBarTraffic.upLine,
             downLine: menuBarTraffic.downLine,
-            tunnelIsUp: HakoMacQuit.tunnelIsUp(status: vpn.status)
+            tunnelIsUp: HakoMacQuit.tunnelIsUp(status: status ?? vpn.status)
         )
         button.setAccessibilityLabel(HakoMacStatusItemLabel.accessibilityLabel(
             showsSpeed: showsSpeed,
