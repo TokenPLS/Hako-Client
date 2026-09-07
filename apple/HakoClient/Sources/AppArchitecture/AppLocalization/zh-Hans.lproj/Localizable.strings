@@ -1031,6 +1031,7 @@
 "Favorites" = "常用";
 "Feedback · Loading" = "Feedback · Loading";
 "Fetch the latest nodes and rules" = "获取最新的节点与规则";
+"Fetched by Clash through the proxy it names, after the switch; the app does not download it." = "切换后由 Clash 经它指定的代理获取；App 不下载它。";
 "Field" = "字段";
 "Field Not Kept" = "有个字段没能保留";
 "Fields meant for a Linux firewall or for Clash on Android stay in your file and do nothing here." = "那些给 Linux 防火墙或 Android 版 Clash 用的字段会留在你的文件里，在这里不起作用。";

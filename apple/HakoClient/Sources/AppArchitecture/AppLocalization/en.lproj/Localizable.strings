@@ -1031,6 +1031,7 @@
 "Favorites" = "Favorites";
 "Feedback · Loading" = "Feedback · Loading";
 "Fetch the latest nodes and rules" = "Fetch the latest nodes and rules";
+"Fetched by Clash through the proxy it names, after the switch; the app does not download it." = "Fetched by Clash through the proxy it names, after the switch; the app does not download it.";
 "Field" = "Field";
 "Field Not Kept" = "Field Not Kept";
 "Fields meant for a Linux firewall or for Clash on Android stay in your file and do nothing here." = "Fields meant for a Linux firewall or for Clash on Android stay in your file and do nothing here.";

@@ -101,6 +101,21 @@ struct ProviderFetchDeferred: LocalizedError, Equatable {
     }
 }
 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+struct ProviderFetchedByCore: LocalizedError, Equatable {
+    let provider: String
+    let proxy: String
+    var errorDescription: String? {
+        "Fetched by Clash through the proxy it names, after the switch; the app does not download it."
+    }
+}
+
 struct ProviderMaterializationResult: Equatable {
     let paths: [String: String]
     let entryCounts: [String: Int]
@@ -433,6 +448,18 @@ final class ProviderMaterializer {
                     data: local, refreshed: true, subscriptionUserInfo: nil, failure: nil)
                 continue
             }
+            if !provider.proxy.isEmpty {
+                 
+                 
+                onHand[index] = AcquiredPayload(
+                    data: nil, refreshed: false, subscriptionUserInfo: nil,
+                    failure: ProviderDownloadFailure(
+                        provider: provider.name, url: provider.url,
+                        underlying: ProviderFetchedByCore(provider: provider.name, proxy: provider.proxy)
+                    )
+                )
+                continue
+            }
             if let reuseDir, !forceRefresh.contains(provider.name) {
                 let source = reuseDir.appendingPathComponent(provider.path)
                 guard Self.bytesOnDiskStillAnswerFor(
@@ -530,6 +557,18 @@ final class ProviderMaterializer {
                  
                  
                 acquired = kept
+            }
+            if let failure = acquired.failure, failure.underlying is ProviderFetchedByCore {
+                 
+                 
+                 
+                 
+                 
+                validationWarnings.append(ProviderValidationWarning(
+                    provider: provider.name,
+                    reason: failure.underlying.localizedDescription
+                ))
+                continue
             }
             if let failure = acquired.failure, failure.underlying is ProviderFetchDeferred {
                  
