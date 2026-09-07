@@ -46,6 +46,87 @@ public enum HakoFrameCensus {
     ) -> Bool {
         elapsed > window
     }
+
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+    public static func isLateFrame(
+        elapsed: CFTimeInterval,
+        expected: CFTimeInterval,
+        mainThreadBusiest: CFTimeInterval
+    ) -> Bool {
+        elapsed > expected * 1.75 && mainThreadBusiest > expected
+    }
+}
+
+ 
+ 
+ 
+ 
+@MainActor
+final class HakoMainLoopBusyMeter {
+    private var observer: CFRunLoopObserver?
+     
+     
+     
+    private var busySince: CFTimeInterval? = CACurrentMediaTime()
+    private var longest: CFTimeInterval = 0
+
+    init() {
+        let activities: CFRunLoopActivity = [.afterWaiting, .beforeWaiting, .entry, .exit]
+        let observer = CFRunLoopObserverCreateWithHandler(
+            kCFAllocatorDefault, activities.rawValue, true, 0
+        ) { [weak self] _, activity in
+            MainActor.assumeIsolated {
+                self?.note(activity)
+            }
+        }
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+        self.observer = observer
+    }
+
+    private func note(_ activity: CFRunLoopActivity) {
+        let now = CACurrentMediaTime()
+        switch activity {
+        case .afterWaiting, .entry:
+            if busySince == nil { busySince = now }
+        case .beforeWaiting, .exit:
+            if let began = busySince {
+                longest = max(longest, now - began)
+                busySince = nil
+            }
+        default:
+            break
+        }
+    }
+
+     
+    func take(at now: CFTimeInterval) -> CFTimeInterval {
+        var result = longest
+        if let began = busySince {
+            result = max(result, now - began)
+            busySince = now
+        }
+        longest = 0
+        return result
+    }
+
+    func invalidate() {
+        if let observer {
+            CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes)
+        }
+        observer = nil
+    }
 }
 
 public enum HakoPerf {
@@ -348,6 +429,8 @@ public final class HakoFrameWatch {
     public static let shared = HakoFrameWatch()
 
     private var link: HakoDisplayLinkDriving?
+     
+    private var busyMeter: HakoMainLoopBusyMeter?
     private var saidLinkState = false
     private var labels: [String] = []
      
@@ -427,6 +510,7 @@ public final class HakoFrameWatch {
         link = Self.makeLink { [weak self] now, target in
             self?.tick(timestamp: now, target: target)
         }
+        busyMeter = link == nil ? nil : HakoMainLoopBusyMeter()
          
          
          
@@ -468,6 +552,8 @@ public final class HakoFrameWatch {
         flush(at: lastTimestamp, force: true)
         link?.invalidate()
         link = nil
+        busyMeter?.invalidate()
+        busyMeter = nil
     }
 
     private func reset() {
@@ -525,7 +611,12 @@ public final class HakoFrameWatch {
             return
         }
         frames += 1
-        if elapsed > expected * 1.75 {
+         
+         
+        let busiest = busyMeter?.take(at: CACurrentMediaTime()) ?? elapsed
+        if HakoFrameCensus.isLateFrame(
+            elapsed: elapsed, expected: expected, mainThreadBusiest: busiest
+        ) {
             late += 1
             let milliseconds = elapsed * 1000
             if milliseconds > worst {
