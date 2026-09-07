@@ -2031,6 +2031,12 @@ private struct HakoProfileRuleOrderView<Icon: View>: View {
             }
             .hakoProductModalRoot(title: "Rule Priority")
         }
+         
+         
+         
+         
+         
+        .hakoRegistersDeparture(isDirty: false, save: { $0(true) }, discard: {})
         .hakoCapturesDismiss(dismiss)
     }
 }

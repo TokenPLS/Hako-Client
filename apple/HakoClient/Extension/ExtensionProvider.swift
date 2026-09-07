@@ -70,6 +70,12 @@ final class ExtensionProvider: NSObject {
 #endif
     private var service: HakoBoxService?
     private var networkSettings: NEPacketTunnelNetworkSettings?
+     
+     
+     
+    private var tunnelIPv6Settings: NEIPv6Settings?
+     
+    private var ipv6ReapplySequence: UInt64 = 0
     private var tunStrictRouteRequested = false
      
      
@@ -171,6 +177,7 @@ final class ExtensionProvider: NSObject {
         ) { [weak self] snapshot in
             guard let self else { return }
             pathLock.lock()
+            let ipv6SupportChanged = defaultPathSupportsIPv6 != snapshot.supportsIPv6
             defaultInterfaceIndex = snapshot.interfaceIndex
             defaultInterfaceName = snapshot.interfaceName
             defaultInterfaceType = snapshot.interfaceType
@@ -212,6 +219,49 @@ final class ExtensionProvider: NSObject {
                 supportsIPv4: snapshot.supportsIPv4,
                 supportsIPv6: snapshot.supportsIPv6
             )
+            if ipv6SupportChanged {
+                scheduleIPv6DeclarationFollowingPath(supportsIPv6: snapshot.supportsIPv6)
+            }
+        }
+    }
+
+     
+     
+     
+     
+     
+    private func scheduleIPv6DeclarationFollowingPath(supportsIPv6: Bool) {
+        let sequence: UInt64 = withStateLock {
+            ipv6ReapplySequence &+= 1
+            return ipv6ReapplySequence
+        }
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard let self else { return }
+            let planned: NEPacketTunnelNetworkSettings? = withStateLock {
+                guard ipv6ReapplySequence == sequence,
+                      let current = networkSettings,
+                      let offered = tunnelIPv6Settings,
+                      (current.ipv6Settings != nil) != supportsIPv6
+                else { return nil }
+                guard let copy = current.copy() as? NEPacketTunnelNetworkSettings else { return nil }
+                copy.ipv6Settings = supportsIPv6 ? offered : nil
+                return copy
+            }
+            guard let planned else { return }
+            do {
+                try await tunnelProvider.setTunnelNetworkSettings(planned)
+                withStateLock { networkSettings = planned }
+                HakoLogStore.shared.append(
+                    "tun: IPv6 \(supportsIPv6 ? "declared" : "withdrawn") — physical path \(supportsIPv6 ? "gained" : "lost") IPv6",
+                    stream: .app
+                )
+            } catch {
+                HakoLogStore.shared.append(
+                    "tun: IPv6 re-declaration failed: \(error.localizedDescription)",
+                    stream: .app
+                )
+            }
         }
     }
 
@@ -1089,7 +1139,20 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
                 includedIsEmpty: effective.isEmpty,
                 switches: routeSwitches
             ).map { NEIPv6Route(destinationAddress: $0.address, networkPrefixLength: NSNumber(value: $0.prefix)) }
-            settings.ipv6Settings = v6
+             
+             
+            let pathSupportsIPv6: Bool = { pathLock.lock(); defer { pathLock.unlock() }; return defaultPathSupportsIPv6 }()
+            withStateLock { tunnelIPv6Settings = v6 }
+            if HakoTunnelRouteShaping.declaresIPv6(
+                coreOffersIPv6: true, physicalPathSupportsIPv6: pathSupportsIPv6
+            ) {
+                settings.ipv6Settings = v6
+            } else {
+                HakoLogStore.shared.append(
+                    "tun: IPv6 not declared — the physical path has no IPv6 (the core offered \(v6Addr.joined(separator: ", ")))",
+                    stream: .app
+                )
+            }
         }
 
          
@@ -1279,7 +1342,8 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
         )
         guard let known else { return }
         let provider = tunnelProvider
-        let settings = Self.networkSettings(from: known)
+        let pathSupportsIPv6: Bool = { pathLock.lock(); defer { pathLock.unlock() }; return defaultPathSupportsIPv6 }()
+        let settings = Self.networkSettings(from: known, declaresIPv6: pathSupportsIPv6)
         let task = Task<Int32, Error> { [weak self] in
             try await provider.setTunnelNetworkSettings(settings)
             guard let self else { throw ExtensionError.serviceUnavailable("provider went away") }
@@ -1311,7 +1375,8 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
      
      
     private static func networkSettings(
-        from descriptor: PreappliedTunnelDescriptor
+        from descriptor: PreappliedTunnelDescriptor,
+        declaresIPv6: Bool
     ) -> NEPacketTunnelNetworkSettings {
         let settings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: "127.0.0.1")
         settings.mtu = NSNumber(value: descriptor.mtu)
@@ -1336,7 +1401,9 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
             settings.ipv4Settings = ipv4
         }
         let v6 = descriptor.inet6Addresses.compactMap(Self.splitPrefix)
-        if !v6.isEmpty {
+        if HakoTunnelRouteShaping.declaresIPv6(
+            coreOffersIPv6: !v6.isEmpty, physicalPathSupportsIPv6: declaresIPv6
+        ) {
             let ipv6 = NEIPv6Settings(
                 addresses: v6.map(\.0),
                 networkPrefixLengths: v6.map { NSNumber(value: Int($0.1) ?? 128) }

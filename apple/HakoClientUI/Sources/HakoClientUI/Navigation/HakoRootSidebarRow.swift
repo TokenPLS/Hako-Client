@@ -115,10 +115,16 @@ public struct HakoRootSidebarRow<Icon: View>: View {
              
              
              
-            Rectangle()
-                .fill(Color.primary.opacity(0.02))
-                .frame(width: 12, height: 12)
-                .accessibilityHidden(true)
+             
+             
+            if #available(macOS 15, *) {
+                EmptyView()
+            } else {
+                Rectangle()
+                    .fill(Color.primary.opacity(0.02))
+                    .frame(width: 12, height: 12)
+                    .accessibilityHidden(true)
+            }
 #endif
         }
     }

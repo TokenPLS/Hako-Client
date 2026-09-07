@@ -103,3 +103,26 @@ public enum HakoTunnelRouteShaping {
         return configured + [v6IconHole]
     }
 }
+
+extension HakoTunnelRouteShaping {
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+    public static func declaresIPv6(
+        coreOffersIPv6: Bool,
+        physicalPathSupportsIPv6: Bool
+    ) -> Bool {
+        coreOffersIPv6 && physicalPathSupportsIPv6
+    }
+}
+

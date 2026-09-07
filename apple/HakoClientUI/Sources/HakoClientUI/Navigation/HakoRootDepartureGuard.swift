@@ -111,7 +111,14 @@ final class HakoRootDepartureGuard: ObservableObject {
         }
         guard !isBusy else { return }
         guard registration.isDirty else {
-            registrations.removeAll()
+             
+             
+             
+             
+             
+             
+             
+            registrations.removeLast()
             departure()
             return
         }
