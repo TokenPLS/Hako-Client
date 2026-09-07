@@ -659,9 +659,97 @@ enum ProfileProviderTransport: String, Codable, CaseIterable {
  
 struct ProfileProviderDefinitionMutation: Codable, Equatable, Identifiable {
     var name: String
+     
     var definitionJSON: String?
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+    var baselineJSON: String?
 
     var id: String { name }
+
+    init(name: String, definitionJSON: String?, baselineJSON: String? = nil) {
+        self.name = name
+        self.definitionJSON = definitionJSON
+        self.baselineJSON = baselineJSON
+    }
+
+     
+    static let addedBaseline = "null"
+}
+
+ 
+ 
+ 
+ 
+ 
+ 
+struct ProviderDefinitionMergeNotice: Codable, Equatable, Identifiable {
+    enum Reason: Codable, Equatable {
+         
+         
+        case keyConflict(key: String, mineJSON: String, theirsJSON: String)
+         
+         
+        case nameCollision
+         
+         
+         
+        case legacyUnfrozen
+         
+         
+        case baselineRemoved
+         
+         
+         
+        case payloadNodeRemoved(node: String)
+    }
+
+    var kind: ProfileProviderKind
+    var provider: String
+    var reason: Reason
+    var occurredAt: Date
+
+    var id: String {
+        let tag: String
+        switch reason {
+        case .keyConflict(let key, _, _): tag = "conflict:\(key)"
+        case .nameCollision: tag = "collision"
+        case .legacyUnfrozen: tag = "unfrozen"
+        case .baselineRemoved: tag = "removed"
+        case .payloadNodeRemoved(let node): tag = "node-removed:\(node)"
+        }
+        return "\(kind.rawValue)/\(provider)/\(tag)"
+    }
+}
+
+ 
+struct ProviderDefinitionMergeReport: Equatable {
+    var notices: [ProviderDefinitionMergeNotice] = []
+
+     
+     
+    var unfrozen: [ProfileProviderKind: Set<String>] {
+        var result: [ProfileProviderKind: Set<String>] = [:]
+        for notice in notices where notice.reason == .legacyUnfrozen {
+            result[notice.kind, default: []].insert(notice.provider)
+        }
+        return result
+    }
 }
 
  
@@ -907,7 +995,8 @@ struct ProfileProviderDefinitionSpec: Codable, Equatable {
     mutating func setDefinition(
         _ definitionJSON: String,
         named name: String,
-        kind: ProfileProviderKind
+        kind: ProfileProviderKind,
+        baselineJSON: String? = nil
     ) throws {
         guard ProfileProviderDefinitionError.rejecting(name) == nil,
               let definition = try JSONSerialization.jsonObject(
@@ -917,7 +1006,23 @@ struct ProfileProviderDefinitionSpec: Codable, Equatable {
             throw ProfileProviderDefinitionError.invalidDefinition
         }
         let canonical = try Self.canonicalJSON(definition)
-        setMutation(.init(name: name, definitionJSON: canonical), kind: kind)
+        setMutation(
+            .init(name: name, definitionJSON: canonical, baselineJSON: baselineJSON),
+            kind: kind
+        )
+    }
+
+     
+     
+    func droppingUnfrozen(_ unfrozen: [ProfileProviderKind: Set<String>]) -> Self {
+        var result = self
+        if let names = unfrozen[.proxy] {
+            result.proxyProviders.removeAll { names.contains($0.name) }
+        }
+        if let names = unfrozen[.rule] {
+            result.ruleProviders.removeAll { names.contains($0.name) }
+        }
+        return result
     }
 
     mutating func deleteDefinition(named name: String, kind: ProfileProviderKind) {
@@ -945,10 +1050,25 @@ struct ProfileProviderDefinitionSpec: Codable, Equatable {
         return try document.serialized()
     }
 
-    func apply(to root: inout [String: Any]) throws {
-        guard !isEmpty else { return }
-        try Self.apply(proxyProviders, kind: .proxy, root: &root)
-        try Self.apply(ruleProviders, kind: .rule, root: &root)
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+    @discardableResult
+    func apply(to root: inout [String: Any]) throws -> ProviderDefinitionMergeReport {
+        var report = ProviderDefinitionMergeReport()
+        guard !isEmpty else { return report }
+        try Self.apply(proxyProviders, kind: .proxy, root: &root, report: &report)
+        try Self.apply(ruleProviders, kind: .rule, root: &root, report: &report)
+        return report
     }
 
     private mutating func setMutation(
@@ -964,10 +1084,12 @@ struct ProfileProviderDefinitionSpec: Codable, Equatable {
     private static func apply(
         _ mutations: [ProfileProviderDefinitionMutation],
         kind: ProfileProviderKind,
-        root: inout [String: Any]
+        root: inout [String: Any],
+        report: inout ProviderDefinitionMergeReport
     ) throws {
         guard !mutations.isEmpty else { return }
         var providers = root[kind.configurationKey] as? [String: Any] ?? [:]
+        let now = Date()
         for mutation in mutations {
             if let rejection = ProfileProviderDefinitionError.rejecting(mutation.name) {
                 throw rejection
@@ -976,18 +1098,170 @@ struct ProfileProviderDefinitionSpec: Codable, Equatable {
                 providers.removeValue(forKey: mutation.name)
                 continue
             }
-            guard let definition = try JSONSerialization.jsonObject(
+            guard let mine = try JSONSerialization.jsonObject(
                 with: Data(definitionJSON.utf8)
             ) as? [String: Any] else {
                 throw ProfileProviderDefinitionError.invalidDefinition
             }
-            providers[mutation.name] = definition
+            let theirs = providers[mutation.name] as? [String: Any]
+            func note(_ reason: ProviderDefinitionMergeNotice.Reason) {
+                report.notices.append(.init(
+                    kind: kind, provider: mutation.name, reason: reason, occurredAt: now
+                ))
+            }
+
+            switch mutation.baselineJSON {
+            case nil:
+                 
+                 
+                 
+                 
+                 
+                if theirs == nil {
+                    providers[mutation.name] = mine
+                } else {
+                    note(.legacyUnfrozen)
+                }
+            case ProfileProviderDefinitionMutation.addedBaseline?:
+                if let theirs {
+                     
+                     
+                     
+                    var merged = theirs
+                    for (key, value) in mine { merged[key] = value }
+                    providers[mutation.name] = merged
+                    note(.nameCollision)
+                } else {
+                    providers[mutation.name] = mine
+                }
+            case let ancestorJSON?:
+                guard let ancestor = try JSONSerialization.jsonObject(
+                    with: Data(ancestorJSON.utf8)
+                ) as? [String: Any] else {
+                    throw ProfileProviderDefinitionError.invalidDefinition
+                }
+                guard var merged = theirs else {
+                     
+                    note(.baselineRemoved)
+                    continue
+                }
+
+                 
+                for key in Set(ancestor.keys).union(mine.keys).sorted() {
+                    let a = ancestor[key], m = mine[key]
+                    if try jsonEqual(a, m) { continue }   
+                    let t = merged[key]
+                    if key == "payload",
+                       let aRows = a as? [[String: Any]],
+                       let mRows = m as? [[String: Any]],
+                       let tRows = t as? [[String: Any]],
+                       let rows = try mergePayload(
+                           ancestor: aRows, mine: mRows, theirs: tRows,
+                           provider: mutation.name, kind: kind, at: now, report: &report
+                       ) {
+                        merged[key] = rows
+                        continue
+                    }
+                    if try !jsonEqual(a, t), try !jsonEqual(m, t) {
+                        note(.keyConflict(
+                            key: key,
+                            mineJSON: try canonicalFragment(m),
+                            theirsJSON: try canonicalFragment(t)
+                        ))
+                    }
+                    if let m { merged[key] = m } else { merged.removeValue(forKey: key) }
+                }
+                providers[mutation.name] = merged
+            }
         }
         if providers.isEmpty {
             root.removeValue(forKey: kind.configurationKey)
         } else {
             root[kind.configurationKey] = providers
         }
+    }
+
+     
+     
+     
+     
+     
+    private static func mergePayload(
+        ancestor: [[String: Any]], mine: [[String: Any]], theirs: [[String: Any]],
+        provider: String, kind: ProfileProviderKind, at now: Date,
+        report: inout ProviderDefinitionMergeReport
+    ) throws -> [[String: Any]]? {
+        func index(_ rows: [[String: Any]]) -> [String: [String: Any]]? {
+            var result: [String: [String: Any]] = [:]
+            for row in rows {
+                guard let name = row["name"] as? String, result[name] == nil else { return nil }
+                result[name] = row
+            }
+            return result
+        }
+        guard let a = index(ancestor), let m = index(mine), let t = index(theirs) else {
+            return nil
+        }
+        var result = theirs
+        var order: [String: Int] = [:]
+        for (offset, row) in result.enumerated() {
+            if let name = row["name"] as? String { order[name] = offset }
+        }
+        var removed: Set<String> = []
+        for name in Set(a.keys).union(m.keys).sorted() {
+            let aRow = a[name], mRow = m[name]
+            if try jsonEqual(aRow, mRow) { continue }
+            guard let mRow else { removed.insert(name); continue }
+            guard let at = order[name], var tRow = t[name] else {
+                if aRow == nil {
+                    result.append(mRow)   
+                } else {
+                     
+                    report.notices.append(.init(
+                        kind: kind, provider: provider,
+                        reason: .payloadNodeRemoved(node: name), occurredAt: now
+                    ))
+                }
+                continue
+            }
+            for key in Set((aRow ?? [:]).keys).union(mRow.keys) where key != "name" {
+                let ak = aRow?[key], mk = mRow[key], tk = tRow[key]
+                if try jsonEqual(ak, mk) { continue }
+                if try !jsonEqual(ak, tk), try !jsonEqual(mk, tk) {
+                    report.notices.append(.init(
+                        kind: kind, provider: provider,
+                        reason: .keyConflict(
+                            key: "payload.\(name).\(key)",
+                            mineJSON: try canonicalFragment(mk),
+                            theirsJSON: try canonicalFragment(tk)
+                        ),
+                        occurredAt: now
+                    ))
+                }
+                if let mk { tRow[key] = mk } else { tRow.removeValue(forKey: key) }
+            }
+            result[at] = tRow
+        }
+        if !removed.isEmpty {
+            result.removeAll { ($0["name"] as? String).map(removed.contains) ?? false }
+        }
+        return result
+    }
+
+    private static func jsonEqual(_ lhs: Any?, _ rhs: Any?) throws -> Bool {
+        switch (lhs, rhs) {
+        case (nil, nil): return true
+        case (nil, _), (_, nil): return false
+        default: return try canonicalFragment(lhs) == canonicalFragment(rhs)
+        }
+    }
+
+    private static func canonicalFragment(_ value: Any?) throws -> String {
+        guard let value else { return "null" }
+        let data = try JSONSerialization.data(
+            withJSONObject: value, options: [.sortedKeys, .fragmentsAllowed]
+        )
+        return String(decoding: data, as: UTF8.self)
     }
 
     private static func canonicalJSON(_ value: [String: Any]) throws -> String {
@@ -1062,6 +1336,10 @@ struct Profile: Codable, Identifiable, Equatable {
      
     var udpFallbackPolicy: UDPFallbackPolicy? = nil
     var override: OverrideSpec = OverrideSpec()
+     
+     
+     
+    var providerDefinitionNotices: [ProviderDefinitionMergeNotice]? = nil
     var activeRevision: String?
     var order: Int
     var lastUpdatedAt: Date?    

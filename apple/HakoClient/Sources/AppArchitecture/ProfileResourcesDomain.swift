@@ -348,7 +348,15 @@ struct ProfileProviderDefinitionsDraft {
             var mutations: [ProfileProviderDefinitionMutation] = []
             for name in Set(source.keys).union(edited.keys) {
                 if let definition = edited[name], source[name] != definition {
-                    mutations.append(.init(name: name, definitionJSON: definition))
+                     
+                     
+                     
+                    mutations.append(.init(
+                        name: name,
+                        definitionJSON: definition,
+                        baselineJSON: source[name]
+                            ?? ProfileProviderDefinitionMutation.addedBaseline
+                    ))
                 } else if source[name] != nil, edited[name] == nil {
                     mutations.append(.init(name: name, definitionJSON: nil))
                 }

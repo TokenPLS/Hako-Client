@@ -149,6 +149,11 @@ enum ProfileRuntimeConfigBuilder {
         let beforeClientRuntimePolicy: String
          
         let udpFallback: UDPFallbackPolicy
+         
+         
+         
+         
+        var providerMerge = ProviderDefinitionMergeReport()
 
          
         func finished() throws -> String {
@@ -254,12 +259,14 @@ enum ProfileRuntimeConfigBuilder {
             profile.postMergeScriptID, merged, profile.label
         )
         let scripted = try configScript(profileScripted, profile.label)
+        var providerMerge = ProviderDefinitionMergeReport()
         let trimmed = try applyClientTransforms(
             to: scripted,
             profile: profile,
             applyProviderDefinitions: applyProviderDefinitions,
             applyProxyChain: applyProxyChain,
-            applyLegacyRelayMigration: applyLegacyRelayMigration
+            applyLegacyRelayMigration: applyLegacyRelayMigration,
+            providerMerge: &providerMerge
         )
 
         var effectiveRuntime = runtimeOverride
@@ -304,7 +311,8 @@ enum ProfileRuntimeConfigBuilder {
             udpFallback: UDPFallbackSettings.resolved(
                 profile: profile.udpFallbackPolicy,
                 global: UDPFallbackSettings.policy()
-            )
+            ),
+            providerMerge: providerMerge
         )
     }
 
@@ -324,6 +332,25 @@ enum ProfileRuntimeConfigBuilder {
         applyProviderDefinitions: Bool = true,
         applyProxyChain: Bool = true,
         applyLegacyRelayMigration: Bool = true
+    ) throws -> String {
+        var report = ProviderDefinitionMergeReport()
+        return try applyClientTransforms(
+            to: scripted,
+            profile: profile,
+            applyProviderDefinitions: applyProviderDefinitions,
+            applyProxyChain: applyProxyChain,
+            applyLegacyRelayMigration: applyLegacyRelayMigration,
+            providerMerge: &report
+        )
+    }
+
+    static func applyClientTransforms(
+        to scripted: String,
+        profile: Profile,
+        applyProviderDefinitions: Bool = true,
+        applyProxyChain: Bool = true,
+        applyLegacyRelayMigration: Bool = true,
+        providerMerge: inout ProviderDefinitionMergeReport
     ) throws -> String {
          
          
@@ -345,7 +372,7 @@ enum ProfileRuntimeConfigBuilder {
         if applyProviderDefinitions {
             let spec = profile.providerDefinitions ?? ProfileProviderDefinitionSpec()
             if !spec.isEmpty {
-                try spec.apply(to: &document.root)
+                providerMerge = try spec.apply(to: &document.root)
                 touched = true
             }
         }
@@ -863,6 +890,21 @@ final class ProfileActivationCoordinator {
          
         var updated = profile
         updated.activeRevision = pointer.revision
+         
+         
+         
+         
+         
+        let merge = lastProviderMerge
+        if !merge.notices.isEmpty {
+            updated.providerDefinitionNotices =
+                (updated.providerDefinitionNotices ?? []) + merge.notices
+        }
+        let unfrozen = merge.unfrozen
+        if !unfrozen.isEmpty, let spec = updated.providerDefinitions {
+            let kept = spec.droppingUnfrozen(unfrozen)
+            updated.providerDefinitions = kept.isEmpty ? nil : kept
+        }
         if sourceYAML == nil { updated.lastUpdatedAt = Date() }   
         if let fetchedInfo { updated.subscriptionInfo = fetchedInfo }
         if sourceYAML == nil {
@@ -1082,8 +1124,13 @@ final class ProfileActivationCoordinator {
      
      
      
+     
+     
+     
+    private var lastProviderMerge = ProviderDefinitionMergeReport()
+
     private func prepareConfig(raw: String, profile: Profile) throws -> String {
-        let runtime = try ProfileRuntimeConfigBuilder.build(
+        let stages = try ProfileRuntimeConfigBuilder.buildStages(
             raw: raw,
             profile: profile,
             globalOverride: globalOverride(),
@@ -1101,6 +1148,8 @@ final class ProfileActivationCoordinator {
              
             postMergeScript: postMergeScript
         )
+        lastProviderMerge = stages.providerMerge
+        let runtime = try stages.finished()
         noteExternalResources(in: runtime, profile: profile)
         return runtime
     }
