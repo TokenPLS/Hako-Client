@@ -1008,6 +1008,44 @@ final class ProfilesViewModel: ObservableObject {
      
      
      
+     
+    func kernelLANShareBinding() -> KernelLANShareBinding {
+        let runtimeDefaults = runtimeDefaults
+        return KernelLANShareBinding(
+            profileSourceYAML: { [weak self] in
+                guard let self,
+                      let active = self.profiles.first(where: { $0.id == self.activeProfileID })
+                else { return nil }
+                return self.sourceYAML(for: active)
+            },
+            override: {
+                let patch = OverridePatch(patchJSON: FlClashRuntimeConfig.load(from: runtimeDefaults).patchJSON)
+                return KernelLANShareOverride(
+                    allowLAN: patch.value(at: ["allow-lan"]) as? Bool,
+                    mixedPort: (patch.value(at: ["mixed-port"]) as? NSNumber).flatMap { Int32(exactly: $0.doubleValue) }
+                )
+            },
+            writeOverride: { [weak self] override in
+                guard let self, let id = self.activeProfileID else {
+                    throw PipelineError.sourceUnavailable("the profile is no longer available")
+                }
+                try self.updateGlobalLANShare(
+                    allowLAN: override.allowLAN, mixedPort: override.mixedPort, profileID: id
+                )
+            },
+            setPermitted: {
+                LocalNetworkPermission.setPermitted(
+                    $0, in: UserDefaults(suiteName: HakoAppIdentifiers.appGroup)
+                )
+            }
+        )
+    }
+
+     
+     
+     
+     
+     
     func adoptHeldBackUpdate(_ profile: Profile, keyPath: String) throws {
         guard let profileStore,
               let latest = profileStore.load().first(where: { $0.id == profile.id }),
