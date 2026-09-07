@@ -2360,6 +2360,28 @@ final class ProfilesViewModel: ObservableObject {
         projectedYAMLCache[profile.id] = (key, value)
     }
 
+     
+     
+     
+     
+     
+     
+     
+     
+    func loadUIProjectedYAML(for profile: Profile) async -> String? {
+        if let cached = cachedUIProjectedYAML(for: profile) { return cached }
+        let key = projectionKey(for: profile)
+        let source = await loadSourceYAML(for: profile)
+        let value = await Task.detached(priority: .userInitiated) {
+            CustomNodesGroupMaterializer.projectForUI(
+                sourceYAML: source,
+                profile: profile
+            )
+        }.value
+        rememberUIProjectedYAML(value, key: key, for: profile)
+        return value
+    }
+
     func uiProjectedYAML(for profile: Profile) -> String? {
         let key = projectionKey(for: profile)
         if let cached = projectedYAMLCache[profile.id], cached.key == key {

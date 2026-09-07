@@ -438,22 +438,30 @@ struct ProfileCenterAdapter: View {
             if let profile = appProfile(id) {
                  
                  
-                ProfileRulesAdapter(
-                    profile: profile,
-                    sourceYAML: model.uiProjectedYAML(for: profile)
-                ) { draft in
-                    try model.updateRules(draft)
+                 
+                 
+                 
+                 
+                ProfileProjectionLoader(profile: profile, model: model) { projected in
+                    ProfileRulesAdapter(
+                        profile: profile,
+                        sourceYAML: projected
+                    ) { draft in
+                        try model.updateRules(draft)
+                    }
                 }
             } else {
                 EmptyView()
             }
         case .override(let id):
             if let profile = appProfile(id) {
-                ProfileOverrideView(
-                    profile: profile,
-                    rawYAML: model.uiProjectedYAML(for: profile)
-                ) { updated in
-                    model.update(updated)
+                ProfileProjectionLoader(profile: profile, model: model) { projected in
+                    ProfileOverrideView(
+                        profile: profile,
+                        rawYAML: projected
+                    ) { updated in
+                        model.update(updated)
+                    }
                 }
             } else {
                 EmptyView()
@@ -1115,6 +1123,41 @@ private struct HakoPushableNavigationStack<Content: View>: View {
  
  
  
+ 
+ 
+ 
+private struct ProfileProjectionLoader<Content: View>: View {
+    let profile: Profile
+    @ObservedObject var model: ProfilesViewModel
+    @ViewBuilder let content: (String?) -> Content
+    @State private var projected: String?
+    @State private var ready = false
+
+    var body: some View {
+        Group {
+            if ready {
+                content(projected)
+            } else {
+                VStack(spacing: HakoTheme.Spacing.compact) {
+                    Spacer()
+                    ProgressView()
+                    Text(hako: .copy("Opening Editor"))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(HakoTheme.canvas.ignoresSafeArea())
+                .accessibilityIdentifier("profile.projection.loading")
+            }
+        }
+        .task(id: profile.id) {
+            projected = await model.loadUIProjectedYAML(for: profile)
+            ready = true
+        }
+    }
+}
+
 private struct ProfileSourceEditorLoader: View {
     let profile: Profile
     @ObservedObject var model: ProfilesViewModel
