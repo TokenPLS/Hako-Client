@@ -342,8 +342,10 @@ extension View {
      
      
      
+     
+     
     @ViewBuilder
-    func hakoReaderControlGroupStyle() -> some View {
+    public func hakoReaderControlGroupStyle() -> some View {
 #if os(tvOS)
         self
 #else

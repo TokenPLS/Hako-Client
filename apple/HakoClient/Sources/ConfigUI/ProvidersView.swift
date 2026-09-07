@@ -380,6 +380,19 @@ final class ProvidersModel: ObservableObject {
         }
     }
 
+     
+     
+    func refreshAllAwaiting() async {
+        refreshAll()
+        await batchTask?.value
+    }
+
+     
+     
+     
+     
+    var canCancelBatch: Bool { busy && batchTask != nil }
+
     func cancelBatchRefresh() {
         batchTask?.cancel()
     }
@@ -667,8 +680,53 @@ enum ProviderDisplayScope: Equatable {
     }
 }
 
-struct ProvidersView: View {
+ 
+ 
+ 
+ 
+ 
+ 
+struct ProviderNoticesSection: View {
     @Environment(\.locale) private var locale
+    let notices: [ProviderDefinitionMergeNotice]
+    let acknowledge: () -> Void
+
+    var body: some View {
+        Section {
+            ForEach(notices) { notice in
+                VStack(alignment: .leading, spacing: HakoTheme.Spacing.tight) {
+                    Text(verbatim: notice.provider)
+                        .font(.body)
+                    Text(hako: ProviderNoticeCopy.line(for: notice, locale: locale))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityIdentifier("providers.notice.\(notice.id)")
+            }
+            Button {
+                acknowledge()
+            } label: {
+                Text("Got It")
+            }
+            .accessibilityIdentifier("providers.notices.gotIt")
+        } header: {
+             
+             
+             
+             
+             
+            Label(
+                "Subscription changes touched your edits",
+                systemImage: HakoSymbol.exclamationmarkTriangle.rawValue
+            )
+            .accessibilityIdentifier("providers.notices")
+        } footer: {
+            Text(hako: ProviderNoticeCopy.summary(count: notices.count))
+        }
+    }
+}
+
+struct ProvidersView: View {
     @StateObject private var model: ProvidersModel
     @ObservedObject private var command: ClashCommandClient
     private let scope: ProviderDisplayScope
@@ -692,32 +750,9 @@ struct ProvidersView: View {
         HakoMacSettingsContainer {
             if let profile = model.activeProfile {
                 if !model.providerNotices.isEmpty {
-                    Section {
-                        ForEach(model.providerNotices) { notice in
-                            VStack(alignment: .leading, spacing: HakoTheme.Spacing.tight) {
-                                Text(verbatim: notice.provider)
-                                    .font(.body)
-                                Text(hako: ProviderNoticeCopy.line(for: notice, locale: locale))
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .accessibilityIdentifier("providers.notice.\(notice.id)")
-                        }
-                        Button {
-                            model.acknowledgeProviderNotices()
-                        } label: {
-                            Text("Got It")
-                        }
-                        .accessibilityIdentifier("providers.notices.gotIt")
-                    } header: {
-                        Label(
-                            "Subscription changes touched your edits",
-                            systemImage: HakoSymbol.exclamationmarkTriangle.rawValue
-                        )
-                    } footer: {
-                        Text(hako: ProviderNoticeCopy.summary(count: model.providerNotices.count))
+                    ProviderNoticesSection(notices: model.providerNotices) {
+                        model.acknowledgeProviderNotices()
                     }
-                    .accessibilityIdentifier("providers.notices")
                 }
                 Section {
                     Button {
@@ -803,6 +838,46 @@ struct ProvidersView: View {
         }
         .hakoInsetGroupedListStyle()
         .hakoPageTitle(.copy(scope.title))
+         
+         
+         
+         
+         
+        .hakoToolbarUnlessInPanel {
+            ToolbarItem(placement: .primaryAction) {
+                 
+                 
+                 
+                 
+                 
+                if model.canCancelBatch {
+                    ControlGroup {
+                        Button {
+                            model.cancelBatchRefresh()
+                        } label: {
+                            Label("Cancel", systemImage: HakoSymbol.xmark.name)
+                        }
+                    }
+                    .hakoReaderControlGroupStyle()
+                    .accessibilityIdentifier("providers.refresh.cancel")
+                } else {
+                    ControlGroup {
+                        Button {
+                            model.refreshAll()
+                        } label: {
+                            Label(
+                                "Refresh all providers",
+                                systemImage: HakoSymbol.arrowTriangle2Circlepath.name
+                            )
+                        }
+                        .disabled(model.busy || model.rows.allSatisfy { !$0.canRefresh })
+                    }
+                    .hakoReaderControlGroupStyle()
+                    .accessibilityIdentifier("providers.refreshAll")
+                }
+            }
+        }
+        .refreshable { await model.refreshAllAwaiting() }
         .hakoDetailPageInsets()
         .onAppear { model.load() }
         .onChange(of: command.isConnected) { _ in
