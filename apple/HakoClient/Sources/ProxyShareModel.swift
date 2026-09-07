@@ -600,6 +600,29 @@ struct KernelLANShare: Equatable {
 struct KernelLANShareOverride: Equatable {
     var allowLAN: Bool?
     var mixedPort: Int32?
+     
+     
+    var httpPort: Int32? = nil
+    var socksPort: Int32? = nil
+}
+
+extension KernelLANShareOverride {
+    #if os(iOS) || os(macOS)
+     
+     
+    init(patch: OverridePatch) {
+        func port(_ key: String) -> Int32? {
+            (patch.value(at: [key]) as? NSNumber).flatMap { Int32(exactly: $0.doubleValue) }
+        }
+        self.init(allowLAN: patch.value(at: ["allow-lan"]) as? Bool,
+                  mixedPort: port("mixed-port"), httpPort: port("port"), socksPort: port("socks-port"))
+    }
+    #endif
+
+    func hasListener(over source: ProfileListenerPorts?) -> Bool {
+        [mixedPort ?? source?.mixedPort, httpPort ?? source?.httpPort, socksPort ?? source?.socksPort]
+            .compactMap { $0 }.contains { (1...65535).contains($0) }
+    }
 }
 
  
@@ -613,6 +636,7 @@ struct KernelLANShareBinding {
      
     let writeOverride: @MainActor (KernelLANShareOverride) throws -> Void
     let setPermitted: @MainActor (Bool) -> Void
+    var profileID: @MainActor () -> String? = { nil }
 }
 
 @MainActor
@@ -645,6 +669,7 @@ final class ProxyShareModel: ObservableObject {
      
      
     @Published private(set) var kernelShareInFlight: Bool?
+    private var kernelShareGeneration: UInt64 = 0
     private let vault: ProxyShareCredentialVault
     private let preferences: ProxySharePreferences
     private let addressProvider: () -> [String]
@@ -692,6 +717,8 @@ final class ProxyShareModel: ObservableObject {
     }
 
     func bind(kernelShare binding: KernelLANShareBinding) {
+        kernelShareGeneration &+= 1
+        kernelShareInFlight = nil
         kernelShareBinding = binding
     }
 
@@ -718,13 +745,15 @@ final class ProxyShareModel: ObservableObject {
      
      
      
+     
     var nativeSharePortSuggestion: Int32? {
-        let share = kernelShare
-        guard share.isOn, let listener = share.listener else { return nil }
+        guard let listener = currentProfileListener() else { return nil }
         let taken = Set([listener.mixedPort, listener.httpPort, listener.socksPort].compactMap { $0 })
         guard taken.contains(rememberedPort) else { return nil }
         var candidate = rememberedPort
-        repeat { candidate += 1 } while taken.contains(candidate) && candidate < HakoProxyShareMaximumPort
+        repeat {
+            candidate = candidate == HakoProxyShareMaximumPort ? HakoProxyShareMinimumPort : candidate + 1
+        } while taken.contains(candidate)
         return candidate
     }
 
@@ -741,20 +770,32 @@ final class ProxyShareModel: ObservableObject {
      
     func setKernelShare(on: Bool) async {
         guard let binding = kernelShareBinding else { return }
+        kernelShareGeneration &+= 1
+        let token = kernelShareGeneration
         kernelShareInFlight = on
-        defer { kernelShareInFlight = nil }
+        defer {
+            if token == kernelShareGeneration { kernelShareInFlight = nil }
+        }
+        let profileID = binding.profileID()
         let source = binding.profileSourceYAML()
+        let current = binding.override()
         let parser = profileListenerParser
         let profile = await Task.detached(priority: .userInitiated) {
-            source.flatMap(parser)
+            (listener: source.flatMap(parser),
+             allowLAN: source.map { ProfileListenerPorts.configuredAllowLAN(yaml: $0) } ?? false)
         }.value
-        let profileAsksForIt = profile?.allowLAN ?? false
          
-        let profileHasPort = profile != nil
-        let current = binding.override()
+         
+         
+        guard token == kernelShareGeneration,
+              !Task.isCancelled,
+              binding.profileID() == profileID,
+              binding.profileSourceYAML() == source,
+              binding.override() == current else { return }
+        let profileAsksForIt = profile.allowLAN
         var override = KernelLANShareOverride()
         override.allowLAN = on == profileAsksForIt ? nil : on
-        if on, !profileHasPort, current.mixedPort == nil {
+        if on, !current.hasListener(over: profile.listener) {
             override.mixedPort = KernelLANShare.defaultPort
         }
         do {

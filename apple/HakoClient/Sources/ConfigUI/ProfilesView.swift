@@ -1020,10 +1020,7 @@ final class ProfilesViewModel: ObservableObject {
             },
             override: {
                 let patch = OverridePatch(patchJSON: FlClashRuntimeConfig.load(from: runtimeDefaults).patchJSON)
-                return KernelLANShareOverride(
-                    allowLAN: patch.value(at: ["allow-lan"]) as? Bool,
-                    mixedPort: (patch.value(at: ["mixed-port"]) as? NSNumber).flatMap { Int32(exactly: $0.doubleValue) }
-                )
+                return KernelLANShareOverride(patch: patch)
             },
             writeOverride: { [weak self] override in
                 guard let self, let id = self.activeProfileID else {
@@ -1037,7 +1034,8 @@ final class ProfilesViewModel: ObservableObject {
                 LocalNetworkPermission.setPermitted(
                     $0, in: UserDefaults(suiteName: HakoAppIdentifiers.appGroup)
                 )
-            }
+            },
+            profileID: { [weak self] in self?.activeProfileID }
         )
     }
 

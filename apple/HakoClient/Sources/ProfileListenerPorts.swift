@@ -33,6 +33,26 @@ struct ProfileListenerPorts: Equatable, Sendable {
 
     private struct ParsedListener { let value: ProfileListenerPorts? }
 
+     
+     
+     
+     
+    static func configuredAllowLAN(yaml: String) -> Bool {
+        guard let parsed = ConfigTransforms.parsedRoot(forYAML: yaml) else { return false }
+        return decodeAllowLAN(root: parsed.root)
+    }
+
+    private static func decodeAllowLAN(root: [String: Any]) -> Bool {
+        if let value = root["allow-lan"] as? String {
+            return ["true", "yes", "on"].contains(value.lowercased())
+        }
+        if let value = root["allow-lan"] as? NSNumber,
+           CFGetTypeID(value) == CFBooleanGetTypeID() {
+            return value.boolValue
+        }
+        return false
+    }
+
     private static func decode(root: [String: Any]) -> ProfileListenerPorts? {
         func port(_ key: String) -> Int32? {
             let text: String
@@ -49,13 +69,6 @@ struct ProfileListenerPorts: Equatable, Sendable {
         let http = port("port")
         let socks = port("socks-port")
         guard mixed != nil || http != nil || socks != nil else { return nil }
-        let allowLAN: Bool
-        if let value = root["allow-lan"] as? String {
-            allowLAN = ["true", "yes", "on"].contains(value.lowercased())
-        } else if let value = root["allow-lan"] as? NSNumber,
-                  CFGetTypeID(value) == CFBooleanGetTypeID() {
-            allowLAN = value.boolValue
-        } else { allowLAN = false }
         var credentials: Credentials?
         if let entry = (root["authentication"] as? [Any])?.first as? String,
            let separator = entry.firstIndex(of: ":") {
@@ -66,7 +79,7 @@ struct ProfileListenerPorts: Equatable, Sendable {
         }
         return ProfileListenerPorts(
             mixedPort: mixed, httpPort: http, socksPort: socks,
-            allowLAN: allowLAN, credentials: credentials
+            allowLAN: decodeAllowLAN(root: root), credentials: credentials
         )
     }
 }
