@@ -790,13 +790,12 @@ final class ProfilesViewModel: ObservableObject {
             sync(existing)
             return
         }
+         
+         
+         
+         
+         
         add(label: "", source: .url(rawURL), rawYAML: nil)
-        if let added = profiles.first(where: {
-            if case let .url(url) = $0.source { return url == rawURL }
-            return false
-        }) {
-            sync(added)
-        }
     }
 
     func delete(at offsets: IndexSet) {

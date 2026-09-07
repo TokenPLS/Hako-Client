@@ -114,6 +114,13 @@ struct ProviderFetchedByCore: LocalizedError, Equatable {
     var errorDescription: String? {
         "Fetched by Clash through the proxy it names, after the switch; the app does not download it."
     }
+
+     
+     
+     
+    static func applies(toProxy proxy: String) -> Bool {
+        !proxy.isEmpty && proxy != "DIRECT"
+    }
 }
 
 struct ProviderMaterializationResult: Equatable {
@@ -448,7 +455,7 @@ final class ProviderMaterializer {
                     data: local, refreshed: true, subscriptionUserInfo: nil, failure: nil)
                 continue
             }
-            if !provider.proxy.isEmpty {
+            if ProviderFetchedByCore.applies(toProxy: provider.proxy) {
                  
                  
                 onHand[index] = AcquiredPayload(
