@@ -34,6 +34,8 @@ struct HakoTVProductState {
      
     var autoConnectIssue: String?
      
+    var iCloudRestoreLine: String?
+     
      
     var issue: String?
      

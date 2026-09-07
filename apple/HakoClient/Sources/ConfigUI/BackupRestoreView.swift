@@ -18,6 +18,8 @@ struct BackupRestoreView: View {
     @State private var showsImporter = false
     @State private var preparedRestore: PreparedBackupRestore?
 
+    @ObservedObject private var autoBackup = ICloudAutoBackup.shared
+    @State private var showsAutoBackupConsent = false
     @State private var icloud: ICloudBackupStore?
     @State private var icloudChecked = false
     @State private var icloudBusy = false
@@ -70,6 +72,34 @@ struct BackupRestoreView: View {
                     }
                 }
                 .accessibilityIdentifier("backup.restore.scope")
+            }
+
+             
+             
+             
+             
+            if dataScope == .ordinary {
+            Section {
+                Toggle(
+                    "Keep iCloud Backup Up to Date",
+                    isOn: Binding(
+                        get: { autoBackup.isEnabled },
+                        set: { wantsOn in
+                            if wantsOn {
+                                showsAutoBackupConsent = true
+                            } else {
+                                Task { await autoBackup.disable() }
+                            }
+                        }
+                    )
+                )
+                .disabled(autoBackup.isExporting)
+                .accessibilityIdentifier("backup.icloud.auto")
+            } header: {
+                Text("Automatic Backup")
+            } footer: {
+                autoBackupFooter
+            }
             }
 
             Section {
@@ -158,6 +188,18 @@ struct BackupRestoreView: View {
          
         .accessibilityIdentifier("backup.root")
         .hakoPageTitle("Backup & Restore")
+         
+         
+         
+        .alert(
+            "Keep iCloud Backup Up to Date?",
+            isPresented: $showsAutoBackupConsent
+        ) {
+            Button("Turn On") { Task { await autoBackup.enable() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your profiles, with any links and credentials they carry, are kept in your iCloud account and updated while Clash is open. Apple TV can restore from them. Turning the switch off removes them from iCloud.")
+        }
         .fileExporter(
             isPresented: Binding(
                 get: { exportDocument != nil },
@@ -195,6 +237,51 @@ struct BackupRestoreView: View {
             .hakoModalPresentation(.page)
         }
         .task { resolveICloud() }
+    }
+
+     
+     
+    @ViewBuilder
+    private var autoBackupFooter: some View {
+        autoBackupOutcomeLine
+        if !autoBackup.leftOutProfiles.isEmpty {
+            Text(hako: .format(
+                "Left out, never downloaded: %@",
+                [autoBackup.leftOutProfiles.joined(separator: ", ")]
+            ))
+        }
+    }
+
+    @ViewBuilder
+    private var autoBackupOutcomeLine: some View {
+        switch autoBackup.outcome {
+        case .exported(let date)?:
+            Text(hako: .format("Updated %@", [Self.relativeTime(date)]))
+        case .unchanged?:
+            Text("Up to date")
+        case .waitingForNetwork?:
+            Text("Waiting for the network")
+        case .waitingForServer?:
+            Text("iCloud asked to wait; trying again shortly")
+        case .noAccount?:
+            Text("Sign in to iCloud to keep a backup there.")
+        case .storageFull?:
+            Text("iCloud storage is full.")
+        case .failed(let sentence)?:
+            Text(verbatim: sentence)
+        case nil:
+            if let date = autoBackup.lastExportedAt {
+                Text(hako: .format("Updated %@", [Self.relativeTime(date)]))
+            } else {
+                Text("One backup of your profiles stays in your iCloud account and is updated while Clash is open. Apple TV restores from it.")
+            }
+        }
+    }
+
+    private static func relativeTime(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 
     @ViewBuilder

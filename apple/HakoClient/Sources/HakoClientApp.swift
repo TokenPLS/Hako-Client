@@ -389,7 +389,15 @@ struct AppShellView: View {
 
 
         }
+        .task {
+             
+             
+            ICloudAutoBackup.shared.start()
+        }
         .onChange(of: scenePhase) { phase in
+             
+             
+            ICloudAutoBackup.shared.setForeground(phase == .active)
             if phase == .active {
                 command.sync(vpnStatus: vpn.status)
                 syncConnectionsForSelectedTab(isForeground: true)

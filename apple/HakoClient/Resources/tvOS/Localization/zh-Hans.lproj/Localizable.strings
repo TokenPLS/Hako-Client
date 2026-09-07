@@ -22,10 +22,12 @@
 "Asked when the first answer looks wrong or is not trusted for the destination." = "当第一组解析器的答案看起来不对、或对该目标不可信时，改问这些。";
 "Bad HTTP" = "异常";
 "Branches into the named sub-rule list when the condition matches." = "条件匹配时，跳转到指定的 sub-rule 列表。";
+"Bring the profiles your iPhone or Mac keeps in iCloud onto this Apple TV, and keep them current. Nothing is written back." = "把 iPhone 或 Mac 存在 iCloud 里的配置带到这台 Apple TV，并保持最新。不会写回任何内容。";
 "Bundled" = "内置";
 "Cancel" = "取消";
 "Check that the subscription address is still reachable, then update it once from its own screen." = "先确认订阅地址仍可访问，然后在它自己的页面里更新一次。";
 "Checking…" = "正在检查…";
+"Choose the device to restore from" = "选择要从哪台设备恢复";
 "Clash" = "Clash";
 "Clash could not open its secure shared container." = "Clash 无法打开其安全共享容器。";
 "Configuration" = "配置";
@@ -52,12 +54,14 @@
 "Domain" = "Domain";
 "Download" = "下载";
 "Downloading configuration…" = "正在下载配置…";
+"Downloading from iCloud…" = "正在从 iCloud 下载…";
 "Dropped" = "断开";
 "Duration" = "时长";
 "Edit" = "编辑";
 "Ended" = "已结束";
 "Every rule in the profile, in the order the tunnel tries them. Read-only here: see what a connection will do, then edit on your phone." = "配置中的全部规则，按隧道尝试它们的顺序排列。这里只读：看清一条连接会怎么走，再到手机上编辑。";
 "Failed" = "失败";
+"From iCloud · %@ · %@" = "来自 iCloud · %@ · %@";
 "Geo data" = "Geo 数据";
 "Global" = "全局";
 "HTTP and SOCKS5 · username and password required" = "HTTP 与 SOCKS5 · 需要用户名和密码";
@@ -115,6 +119,7 @@
 "Network" = "网络";
 "Never matches" = "永不匹配";
 "No %@ connections" = "没有%@的连接";
+"No automatic backup yet. Turn on “Keep iCloud backup current” on your iPhone or Mac." = "还没有自动备份。请在 iPhone 或 Mac 上打开「保持 iCloud 备份最新」。";
 "No policy groups in this configuration" = "此配置中没有策略组";
 "No profiles on this Apple TV" = "这台 Apple TV 上还没有配置";
 "No route" = "连不上";
@@ -135,6 +140,7 @@
 "On" = "开";
 "Optional" = "可选";
 "Outbound mode" = "出站模式";
+"Overrides not applied — back up again on your iPhone" = "覆写未应用——请在 iPhone 上重新备份";
 "Password" = "密码";
 "Plain addresses used to look up the resolvers above, before any of them can be reached by name." = "上面那些解析器在能按域名访问之前，先用这些纯 IP 地址来查它们。";
 "Point the other device's proxy at one of these addresses:" = "把其它设备的代理指向以下任一地址：";
@@ -154,6 +160,7 @@
 "Proxy chain" = "代理链路";
 "Read-only status of the running tunnel: whether it is up, what it is using, and what it has loaded." = "运行中隧道的只读状态：是否在跑、正在用什么、加载了什么。";
 "Ready" = "就绪";
+"Ready to restore" = "可恢复";
 "Refused" = "被拒";
 "Rejected" = "已拒绝";
 "Remembered but not in use. Press to use it instead, or to remove it." = "已记住但未在使用。按下可改用它，或将其移除。";
@@ -163,6 +170,9 @@
 "Resolution" = "解析";
 "Resolvers" = "解析器";
 "Resources" = "资源";
+"Restore %lld profiles" = "恢复 %lld 个配置";
+"Restore from iCloud" = "从 iCloud 恢复";
+"Restored profile" = "已恢复的配置";
 "Retry" = "重试";
 "Route traffic by the profile rules" = "按配置规则分流";
 "Rule" = "规则";
@@ -182,6 +192,7 @@
 "Share with a username and password" = "用这里设置的用户名和密码共享";
 "Sharing did not start." = "共享未能开始。";
 "Sharing on this network." = "正在本网络共享。";
+"Sign in to iCloud on this Apple TV to restore from your iPhone." = "在这台 Apple TV 上登录 iCloud，即可从 iPhone 恢复。";
 "Source" = "来源";
 "Start sharing" = "开始共享";
 "Starting…" = "正在开始…";
@@ -255,6 +266,7 @@
 "Use this profile" = "使用这个配置";
 "User-Agent" = "User-Agent";
 "Username" = "用户名";
+"Uses %lld local resource files — not supported on Apple TV yet" = "引用 %lld 个本地资源文件——Apple TV 暂不支持";
 "Using" = "正在使用";
 "Utilities" = "工具";
 "Version" = "版本";

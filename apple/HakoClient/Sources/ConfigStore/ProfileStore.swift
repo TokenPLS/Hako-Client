@@ -60,7 +60,16 @@ final class ProfileStore {
                                         withIntermediateDirectories: true)
         let data = try JSONEncoder().encode(profiles)
         try data.write(to: fileURL, options: Self.writeOptions)
+         
+         
+         
+         
+        NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
     }
+
+     
+     
+    static let didChangeNotification = Notification.Name("HakoProfileStoreDidChange")
 
     func upsert(_ profile: Profile) throws {
         var profiles = load()

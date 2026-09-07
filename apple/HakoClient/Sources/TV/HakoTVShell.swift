@@ -67,6 +67,8 @@ struct HakoTVShell: View {
      
     @State private var moreDoor: HakoTVMoreHub.Door?
      
+    @State private var showsICloudRestore = false
+     
      
      
      
@@ -104,6 +106,16 @@ struct HakoTVShell: View {
         _store = State(initialValue: store)
     }
 
+     
+     
+    private var iCloudRestoreScreen: some View {
+        HakoTVICloudRestoreScreen(
+            state: state,
+            service: live ? tunnel.iCloudRestore : nil,
+            store: $store
+        )
+    }
+
     private var hasConfiguration: Bool {
         !store.subscriptions.isEmpty
     }
@@ -121,14 +133,17 @@ struct HakoTVShell: View {
      
      
     private func primaryAction() {
-        guard let current = store.current else { return }
         let presentation = HakoTVHomePresentation.make(state: tunnel.state)
         Task {
             if tunnel.state.isConnected || presentation.cancels {
                 await tunnel.disconnect()
-            } else {
-                await tunnel.connect(subscription: current)
+                return
             }
+             
+             
+            if let refreshed = await tunnel.refreshRestoredProfilesIfNewer(store: store) { store = refreshed }
+            guard let current = store.current else { return }
+            await tunnel.connect(subscription: current)
         }
     }
 
@@ -150,8 +165,15 @@ struct HakoTVShell: View {
                             onPrimaryAction: live ? primaryAction : nil
                         )
                     } else {
-                        HakoTVWelcomeView { showsAddSubscription = true }
+                        HakoTVWelcomeView(
+                            onAddSubscription: { showsAddSubscription = true },
+                            restoreLine: state.wrappedValue.iCloudRestoreLine,
+                            onRestore: { showsICloudRestore = true }
+                        )
                     }
+                }
+                .navigationDestination(isPresented: $showsICloudRestore) {
+                    iCloudRestoreScreen
                 }
                 .navigationDestination(isPresented: $showsOutboundMode) {
                     HakoTVOutboundModeScreen(
@@ -256,6 +278,8 @@ struct HakoTVShell: View {
                             HakoTVUserAgentScreen()
                         case .proxyShare:
                             HakoTVProxyShareScreen(state: state, tunnel: tunnel)
+                        case .iCloudRestore:
+                            iCloudRestoreScreen
                         case .diagnostics:
                             HakoTVDiagnosticsScreen(
                                 state: state,
@@ -305,6 +329,12 @@ struct HakoTVShell: View {
             }
         }
         .task(id: stage) {
+            if live {
+
+
+                await tunnel.probeICloudForWelcome()
+                if let refreshed = await tunnel.refreshRestoredProfilesIfNewer(store: store) { store = refreshed }
+            }
              
              
              

@@ -1180,6 +1180,12 @@ private final class HakoMacSceneModel: ObservableObject {
             await proxyShare.refresh()
         }
         startAutomaticResourceRefresh()
+         
+         
+         
+         
+         
+        ICloudAutoBackup.shared.start()
         refreshSnapshot()
     }
 

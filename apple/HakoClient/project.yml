@@ -115,6 +115,7 @@ targets:
         - dns-settings
         com.apple.developer.icloud-services:
         - CloudDocuments
+        - CloudKit
         com.apple.developer.icloud-container-identifiers:
         - $(HAKO_ICLOUD_CONTAINER)
         com.apple.developer.ubiquity-container-identifiers:
@@ -355,6 +356,7 @@ targets:
         - packet-tunnel-provider
         com.apple.developer.icloud-services:
         - CloudDocuments
+        - CloudKit
         com.apple.developer.icloud-container-identifiers:
         - $(HAKO_ICLOUD_CONTAINER)
         com.apple.developer.ubiquity-container-identifiers:
@@ -599,6 +601,10 @@ targets:
         - $(HAKO_APP_GROUP)
         com.apple.developer.networking.networkextension:
         - packet-tunnel-provider
+        com.apple.developer.icloud-container-identifiers:
+        - $(HAKO_ICLOUD_CONTAINER)
+        com.apple.developer.icloud-services:
+        - CloudKit
     dependencies:
     - package: HakoClientKit
     - framework: ../../Hako.xcframework

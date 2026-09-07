@@ -369,6 +369,7 @@
 "Authentication failed" = "认证失败";
 "Auto update" = "自动更新";
 "Auto update will replace this edit" = "自动更新会覆盖这次编辑";
+"Automatic Backup" = "自动备份";
 "Automatic Selection" = "自动选择线路";
 "Automatic Updates" = "自动更新";
 "Automatic subscription and resource updates wait for an unmetered network." = "订阅与资源的自动更新会等待非计费网络。";
@@ -1296,6 +1297,8 @@
 "Keep Copy" = "保留副本";
 "Keep Editing" = "继续编辑";
 "Keep My Settings" = "保留我的设置";
+"Keep iCloud Backup Up to Date" = "保持 iCloud 备份最新";
+"Keep iCloud Backup Up to Date?" = "保持 iCloud 备份最新？";
 "Keep it — this app reads it even though the core does not." = "留着——内核不读它，但这个 App 读。";
 "Keep private and local networks outside the VPN while routing public addresses through Clash." = "让私有网络与本地网络留在 VPN 之外，公网地址仍走 Clash。";
 "Keep the visual settings and optionally add advanced fields." = "保留可视化设置，并可选地添加高级字段。";
@@ -1331,6 +1334,7 @@
 "Leave empty to ignore SSID. Use Connect for inclusion or Disconnect for exclusion." = "留空表示不判断 SSID。用「连接」表示包含，用「断开」表示排除。";
 "Leave this empty and the profile takes its name from the source." = "留空的话，配置会用来源的名字。";
 "Leave upload and download empty or set them to 0 to use BBR flow control." = "上传与下载留空或填 0，即使用 BBR 流控。";
+"Left out, never downloaded: %@" = "未纳入（从未下载）：%@";
 "Legacy Compatibility" = "旧版兼容";
 "Legacy Relay Groups" = "旧版 relay 分组";
 "Legacy ShadowsocksR outbound with protocol and obfuscation layers." = "传统 ShadowsocksR 出站，带协议与混淆层。";
@@ -1675,6 +1679,7 @@
 "Not recording · earlier logs kept" = "未在记录 · 保留此前日志";
 "Not referenced by any group" = "未被任何分组引用";
 "Not set" = "未设置";
+"Not signed in to iCloud." = "未登录 iCloud。";
 "Not tested" = "未测试";
 "Not used on iOS" = "iOS 上不使用";
 "Not used on this platform. What you wrote is left out." = "这个平台用不上，你写的内容被略过了。";
@@ -1714,6 +1719,7 @@
 "On, fallback resolvers are queried only after the nameservers answer." = "开启后，仅在 nameserver 应答之后才查询 fallback 解析器。";
 "On-Demand Connection" = "按需连接";
 "On-demand connect" = "按需连接";
+"One backup of your profiles stays in your iCloud account and is updated while Clash is open. Apple TV restores from it." = "你的配置在 iCloud 账户中保留一份备份，并在 Clash 打开期间随改动更新。Apple TV 从这份备份恢复。";
 "One domain, or a wildcard such as +.example.com." = "一个域名，或形如 +.example.com 的通配符。";
 "One or more rules cannot be matched safely on iOS." = "有规则无法在 iOS 上安全匹配。";
 "Only matching domains" = "仅匹配的域名";
@@ -2311,6 +2317,7 @@
 "Showing first %@ of %@ connections" = "仅显示前 %@ 条,共 %@ 条连接";
 "Shown Cards" = "已显示的卡片";
 "Shows as" = "显示为";
+"Sign in to iCloud to keep a backup there." = "登录 iCloud 后才能在那里保留备份。";
 "Silicon Valley 01" = "Silicon Valley 01";
 "Simplified Chinese" = "简体中文";
 "Singapore 01" = "Singapore 01";
@@ -2720,6 +2727,7 @@
 "The share link could not be read." = "这条分享链接读不出来。";
 "The shared JSON is what this inbox holds: the system's payload complete and unfiltered, under a small Clash header. Nothing is taken out of it, so it can name your servers and addresses. Clash has no automatic diagnostics uploader." = "分享出去的 JSON 就是这里保存的那一份：系统的载荷完整、不做任何过滤，外面套一层 Clash 的小信封。里面什么都没被拿掉，所以它可能写出你的服务器与地址。Clash 没有任何自动上传诊断数据的机制。";
 "The shared configuration is empty." = "共享的配置为空。";
+"The shared container is unavailable." = "共享容器不可用。";
 "The site you open sees this one." = "你打开的网站看到的是这一个。";
 "The source belongs to this profile; its live health remains read-only in Utilities." = "该来源属于本配置；其实时健康状态在「工具」中保持只读。";
 "The source fetch proxy is preserved. On iOS, Clash downloads this provider directly and uses the cached copy if refresh fails." = "源的抓取代理会保留。在 iOS 上，Clash 直接下载该资源；刷新失败时使用缓存副本。";
@@ -2912,6 +2920,7 @@
 "Tunnel ownership and DNS interception are normalized for Apple's packet-flow contract." = "隧道归属与 DNS 拦截已按 Apple 的 packet-flow 契约归一化。";
 "Tunnel ownership, stack and DNS interception are normalized for Apple's packet-flow contract." = "隧道归属、网络栈与 DNS 拦截会按 Apple 的包流契约归一化。";
 "Turn Off Auto Update" = "关闭自动更新";
+"Turn On" = "开启";
 "Two spellings do not apply on this platform: the Windows named pipe is removed, and the routing mark is a Linux-only socket option that stays in the file and does nothing." = "两个拼写在本平台不适用：Windows 命名管道会被移除；routing mark 是仅 Linux 的套接字选项，字段保留但不起作用。";
 "Type" = "类型";
 "Type Icons" = "类型图标";
@@ -2954,6 +2963,7 @@
 "Unsupported by server" = "服务器不支持";
 "Unsupported configuration" = "不支持的配置";
 "Up to Date" = "已是最新";
+"Up to date" = "已是最新";
 "Update" = "更新";
 "Update All" = "全部更新";
 "Update All Sources" = "更新全部外部资源";
@@ -2961,6 +2971,7 @@
 "Update cancelled" = "更新已取消";
 "Update every" = "更新间隔";
 "Updated" = "已更新";
+"Updated %@" = "已更新，%@";
 "Updates Allowed" = "允许更新";
 "Updates are delivered by the App Store or TestFlight." = "更新由 App Store 或 TestFlight 提供。";
 "Updating system configuration…" = "正在更新系统配置…";
@@ -3045,6 +3056,7 @@
 "Visual settings only" = "仅使用可视化设置";
 "WARN network path changed; flushing stale connections" = "WARN network path changed; flushing stale connections";
 "Wait for the current LAN proxy change to finish." = "请等待当前局域网代理变更完成。";
+"Waiting for the network" = "等待网络";
 "WebSocket Path" = "WebSocket 路径";
 "What DNS-only Does" = "仅 DNS 模式做什么";
 "What each source cost to load this start. Temporary parse memory is returned by the system after startup." = "本次启动各来源的装载开销。解析期的临时内存启动后由系统收回。";
@@ -3095,6 +3107,7 @@
 "You wrote %@" = "你写的是 %@";
 "You wrote %@ · running with %@" = "你写的是 %@ · 实际使用 %@";
 "Your own nodes and proxy chains" = "自建节点与链式代理";
+"Your profiles, with any links and credentials they carry, are kept in your iCloud account and updated while Clash is open. Apple TV can restore from them. Turning the switch off removes them from iCloud." = "你的配置（含其中的链接与凭据）会保存在你的 iCloud 账户中，并在 Clash 打开期间随改动更新。Apple TV 可从中恢复。关闭开关即从 iCloud 移除。";
 "Your traffic goes here first." = "你的流量先到这里。";
 "Your traffic goes here first. Clearing it removes the chain." = "你的流量先到这里。清空即删除这条链。";
 "ZeroTier Demo" = "ZeroTier Demo";
@@ -3142,11 +3155,13 @@
 "https://www.gstatic.com/generate_204" = "https://www.gstatic.com/generate_204";
 "iCloud Backup & Restore" = "iCloud 备份与恢复";
 "iCloud Drive and local backups" = "iCloud 云盘与本地备份";
+"iCloud asked to wait; trying again shortly" = "iCloud 要求稍候，稍后重试";
 "iCloud backup list refreshed" = "iCloud 备份列表已刷新";
 "iCloud device gate idle" = "iCloud 设备门空闲";
 "iCloud device gate passed" = "iCloud 设备门已通过";
 "iCloud device gate running" = "iCloud 设备门运行中";
 "iCloud or local file" = "iCloud 或本地文件";
+"iCloud storage is full." = "iCloud 储存空间已满。";
 "iCloud unavailable — sign in to iCloud and enable iCloud Drive for Clash." = "iCloud 不可用——请登录 iCloud 并为 Clash 开启 iCloud 云盘。";
 "iOS 15–25 does not expose resolver failover control to this API. Use Packet Tunnel VPN when fail-closed DNS is required." = "iOS 15–25 未向此 API 开放解析器故障切换控制。需要故障即断的 DNS 时请使用 Packet Tunnel VPN。";
 "iOS Adaptation" = "iOS 适配";

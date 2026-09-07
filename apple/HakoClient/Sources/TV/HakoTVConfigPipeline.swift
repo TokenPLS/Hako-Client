@@ -23,6 +23,10 @@ enum HakoTVCore {
          
          
         options.disablePersistentCache = true
+         
+         
+         
+        options.systemDNSServerLines = HakoSystemResolverLines()
         var error: NSError?
         HakoSetup(options, &error)
         if let error { throw error }
@@ -140,12 +144,25 @@ final class HakoTVConfigPipeline {
         try HakoTVCore.ensureSetup(container: container)
         try BundledGeodataProvisioner.seedAllMissing(into: working)
 
-        progress(.downloading)
-        let fetched = try await HakoTVSubscriptionFetcher.fetch(
-            subscription.requestURL,
-            session: session,
-            userAgent: userAgent
-        )
+        let profileID = Self.profileID(for: subscription)
+        let sourceYAML: String
+        let userInfo: String?
+        if let restored = HakoTVRestoredDocuments.read(container: container, profileID: profileID) {
+             
+             
+             
+            sourceYAML = restored
+            userInfo = nil
+        } else {
+            progress(.downloading)
+            let fetched = try await HakoTVSubscriptionFetcher.fetch(
+                subscription.requestURL,
+                session: session,
+                userAgent: userAgent
+            )
+            sourceYAML = fetched.yaml
+            userInfo = fetched.userInfo
+        }
          
          
          
@@ -153,13 +170,13 @@ final class HakoTVConfigPipeline {
 
         progress(.preparing)
         do {
-            try ConfigTransforms.validateSource(fetched.yaml)
+            try ConfigTransforms.validateSource(sourceYAML)
         } catch {
             throw PipelineError.invalidConfiguration(error.localizedDescription)
         }
         let plan: RemoteResourcePlan
         do {
-            plan = try ConfigTransforms.planResources(mergedYAML: fetched.yaml)
+            plan = try ConfigTransforms.planResources(mergedYAML: sourceYAML)
         } catch {
             throw PipelineError.invalidConfiguration(error.localizedDescription)
         }
@@ -168,7 +185,6 @@ final class HakoTVConfigPipeline {
         }
 
         let store = try ConfigResourceStore(containerURL: container)
-        let profileID = Self.profileID(for: subscription)
         let candidate = try store.beginCandidate(profileID: profileID)
         do {
             let materialized = try await HakoTVProviderMaterializer.materialize(
@@ -179,7 +195,7 @@ final class HakoTVConfigPipeline {
             )
             try Task.checkCancellation()
             let finalYAML = try ConfigTransforms.finalize(
-                mergedYAML: fetched.yaml,
+                mergedYAML: sourceYAML,
                 providerPaths: materialized.paths,
                 providerReadPaths: materialized.readPaths
             )
@@ -218,7 +234,7 @@ final class HakoTVConfigPipeline {
                 finalYAML: finalYAML,
                 providerCount: plan.providers.count,
                 warnings: materialized.warnings,
-                userInfo: fetched.userInfo,
+                userInfo: userInfo,
                 catalog: materialized.catalog
             )
         } catch {

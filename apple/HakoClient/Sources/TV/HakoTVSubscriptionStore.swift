@@ -20,12 +20,44 @@ struct HakoTVSubscription: Codable, Equatable, Identifiable {
      
      
     let updatedAt: Date?
+     
+     
+     
+    let restored: Restored?
 
-    init(requestURL: URL, name: String, updatedAt: Date? = nil) {
+    init(requestURL: URL, name: String, updatedAt: Date? = nil, restored: Restored? = nil) {
         self.requestURL = requestURL
         self.name = name
         self.updatedAt = updatedAt
+        self.restored = restored
     }
+
+    struct Restored: Codable, Equatable {
+        let archiveProfileID: String
+        let sourceInstallID: String
+        let sourceDevice: String
+        let exportedAt: Date
+         
+         
+        let overridesApplied: Bool
+         
+        let sourceKind: String
+         
+         
+        var followsAutoBackup: Bool { overridesApplied }
+    }
+
+     
+     
+     
+    static let restoredScheme = "hako-restore"
+
+    static func placeholderURL(archiveProfileID: String) -> URL {
+        URL(string: "\(restoredScheme)://\(archiveProfileID)")!
+    }
+
+     
+    var hasFetchableAddress: Bool { requestURL.scheme != Self.restoredScheme }
 
      
      
@@ -36,9 +68,11 @@ struct HakoTVSubscription: Codable, Equatable, Identifiable {
     var displayURL: URL { requestURL }
 
      
+     
     var title: String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
+        if !hasFetchableAddress { return String(localized: "Restored profile") }
         return displayURL.host ?? displayURL.absoluteString
     }
 }
@@ -73,7 +107,10 @@ enum HakoTVSubscriptionEditError: Error, Equatable, LocalizedError {
  
  
  
-struct HakoTVSubscriptionStore {
+ 
+ 
+ 
+struct HakoTVSubscriptionStore: @unchecked Sendable {
     static let key = "hako.tv.subscriptions"
     static let currentKey = "hako.tv.subscriptions.current"
 
@@ -147,7 +184,8 @@ struct HakoTVSubscriptionStore {
         subscriptions[index] = HakoTVSubscription(
             requestURL: existing.requestURL,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            updatedAt: existing.updatedAt
+            updatedAt: existing.updatedAt,
+            restored: existing.restored
         )
         persist()
     }
@@ -198,8 +236,33 @@ struct HakoTVSubscriptionStore {
     mutating func markUpdated(_ id: HakoTVSubscription.ID, at date: Date) {
         guard let index = subscriptions.firstIndex(where: { $0.id == id }) else { return }
         let existing = subscriptions[index]
-        subscriptions[index] = HakoTVSubscription(requestURL: existing.requestURL, name: existing.name, updatedAt: date)
+        subscriptions[index] = HakoTVSubscription(
+            requestURL: existing.requestURL, name: existing.name, updatedAt: date, restored: existing.restored
+        )
         persist()
+    }
+
+     
+     
+     
+     
+    mutating func restore(_ item: HakoTVSubscription) {
+        if let index = subscriptions.firstIndex(where: { $0.id == item.id }) {
+            subscriptions[index] = HakoTVSubscription(
+                requestURL: item.requestURL,
+                name: item.name,
+                updatedAt: subscriptions[index].updatedAt,
+                restored: item.restored
+            )
+        } else {
+            subscriptions.append(item)
+        }
+        persist()
+    }
+
+     
+    var followingAutoBackup: [HakoTVSubscription] {
+        subscriptions.filter { $0.restored?.followsAutoBackup == true }
     }
 
      

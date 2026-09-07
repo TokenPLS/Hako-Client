@@ -402,6 +402,12 @@ enum AppConfigurationPreflight {
         setup.logMaxLines = 1_000
         setup.memoryLimit = 0
         setup.disablePersistentCache = true
+         
+         
+         
+         
+         
+        setup.systemDNSServerLines = HakoSystemResolverLines()
         var setupError: NSError?
         HakoSetup(setup, &setupError)
         if let setupError { throw setupError }
@@ -1052,6 +1058,8 @@ final class VPNController: ObservableObject, DNSOnlyTunnelControlling {
         options.logMaxLines = 100
         options.memoryLimit = 50 * 1024 * 1024
         options.disablePersistentCache = true
+         
+        options.systemDNSServerLines = HakoSystemResolverLines()
         var error: NSError?
         HakoSetup(options, &error)
         coreSetupDone = error == nil

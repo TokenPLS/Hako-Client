@@ -165,6 +165,10 @@ struct HakoTVLaunchOverrides: Equatable, Sendable {
     let probeSpec: String?
      
     let dumpsDiagnostics: Bool
+     
+     
+     
+    let opens: String?
 
     init(environment: [String: String]) {
         appearance = environment["HAKO_TV_APPEARANCE"]
@@ -181,6 +185,7 @@ struct HakoTVLaunchOverrides: Equatable, Sendable {
         proxyShare = Self.proxyShareOverride(environment["HAKO_TV_PROXY_SHARE"])
         probeSpec = environment["HAKO_TV_PROBE"]
         dumpsDiagnostics = environment["HAKO_TV_DIAG"] == "1"
+        opens = environment["HAKO_TV_OPEN"]
     }
 }
 

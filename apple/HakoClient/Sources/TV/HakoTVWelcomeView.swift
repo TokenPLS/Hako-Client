@@ -7,6 +7,10 @@ import SwiftUI
  
 struct HakoTVWelcomeView: View {
     let onAddSubscription: () -> Void
+     
+     
+    var restoreLine: String? = nil
+    var onRestore: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 24) {
@@ -18,8 +22,14 @@ struct HakoTVWelcomeView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 900)
-            Button("Add a profile", action: onAddSubscription)
-                .padding(.top, 12)
+            if let restoreLine, let onRestore {
+                Button(restoreLine, action: onRestore)
+                    .padding(.top, 12)
+                Button("Add a profile", action: onAddSubscription)
+            } else {
+                Button("Add a profile", action: onAddSubscription)
+                    .padding(.top, 12)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
          

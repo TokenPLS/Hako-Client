@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 enum BackupRestoreScope: String, CaseIterable, Identifiable {
     case profilesOnly
@@ -110,6 +113,48 @@ struct BackupArchive: Codable, Equatable {
      
      
     var omittedRemoteSourceCount: Int
+     
+     
+     
+     
+     
+    var effectiveSources: [String: String]?
+     
+    var effectiveStage: String?
+     
+    var activeProfileID: String?
+     
+    var sourceInstallID: String?
+    var sourceDevice: String?
+    var exportedAt: Date?
+
+     
+     
+     
+    var leftOutProfileLabels: [String] = []
+
+    static let effectiveStageAfterClientTransforms = "afterClientTransforms"
+    static let autoInstallIDKey = "hako.backup.autoInstallID"
+
+     
+     
+    static func autoInstallID(defaults: UserDefaults = GlobalConfig.appGroupDefaults) -> String {
+        if let existing = defaults.string(forKey: autoInstallIDKey), UUID(uuidString: existing) != nil {
+            return existing
+        }
+        let fresh = UUID().uuidString.lowercased()
+        defaults.set(fresh, forKey: autoInstallIDKey)
+        return fresh
+    }
+
+     
+    static func localDeviceName() -> String {
+        #if canImport(UIKit) && !os(watchOS)
+        return UIDevice.current.name
+        #else
+        return Host.current().localizedName ?? "Mac"
+        #endif
+    }
 
     enum BackupError: Error, Equatable {
          
@@ -139,7 +184,13 @@ struct BackupArchive: Codable, Equatable {
         configurationModelVersion: Int? = nil,
         scripts: [ConfigScript] = [],
         scriptConfigurationModelVersion: Int? = nil,
-        omittedRemoteSourceCount: Int = 0
+        omittedRemoteSourceCount: Int = 0,
+        effectiveSources: [String: String]? = nil,
+        effectiveStage: String? = nil,
+        activeProfileID: String? = nil,
+        sourceInstallID: String? = nil,
+        sourceDevice: String? = nil,
+        exportedAt: Date? = nil
     ) {
         self.profiles = profiles
         self.sidecars = sidecars
@@ -150,6 +201,12 @@ struct BackupArchive: Codable, Equatable {
         self.scripts = scripts
         self.scriptConfigurationModelVersion = scriptConfigurationModelVersion
         self.omittedRemoteSourceCount = omittedRemoteSourceCount
+        self.effectiveSources = effectiveSources
+        self.effectiveStage = effectiveStage
+        self.activeProfileID = activeProfileID
+        self.sourceInstallID = sourceInstallID
+        self.sourceDevice = sourceDevice
+        self.exportedAt = exportedAt
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -163,6 +220,12 @@ struct BackupArchive: Codable, Equatable {
         case scripts
         case scriptConfigurationModelVersion
         case omittedRemoteSourceCount
+        case effectiveSources
+        case effectiveStage
+        case activeProfileID
+        case sourceInstallID
+        case sourceDevice
+        case exportedAt
     }
 
     init(from decoder: Decoder) throws {
@@ -195,11 +258,35 @@ struct BackupArchive: Codable, Equatable {
             Int.self,
             forKey: .omittedRemoteSourceCount
         ) ?? 0
+        effectiveSources = try container.decodeIfPresent([String: String].self, forKey: .effectiveSources)
+        effectiveStage = try container.decodeIfPresent(String.self, forKey: .effectiveStage)
+        activeProfileID = try container.decodeIfPresent(String.self, forKey: .activeProfileID)
+        sourceInstallID = try container.decodeIfPresent(String.self, forKey: .sourceInstallID)
+        sourceDevice = try container.decodeIfPresent(String.self, forKey: .sourceDevice)
+         
+        if let seconds = try? container.decodeIfPresent(Date.self, forKey: .exportedAt) {
+            exportedAt = seconds
+        } else if let text = try container.decodeIfPresent(String.self, forKey: .exportedAt) {
+            exportedAt = Self.iso8601.date(from: text) ?? Self.iso8601Fractional.date(from: text)
+        } else {
+            exportedAt = nil
+        }
     }
+
+    private static let iso8601 = ISO8601DateFormatter()
+    private static let iso8601Fractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
 
     func encoded() throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+         
+         
+         
+         
         return try encoder.encode(try sanitizedForPortableStorage())
     }
 
@@ -216,11 +303,30 @@ struct BackupArchive: Codable, Equatable {
     static func collect(
         workingDir: URL,
         defaults: UserDefaults = GlobalConfig.appGroupDefaults,
-        credentials: CredentialStore = CredentialStore()
+        credentials: CredentialStore = CredentialStore(),
+        activeProfileID: String?? = nil,
+        sourceInstallID: String? = nil,
+        sourceDevice: String = BackupArchive.localDeviceName(),
+        exportedAt: Date = Date(),
+        leavingOutIncompleteProfiles: Bool = false
     ) throws -> BackupArchive {
         let profileStore = ProfileStore(
             fileURL: workingDir.appendingPathComponent("store/profiles.json"))
         var profiles = profileStore.load()
+         
+         
+         
+         
+        var leftOut: [String] = []
+        if leavingOutIncompleteProfiles {
+            profiles.removeAll { profile in
+                guard case .url = profile.source, isSafeProfileID(profile.id) else { return false }
+                let sidecar = workingDir.appendingPathComponent("store/\(profile.id)/source.yaml")
+                guard !FileManager.default.fileExists(atPath: sidecar.path) else { return false }
+                leftOut.append(profile.label)
+                return true
+            }
+        }
         var sidecars: [String: String] = [:]
         var publicResources: [String: [String: Data]] = [:]
         var incomplete: [String] = []
@@ -299,7 +405,24 @@ struct BackupArchive: Codable, Equatable {
         guard incomplete.isEmpty else {
             throw BackupError.incompleteProfiles(incomplete)
         }
-        return BackupArchive(
+         
+         
+        var effectiveSources: [String: String] = [:]
+        for profile in profiles where isSafeProfileID(profile.id) {
+            guard let sidecar = sidecars[profile.id] else { continue }
+            effectiveSources[profile.id] = try ProfileRuntimeConfigBuilder.buildProductionStages(
+                raw: sidecar,
+                profile: profile,
+                runtimeOverride: OverrideSpec(),
+                globalOverride: globalConfig,
+                applyProviderDefinitions: true,
+                applyProxyChain: true,
+                applyLegacyRelayMigration: true
+            ).afterClientTransforms
+        }
+         
+        let resolvedActive: String? = activeProfileID ?? Self.activeProfileID(workingDir: workingDir)
+        var archive = BackupArchive(
             profiles: profiles,
             sidecars: sidecars,
             publicResources: publicResources,
@@ -308,8 +431,23 @@ struct BackupArchive: Codable, Equatable {
             configurationModelVersion: isIdentity(globalConfig)
                 ? completedVersion : nil,
             scripts: portableScripts,
-            scriptConfigurationModelVersion: scriptVersion
+            scriptConfigurationModelVersion: scriptVersion,
+            effectiveSources: effectiveSources,
+            effectiveStage: effectiveStageAfterClientTransforms,
+            activeProfileID: resolvedActive,
+            sourceInstallID: sourceInstallID ?? autoInstallID(defaults: defaults),
+            sourceDevice: sourceDevice,
+            exportedAt: exportedAt
         )
+        archive.leftOutProfileLabels = leftOut
+        return archive
+    }
+
+     
+     
+    static func activeProfileID(workingDir: URL) -> String? {
+        (try? ConfigResourceStore(containerURL: workingDir.deletingLastPathComponent()))
+            .flatMap { try? $0.activeIdentity() }?.profileID
     }
 
      
@@ -344,6 +482,7 @@ struct BackupArchive: Codable, Equatable {
          
         copy.profiles = sanitizedProfiles
         copy.sidecars = sanitizedSidecars
+        copy.effectiveSources = copy.effectiveSources?.filter { Self.isSafeProfileID($0.key) }
         let portableResources = copy.publicResources
         copy.publicResources = Self.sanitizePublicResources(
             portableResources,

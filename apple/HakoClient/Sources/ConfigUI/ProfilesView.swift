@@ -1375,6 +1375,10 @@ final class ProfilesViewModel: ObservableObject {
         setup.logMaxLines = 100
         setup.runtimeProfile = "macosPacketTunnel"
         setup.disablePersistentCache = true
+         
+         
+         
+        setup.systemDNSServerLines = HakoSystemResolverLines()
         var setupError: NSError?
         HakoSetup(setup, &setupError)
         if let setupError { throw setupError }

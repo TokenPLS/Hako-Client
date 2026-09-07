@@ -395,6 +395,17 @@ final class ExtensionProvider: NSObject {
          
          
          
+         
+         
+         
+         
+         
+         
+        let systemResolverLines = HakoSystemResolverLines()
+        HakoLogStore.shared.append(
+            "system resolvers before the tunnel: \(systemResolverLines.isEmpty ? "none" : systemResolverLines.split(separator: "\n").joined(separator: " "))",
+            stream: .app
+        )
         preapplyTunnelSettingsIfKnown(container: container)
 
         let options = HakoSetupOptions()
@@ -493,6 +504,7 @@ final class ExtensionProvider: NSObject {
 #endif
         options.includeAllNetworks = includeAllNetworks
         log.info("include all networks=\(includeAllNetworks)")
+        options.systemDNSServerLines = systemResolverLines
         StartupMemorySampler.shared.mark("options-built")
         var error: NSError?
         HakoSetup(options, &error)
@@ -1069,14 +1081,11 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
          
          
          
-        var dnsSettings: NEDNSSettings?
         let dnsBox = try options.getDNSServerAddress()
         guard !dnsBox.value.isEmpty else {
             throw ExtensionError.serviceUnavailable("OpenTun: DNS takeover address unavailable")
         }
-        let s = NEDNSSettings(servers: [dnsBox.value])
-        settings.dnsSettings = s
-        dnsSettings = s
+        settings.dnsSettings = Self.dnsTakeoverSettings(server: dnsBox.value)
 
          
         var v4Addr: [String] = [], v4Mask: [String] = []
@@ -1153,15 +1162,6 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
                     stream: .app
                 )
             }
-        }
-
-         
-         
-         
-        dnsSettings?.matchDomains = [""]
-        dnsSettings?.matchDomainsNoSearch = true
-        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-            dnsSettings?.allowFailover = false
         }
 
         let strictRoute = options.getStrictRoute()
@@ -1374,6 +1374,32 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
      
      
      
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+    static func dnsTakeoverSettings(server: String) -> NEDNSSettings {
+        let dns = NEDNSSettings(servers: [server])
+        dns.matchDomains = [""]
+        dns.matchDomainsNoSearch = true
+        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
+            dns.allowFailover = false
+        }
+        return dns
+    }
+
+     
+     
+     
     private static func networkSettings(
         from descriptor: PreappliedTunnelDescriptor,
         declaresIPv6: Bool
@@ -1381,13 +1407,7 @@ extension ExtensionProvider: HakoPlatformInterfaceProtocol {
         let settings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: "127.0.0.1")
         settings.mtu = NSNumber(value: descriptor.mtu)
         settings.tunnelOverheadBytes = nil
-        let dns = NEDNSSettings(servers: [descriptor.dnsServerAddress])
-        dns.matchDomains = [""]
-        dns.matchDomainsNoSearch = true
-        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-            dns.allowFailover = false
-        }
-        settings.dnsSettings = dns
+        settings.dnsSettings = Self.dnsTakeoverSettings(server: descriptor.dnsServerAddress)
 
         let v4 = descriptor.inet4Addresses.compactMap(Self.splitPrefix)
         if !v4.isEmpty {

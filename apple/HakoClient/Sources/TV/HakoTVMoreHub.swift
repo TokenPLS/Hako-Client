@@ -25,6 +25,7 @@ struct HakoTVMoreHub: View {
         case dns
         case userAgent
         case proxyShare
+        case iCloudRestore
         case diagnostics
         case geodata
         case version
@@ -35,6 +36,7 @@ struct HakoTVMoreHub: View {
             case .dns: String(localized: "DNS")
             case .userAgent: String(localized: "User-Agent")
             case .proxyShare: String(localized: "Share on this network")
+            case .iCloudRestore: String(localized: "Restore from iCloud")
             case .diagnostics: String(localized: "Diagnostics")
             case .geodata: String(localized: "Geo data")
             case .version: String(localized: "Version")
@@ -53,6 +55,7 @@ struct HakoTVMoreHub: View {
             case .dns: "dns"
             case .userAgent: "userAgent"
             case .proxyShare: "proxyShare"
+            case .iCloudRestore: "iCloudRestore"
             case .diagnostics: "diagnostics"
             case .geodata: "geodata"
             case .version: "version"
@@ -69,6 +72,8 @@ struct HakoTVMoreHub: View {
                 String(localized: "The name this app gives when it downloads a profile or a provider. Panels read it to decide which format to hand back, so Clash — the core's own name — is the one to keep unless a panel of yours answers better to another client.")
             case .proxyShare:
                 String(localized: "Let other devices on your network use this Apple TV as their HTTP or SOCKS5 proxy, with the port, username and password your profile names. The tunnel has to be running.")
+            case .iCloudRestore:
+                String(localized: "Bring the profiles your iPhone or Mac keeps in iCloud onto this Apple TV, and keep them current. Nothing is written back.")
             case .diagnostics:
                 String(localized: "Read-only status of the running tunnel: whether it is up, what it is using, and what it has loaded.")
             case .geodata:
@@ -81,13 +86,13 @@ struct HakoTVMoreHub: View {
          
         var isDoor: Bool {
             switch self {
-            case .dns, .userAgent, .proxyShare, .diagnostics: true
+            case .dns, .userAgent, .proxyShare, .iCloudRestore, .diagnostics: true
             case .autoConnect, .geodata, .version: false
             }
         }
     }
 
-    enum Door: Hashable { case dns, userAgent, proxyShare, diagnostics }
+    enum Door: Hashable { case dns, userAgent, proxyShare, iCloudRestore, diagnostics }
 
      
      
@@ -138,6 +143,9 @@ struct HakoTVMoreHub: View {
                     row(.dns, value: Self.dnsValue(state)) { opened = .dns }
                     row(.userAgent, value: Self.userAgentValue()) { opened = .userAgent }
                     row(.proxyShare, value: Self.proxyShareValue()) { opened = .proxyShare }
+                }
+                Section("Profiles") {
+                    row(.iCloudRestore, value: "") { opened = .iCloudRestore }
                 }
                 Section("System") {
                     row(.diagnostics, value: "") { opened = .diagnostics }

@@ -499,7 +499,62 @@ final class HakoTVTunnelController: ObservableObject {
 
      
 
+     
+     
+    var iCloudRestore: HakoTVICloudRestore? {
+        get { injectedICloudRestore ?? container.map { HakoTVICloudRestore(container: $0) } }
+        set { injectedICloudRestore = newValue }
+    }
+    private var injectedICloudRestore: HakoTVICloudRestore?
+
+     
+     
+     
+     
+    func refreshRestoredProfilesIfNewer(store: HakoTVSubscriptionStore) async -> HakoTVSubscriptionStore? {
+        guard let service = iCloudRestore, !store.followingAutoBackup.isEmpty else { return nil }
+        var working = store
+        let result: Result<HakoTVSubscriptionStore?, Error>
+        do {
+            let changed = try await service.refreshIfNewer(store: &working)
+            result = .success(changed ? working : nil)
+        } catch {
+            result = .failure(error)
+        }
+        switch result {
+        case .success(let refreshed):
+            if refreshed != nil {
+                HakoLogStore.shared.append("tv icloud refresh applied", stream: .app)
+            }
+            return refreshed
+        case .failure(let error):
+            HakoLogStore.shared.append("tv icloud refresh failed  reason=\(error.localizedDescription)", stream: .app, level: .warning)
+            return nil
+        }
+    }
+
+     
+    func probeICloudForWelcome() async {
+        guard let service = iCloudRestore else { return }
+        let availability = await HakoTVICloudRestore.availability(locator: service.locator())
+        state.iCloudRestoreLine = HakoTVICloudRestorePresentation.welcomeLine(availability)
+    }
+
+     
+     
+    func restoredDocumentIsNewerThanLastActivation(_ subscription: HakoTVSubscription) -> Bool {
+        guard let at = subscription.restored?.exportedAt, let last = lastActivation,
+              last.subscriptionID == subscription.id else { return false }
+        return at > last.at
+    }
+
+     
+    func noteActivated(_ subscription: HakoTVSubscription, at date: Date) {
+        lastActivation = Activation(subscriptionID: subscription.id, at: date)
+    }
+
     private func needsActivation(for subscription: HakoTVSubscription) -> Bool {
+        if restoredDocumentIsNewerThanLastActivation(subscription) { return true }
         guard let container, let store = try? ConfigResourceStore(containerURL: container),
               let pointer = try? store.activePointer()
         else { return true }

@@ -1054,6 +1054,10 @@ final class VPNController: ObservableObject, DNSOnlyTunnelControlling {
         options.logMaxLines = 100
         options.runtimeProfile = "macosPacketTunnel"
         options.disablePersistentCache = true
+         
+         
+         
+        options.systemDNSServerLines = HakoSystemResolverLines()
         var setupError: NSError?
         HakoSetup(options, &setupError)
         coreSetupDone = setupError == nil

@@ -172,6 +172,7 @@ struct HakoTVHomeView: View {
                  
                  
                 Text(presentation.statusLine)
+                    .accessibilityIdentifier("tvos.home.status")
                     .foregroundStyle(Self.tone(presentation.tone))
                      
                      

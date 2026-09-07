@@ -369,6 +369,7 @@
 "Authentication failed" = "Authentication failed";
 "Auto update" = "Auto update";
 "Auto update will replace this edit" = "Auto update will replace this edit";
+"Automatic Backup" = "Automatic Backup";
 "Automatic Selection" = "Automatic Selection";
 "Automatic Updates" = "Automatic Updates";
 "Automatic subscription and resource updates wait for an unmetered network." = "Automatic subscription and resource updates wait for an unmetered network.";
@@ -1296,6 +1297,8 @@
 "Keep Copy" = "Keep Copy";
 "Keep Editing" = "Keep Editing";
 "Keep My Settings" = "Keep My Settings";
+"Keep iCloud Backup Up to Date" = "Keep iCloud Backup Up to Date";
+"Keep iCloud Backup Up to Date?" = "Keep iCloud Backup Up to Date?";
 "Keep it — this app reads it even though the core does not." = "Keep it — this app reads it even though the core does not.";
 "Keep private and local networks outside the VPN while routing public addresses through Clash." = "Keep private and local networks outside the VPN while routing public addresses through Clash.";
 "Keep the visual settings and optionally add advanced fields." = "Keep the visual settings and optionally add advanced fields.";
@@ -1331,6 +1334,7 @@
 "Leave empty to ignore SSID. Use Connect for inclusion or Disconnect for exclusion." = "Leave empty to ignore SSID. Use Connect for inclusion or Disconnect for exclusion.";
 "Leave this empty and the profile takes its name from the source." = "Leave this empty and the profile takes its name from the source.";
 "Leave upload and download empty or set them to 0 to use BBR flow control." = "Leave upload and download empty or set them to 0 to use BBR flow control.";
+"Left out, never downloaded: %@" = "Left out, never downloaded: %@";
 "Legacy Compatibility" = "Legacy Compatibility";
 "Legacy Relay Groups" = "Legacy Relay Groups";
 "Legacy ShadowsocksR outbound with protocol and obfuscation layers." = "Legacy ShadowsocksR outbound with protocol and obfuscation layers.";
@@ -1675,6 +1679,7 @@
 "Not recording · earlier logs kept" = "Not recording · earlier logs kept";
 "Not referenced by any group" = "Not referenced by any group";
 "Not set" = "Not set";
+"Not signed in to iCloud." = "Not signed in to iCloud.";
 "Not tested" = "Not tested";
 "Not used on iOS" = "Not used on iOS";
 "Not used on this platform. What you wrote is left out." = "Not used on this platform. What you wrote is left out.";
@@ -1714,6 +1719,7 @@
 "On, fallback resolvers are queried only after the nameservers answer." = "On, fallback resolvers are queried only after the nameservers answer.";
 "On-Demand Connection" = "On-Demand Connection";
 "On-demand connect" = "On-demand connect";
+"One backup of your profiles stays in your iCloud account and is updated while Clash is open. Apple TV restores from it." = "One backup of your profiles stays in your iCloud account and is updated while Clash is open. Apple TV restores from it.";
 "One domain, or a wildcard such as +.example.com." = "One domain, or a wildcard such as +.example.com.";
 "One or more rules cannot be matched safely on iOS." = "One or more rules cannot be matched safely on iOS.";
 "Only matching domains" = "Only matching domains";
@@ -2311,6 +2317,7 @@
 "Showing first %@ of %@ connections" = "Showing first %@ of %@ connections";
 "Shown Cards" = "Shown Cards";
 "Shows as" = "Shows as";
+"Sign in to iCloud to keep a backup there." = "Sign in to iCloud to keep a backup there.";
 "Silicon Valley 01" = "Silicon Valley 01";
 "Simplified Chinese" = "Simplified Chinese";
 "Singapore 01" = "Singapore 01";
@@ -2720,6 +2727,7 @@
 "The share link could not be read." = "The share link could not be read.";
 "The shared JSON is what this inbox holds: the system's payload complete and unfiltered, under a small Clash header. Nothing is taken out of it, so it can name your servers and addresses. Clash has no automatic diagnostics uploader." = "The shared JSON is what this inbox holds: the system's payload complete and unfiltered, under a small Clash header. Nothing is taken out of it, so it can name your servers and addresses. Clash has no automatic diagnostics uploader.";
 "The shared configuration is empty." = "The shared configuration is empty.";
+"The shared container is unavailable." = "The shared container is unavailable.";
 "The site you open sees this one." = "The site you open sees this one.";
 "The source belongs to this profile; its live health remains read-only in Utilities." = "The source belongs to this profile; its live health remains read-only in Utilities.";
 "The source fetch proxy is preserved. On iOS, Clash downloads this provider directly and uses the cached copy if refresh fails." = "The source fetch proxy is preserved. On iOS, Clash downloads this provider directly and uses the cached copy if refresh fails.";
@@ -2912,6 +2920,7 @@
 "Tunnel ownership and DNS interception are normalized for Apple's packet-flow contract." = "Tunnel ownership and DNS interception are normalized for Apple's packet-flow contract.";
 "Tunnel ownership, stack and DNS interception are normalized for Apple's packet-flow contract." = "Tunnel ownership, stack and DNS interception are normalized for Apple's packet-flow contract.";
 "Turn Off Auto Update" = "Turn Off Auto Update";
+"Turn On" = "Turn On";
 "Two spellings do not apply on this platform: the Windows named pipe is removed, and the routing mark is a Linux-only socket option that stays in the file and does nothing." = "Two spellings do not apply on this platform: the Windows named pipe is removed, and the routing mark is a Linux-only socket option that stays in the file and does nothing.";
 "Type" = "Type";
 "Type Icons" = "Type Icons";
@@ -2954,6 +2963,7 @@
 "Unsupported by server" = "Unsupported by server";
 "Unsupported configuration" = "Unsupported configuration";
 "Up to Date" = "Up to Date";
+"Up to date" = "Up to date";
 "Update" = "Update";
 "Update All" = "Update All";
 "Update All Sources" = "Update All Sources";
@@ -2961,6 +2971,7 @@
 "Update cancelled" = "Update cancelled";
 "Update every" = "Update every";
 "Updated" = "Updated";
+"Updated %@" = "Updated %@";
 "Updates Allowed" = "Updates Allowed";
 "Updates are delivered by the App Store or TestFlight." = "Updates are delivered by the App Store or TestFlight.";
 "Updating system configuration…" = "Updating system configuration…";
@@ -3045,6 +3056,7 @@
 "Visual settings only" = "Visual settings only";
 "WARN network path changed; flushing stale connections" = "WARN network path changed; flushing stale connections";
 "Wait for the current LAN proxy change to finish." = "Wait for the current LAN proxy change to finish.";
+"Waiting for the network" = "Waiting for the network";
 "WebSocket Path" = "WebSocket Path";
 "What DNS-only Does" = "What DNS-only Does";
 "What each source cost to load this start. Temporary parse memory is returned by the system after startup." = "What each source cost to load this start. Temporary parse memory is returned by the system after startup.";
@@ -3095,6 +3107,7 @@
 "You wrote %@" = "You wrote %@";
 "You wrote %@ · running with %@" = "You wrote %@ · running with %@";
 "Your own nodes and proxy chains" = "Your own nodes and proxy chains";
+"Your profiles, with any links and credentials they carry, are kept in your iCloud account and updated while Clash is open. Apple TV can restore from them. Turning the switch off removes them from iCloud." = "Your profiles, with any links and credentials they carry, are kept in your iCloud account and updated while Clash is open. Apple TV can restore from them. Turning the switch off removes them from iCloud.";
 "Your traffic goes here first." = "Your traffic goes here first.";
 "Your traffic goes here first. Clearing it removes the chain." = "Your traffic goes here first. Clearing it removes the chain.";
 "ZeroTier Demo" = "ZeroTier Demo";
@@ -3142,11 +3155,13 @@
 "https://www.gstatic.com/generate_204" = "https://www.gstatic.com/generate_204";
 "iCloud Backup & Restore" = "iCloud Backup & Restore";
 "iCloud Drive and local backups" = "iCloud Drive and local backups";
+"iCloud asked to wait; trying again shortly" = "iCloud asked to wait; trying again shortly";
 "iCloud backup list refreshed" = "iCloud backup list refreshed";
 "iCloud device gate idle" = "iCloud device gate idle";
 "iCloud device gate passed" = "iCloud device gate passed";
 "iCloud device gate running" = "iCloud device gate running";
 "iCloud or local file" = "iCloud or local file";
+"iCloud storage is full." = "iCloud storage is full.";
 "iCloud unavailable — sign in to iCloud and enable iCloud Drive for Clash." = "iCloud unavailable — sign in to iCloud and enable iCloud Drive for Clash.";
 "iOS 15–25 does not expose resolver failover control to this API. Use Packet Tunnel VPN when fail-closed DNS is required." = "iOS 15–25 does not expose resolver failover control to this API. Use Packet Tunnel VPN when fail-closed DNS is required.";
 "iOS Adaptation" = "iOS Adaptation";

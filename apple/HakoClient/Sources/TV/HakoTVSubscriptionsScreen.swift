@@ -138,6 +138,9 @@ struct HakoTVSubscriptionsScreen: View {
      
      
     static func subtitle(for subscription: HakoTVSubscription) -> String? {
+        if let restored = subscription.restored {
+            return HakoTVICloudRestorePresentation.rowSubtitle(restored)
+        }
         let name = subscription.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return nil }
         return subscription.displayURL.host

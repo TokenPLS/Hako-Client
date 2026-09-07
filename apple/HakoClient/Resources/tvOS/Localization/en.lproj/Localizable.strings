@@ -22,10 +22,12 @@
 "Asked when the first answer looks wrong or is not trusted for the destination." = "Asked when the first answer looks wrong or is not trusted for the destination.";
 "Bad HTTP" = "Bad HTTP";
 "Branches into the named sub-rule list when the condition matches." = "Branches into the named sub-rule list when the condition matches.";
+"Bring the profiles your iPhone or Mac keeps in iCloud onto this Apple TV, and keep them current. Nothing is written back." = "Bring the profiles your iPhone or Mac keeps in iCloud onto this Apple TV, and keep them current. Nothing is written back.";
 "Bundled" = "Bundled";
 "Cancel" = "Cancel";
 "Check that the subscription address is still reachable, then update it once from its own screen." = "Check that the subscription address is still reachable, then update it once from its own screen.";
 "Checking…" = "Checking…";
+"Choose the device to restore from" = "Choose the device to restore from";
 "Clash" = "Clash";
 "Clash could not open its secure shared container." = "Clash could not open its secure shared container.";
 "Configuration" = "Configuration";
@@ -52,12 +54,14 @@
 "Domain" = "Domain";
 "Download" = "Download";
 "Downloading configuration…" = "Downloading configuration…";
+"Downloading from iCloud…" = "Downloading from iCloud…";
 "Dropped" = "Dropped";
 "Duration" = "Duration";
 "Edit" = "Edit";
 "Ended" = "Ended";
 "Every rule in the profile, in the order the tunnel tries them. Read-only here: see what a connection will do, then edit on your phone." = "Every rule in the profile, in the order the tunnel tries them. Read-only here: see what a connection will do, then edit on your phone.";
 "Failed" = "Failed";
+"From iCloud · %@ · %@" = "From iCloud · %@ · %@";
 "Geo data" = "Geo data";
 "Global" = "Global";
 "HTTP and SOCKS5 · username and password required" = "HTTP and SOCKS5 · username and password required";
@@ -115,6 +119,7 @@
 "Network" = "Network";
 "Never matches" = "Never matches";
 "No %@ connections" = "No %@ connections";
+"No automatic backup yet. Turn on “Keep iCloud backup current” on your iPhone or Mac." = "No automatic backup yet. Turn on “Keep iCloud backup current” on your iPhone or Mac.";
 "No policy groups in this configuration" = "No policy groups in this configuration";
 "No profiles on this Apple TV" = "No profiles on this Apple TV";
 "No route" = "No route";
@@ -135,6 +140,7 @@
 "On" = "On";
 "Optional" = "Optional";
 "Outbound mode" = "Outbound mode";
+"Overrides not applied — back up again on your iPhone" = "Overrides not applied — back up again on your iPhone";
 "Password" = "Password";
 "Plain addresses used to look up the resolvers above, before any of them can be reached by name." = "Plain addresses used to look up the resolvers above, before any of them can be reached by name.";
 "Point the other device's proxy at one of these addresses:" = "Point the other device's proxy at one of these addresses:";
@@ -154,6 +160,7 @@
 "Proxy chain" = "Proxy chain";
 "Read-only status of the running tunnel: whether it is up, what it is using, and what it has loaded." = "Read-only status of the running tunnel: whether it is up, what it is using, and what it has loaded.";
 "Ready" = "Ready";
+"Ready to restore" = "Ready to restore";
 "Refused" = "Refused";
 "Rejected" = "Rejected";
 "Remembered but not in use. Press to use it instead, or to remove it." = "Remembered but not in use. Press to use it instead, or to remove it.";
@@ -163,6 +170,9 @@
 "Resolution" = "Resolution";
 "Resolvers" = "Resolvers";
 "Resources" = "Resources";
+"Restore %lld profiles" = "Restore %lld profiles";
+"Restore from iCloud" = "Restore from iCloud";
+"Restored profile" = "Restored profile";
 "Retry" = "Retry";
 "Route traffic by the profile rules" = "Route traffic by the profile rules";
 "Rule" = "Rule";
@@ -182,6 +192,7 @@
 "Share with a username and password" = "Share with a username and password";
 "Sharing did not start." = "Sharing did not start.";
 "Sharing on this network." = "Sharing on this network.";
+"Sign in to iCloud on this Apple TV to restore from your iPhone." = "Sign in to iCloud on this Apple TV to restore from your iPhone.";
 "Source" = "Source";
 "Start sharing" = "Start sharing";
 "Starting…" = "Starting…";
@@ -255,6 +266,7 @@
 "Use this profile" = "Use this profile";
 "User-Agent" = "User-Agent";
 "Username" = "Username";
+"Uses %lld local resource files — not supported on Apple TV yet" = "Uses %lld local resource files — not supported on Apple TV yet";
 "Using" = "Using";
 "Utilities" = "Utilities";
 "Version" = "Version";
