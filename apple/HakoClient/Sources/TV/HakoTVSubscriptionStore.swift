@@ -233,6 +233,25 @@ struct HakoTVSubscriptionStore: @unchecked Sendable {
 
      
      
+     
+     
+    mutating func adoptPanelName(_ id: HakoTVSubscription.ID, _ panelName: String?) {
+        guard let panelName, !panelName.isEmpty,
+              let index = subscriptions.firstIndex(where: { $0.id == id }),
+              subscriptions[index].name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let others = subscriptions.enumerated().filter { $0.offset != index }.map { $0.element.title }
+        let existing = subscriptions[index]
+        subscriptions[index] = HakoTVSubscription(
+            requestURL: existing.requestURL,
+            name: PanelName.deduplicated(panelName, existing: others),
+            updatedAt: existing.updatedAt,
+            restored: existing.restored
+        )
+        persist()
+    }
+
+     
+     
     mutating func markUpdated(_ id: HakoTVSubscription.ID, at date: Date) {
         guard let index = subscriptions.firstIndex(where: { $0.id == id }) else { return }
         let existing = subscriptions[index]

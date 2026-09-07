@@ -1,4 +1,5 @@
 import Foundation
+import HakoClientKit
 
  
  
@@ -18,6 +19,15 @@ struct HakoTVFetchedSubscription: Equatable {
     let yaml: String
      
     let userInfo: String?
+     
+     
+    let panelName: String?
+
+    init(yaml: String, userInfo: String?, panelName: String? = nil) {
+        self.yaml = yaml
+        self.userInfo = userInfo
+        self.panelName = panelName
+    }
 }
 
 enum HakoTVSubscriptionFetcher {
@@ -83,7 +93,11 @@ enum HakoTVSubscriptionFetcher {
             throw FetchError.transport(error.localizedDescription)
         }
         guard let yaml = String(data: data, encoding: .utf8) else { throw FetchError.notText }
-        return HakoTVFetchedSubscription(yaml: yaml, userInfo: response?.value(forHTTPHeaderField: "subscription-userinfo"))
+        return HakoTVFetchedSubscription(
+            yaml: yaml,
+            userInfo: response?.value(forHTTPHeaderField: "subscription-userinfo"),
+            panelName: PanelName.suggested(fromContentDisposition: response?.value(forHTTPHeaderField: "Content-Disposition"))
+        )
     }
 }
 

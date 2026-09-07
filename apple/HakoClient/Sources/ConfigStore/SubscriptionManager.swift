@@ -1,4 +1,5 @@
 import Foundation
+import HakoClientKit
 
 struct FetchedConfig {
     let yaml: String
@@ -145,42 +146,11 @@ final class SubscriptionManager {
      
      
     static func suggestedName(fromContentDisposition header: String?) -> String? {
-        guard let header else { return nil }
-        var candidate: String?
-        for part in header.split(separator: ";") {
-            let piece = part.trimmingCharacters(in: .whitespaces)
-            if piece.lowercased().hasPrefix("filename*=") {
-                var value = String(piece.dropFirst("filename*=".count))
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                 
-                let parts = value.split(
-                    separator: "'", maxSplits: 2, omittingEmptySubsequences: false
-                )
-                if parts.count == 3 {
-                    value = String(parts[2])
-                }
-                candidate = value.removingPercentEncoding ?? value
-                break
-            }
-            if candidate == nil, piece.lowercased().hasPrefix("filename=") {
-                candidate = String(piece.dropFirst("filename=".count))
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-            }
-        }
-        guard var name = candidate?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !name.isEmpty else { return nil }
-        for suffix in [".yaml", ".yml"] where name.lowercased().hasSuffix(suffix) {
-            name = String(name.dropLast(suffix.count))
-        }
-        return name.isEmpty ? nil : String(name.prefix(80))
+         
+         
+         
+         
+        PanelName.suggested(fromContentDisposition: header)
     }
 
     private func fetch(_ request: URLRequest) async throws -> DownloadResult {

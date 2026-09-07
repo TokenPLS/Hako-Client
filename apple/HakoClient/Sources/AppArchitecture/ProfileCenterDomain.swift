@@ -1,4 +1,5 @@
 import Foundation
+import HakoClientKit
 
  
  
@@ -107,22 +108,9 @@ enum ProfileLabelPolicy {
     }
 
     static func deduplicate(_ label: String, existing: some Collection<String>) -> String {
-        let taken = Set(existing)
-        var candidate = label
-        while taken.contains(candidate) {
-            candidate = incrementingCounter(candidate)
-        }
-        return candidate
-    }
-
-    private static func incrementingCounter(_ label: String) -> String {
-        if let open = label.lastIndex(of: "("),
-           label.hasSuffix(")"),
-           label.index(after: open) < label.index(before: label.endIndex),
-           let number = Int(label[label.index(after: open)..<label.index(before: label.endIndex)]) {
-            return "\(label[label.startIndex..<open])(\(number + 1))"
-        }
-        return "\(label)(1)"
+         
+         
+        PanelName.deduplicated(label, existing: existing)
     }
 }
 

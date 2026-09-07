@@ -75,6 +75,9 @@ final class HakoTVConfigPipeline {
         let warnings: [String]
         let userInfo: String?
          
+         
+        let panelName: String?
+         
         let catalog: HakoTVProviderCatalog
     }
 
@@ -147,12 +150,14 @@ final class HakoTVConfigPipeline {
         let profileID = Self.profileID(for: subscription)
         let sourceYAML: String
         let userInfo: String?
+        let panelName: String?
         if let restored = HakoTVRestoredDocuments.read(container: container, profileID: profileID) {
              
              
              
             sourceYAML = restored
             userInfo = nil
+            panelName = nil
         } else {
             progress(.downloading)
             let fetched = try await HakoTVSubscriptionFetcher.fetch(
@@ -162,6 +167,7 @@ final class HakoTVConfigPipeline {
             )
             sourceYAML = fetched.yaml
             userInfo = fetched.userInfo
+            panelName = fetched.panelName
         }
          
          
@@ -235,6 +241,7 @@ final class HakoTVConfigPipeline {
                 providerCount: plan.providers.count,
                 warnings: materialized.warnings,
                 userInfo: userInfo,
+                panelName: panelName,
                 catalog: materialized.catalog
             )
         } catch {

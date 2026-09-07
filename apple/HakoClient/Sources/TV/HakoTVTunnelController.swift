@@ -46,6 +46,8 @@ final class HakoTVTunnelController: ObservableObject {
     struct Activation: Equatable {
         let subscriptionID: HakoTVSubscription.ID
         let at: Date
+         
+        var panelName: String? = nil
     }
 
     static let vpnProfileTitle = "Clash"
@@ -682,7 +684,7 @@ final class HakoTVTunnelController: ObservableObject {
             HakoLogStore.shared.append("provider warning  \(warning)", stream: .app, level: .warning)
         }
         apply(facts: try HakoTVConfigFacts(yaml: activation.finalYAML), catalog: activation.catalog)
-        lastActivation = Activation(subscriptionID: subscription.id, at: Date())
+        lastActivation = Activation(subscriptionID: subscription.id, at: Date(), panelName: activation.panelName)
     }
 
      

@@ -332,6 +332,9 @@ struct HakoTVShell: View {
              
             guard let activation else { return }
             store.markUpdated(activation.subscriptionID, at: activation.at)
+             
+             
+            store.adoptPanelName(activation.subscriptionID, activation.panelName)
         }
         .onChange(of: store.current, initial: true) { previous, current in
              
