@@ -595,6 +595,7 @@ struct GoldenFlowHomeAdapter: View {
         case .rulesOverview(let profile):
             RulesOverviewHost(
                 command: command,
+                canInspectActiveRules: command.isConnected,
                 profiles: profiles,
                 profile: profile,
                 openProxiesGroup: { group in

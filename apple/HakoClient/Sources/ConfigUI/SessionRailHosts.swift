@@ -256,7 +256,14 @@ struct ProxiesOverviewHost: View {
 }
 
 struct RulesOverviewHost: View {
-    @ObservedObject var command: ClashCommandClient
+     
+     
+     
+     
+     
+     
+    let command: ClashCommandClient
+    let canInspectActiveRules: Bool
     @ObservedObject var profiles: ProfilesViewModel
     let profile: Profile
     let openProxiesGroup: (String) -> Void
@@ -272,7 +279,7 @@ struct RulesOverviewHost: View {
          
         RulesOverviewAdapter(
             sourceYAML: profiles.uiProjectedYAML(for: profile),
-            canInspectActiveRules: command.isConnected,
+            canInspectActiveRules: canInspectActiveRules,
             compileVerdicts: compileVerdicts,
             openProxiesGroup: openProxiesGroup,
             ownsNavigationContainer: ownsNavigationContainer,
@@ -290,7 +297,7 @@ struct RulesOverviewHost: View {
          
          
          
-        .task(id: "\(profile.id)#\(profile.activeRevision ?? "")#\(command.isConnected)") {
+        .task(id: "\(profile.id)#\(profile.activeRevision ?? "")#\(canInspectActiveRules)") {
              
              
              
@@ -756,7 +763,10 @@ private enum ProxiesRailPreparationCache {
 
  
 struct SessionRulesRailRoot: View {
-    @ObservedObject var command: ClashCommandClient
+     
+     
+    let command: ClashCommandClient
+    let canInspectActiveRules: Bool
     @ObservedObject var profiles: ProfilesViewModel
     let openProxiesGroup: (String) -> Void
 
@@ -766,6 +776,7 @@ struct SessionRulesRailRoot: View {
         ) {
             RulesOverviewHost(
                 command: command,
+                canInspectActiveRules: canInspectActiveRules,
                 profiles: profiles,
                 profile: profile,
                 openProxiesGroup: openProxiesGroup,

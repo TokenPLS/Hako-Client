@@ -731,6 +731,7 @@ struct AppShellView: View {
         case .rules:
             SessionRulesRailRoot(
                 command: command,
+                canInspectActiveRules: command.isConnected,
                 profiles: profiles,
                 openProxiesGroup: { group in
                     railProxiesGroup = group

@@ -805,8 +805,18 @@ private final class HakoMacSceneModel: ObservableObject {
      
      
     private var menuTrackingDepth = 0
-    private var heldSnapshot: AppleClientSnapshot?
     private var snapshotThaw: DispatchWorkItem?
+     
+     
+     
+    private lazy var snapshotGate = HakoMacSnapshotGate<AppleClientSnapshot> {
+        [weak self] value in self?.snapshot = value
+    }
+     
+     
+     
+    private(set) var productIsVisible = true
+    private var visibilityObserver: HakoMacProductVisibilityObserver?
     private var menuGate: Set<AnyCancellable> = []
 
      
@@ -836,11 +846,32 @@ private final class HakoMacSceneModel: ObservableObject {
     }
 
     private func publish(_ value: AppleClientSnapshot) {
-        guard menuTrackingDepth > 0 || snapshotThaw != nil else {
-            snapshot = value
-            return
+         
+         
+         
+        snapshotGate.send(value)
+    }
+
+     
+     
+    private var latestSnapshot: AppleClientSnapshot {
+        snapshotGate.latest ?? snapshot
+    }
+
+     
+     
+     
+     
+     
+    func productVisibilityDidChange(_ visible: Bool) {
+        productIsVisible = visible
+        if visible {
+            connections.sync(command.isConnected)
+            trafficFeed.traffic = trafficSnapshot(command.traffic)
+        } else {
+            connections.sync(false)
         }
-        heldSnapshot = value
+        snapshotGate.setVisible(visible)
     }
 
     private func observeMenuTracking() {
@@ -851,6 +882,7 @@ private final class HakoMacSceneModel: ObservableObject {
                 self.snapshotThaw?.cancel()
                 self.snapshotThaw = nil
                 self.menuTrackingDepth += 1
+                self.snapshotGate.setMenuTracking(true)
             }
             .store(in: &menuGate)
         center.publisher(for: NSMenu.didEndTrackingNotification)
@@ -861,10 +893,7 @@ private final class HakoMacSceneModel: ObservableObject {
                 let work = DispatchWorkItem { [weak self] in
                     guard let self, self.menuTrackingDepth == 0 else { return }
                     self.snapshotThaw = nil
-                    if let held = self.heldSnapshot {
-                        self.heldSnapshot = nil
-                        self.snapshot = held
-                    }
+                    self.snapshotGate.setMenuTracking(false)
                 }
                 self.snapshotThaw = work
                 DispatchQueue.main.asyncAfter(
@@ -1056,6 +1085,9 @@ private final class HakoMacSceneModel: ObservableObject {
          
         HakoMacLaunchGate.shared.onceLaunched { [weak self] in
             self?.installStatusItem()
+        }
+        visibilityObserver = HakoMacProductVisibilityObserver { [weak self] visible in
+            self?.productVisibilityDidChange(visible)
         }
     }
 
@@ -2685,6 +2717,7 @@ private final class HakoMacSceneModel: ObservableObject {
                             ) {
                             SessionRulesRailRoot(
                                 command: self.command,
+                                canInspectActiveRules: self.command.isConnected,
                                 profiles: self.profiles,
                                 openProxiesGroup: { [weak self] group in
                                     guard let self else { return }
@@ -2847,7 +2880,9 @@ private final class HakoMacSceneModel: ObservableObject {
 
         command.$traffic
             .sink { [weak self] traffic in
-                guard let self else { return }
+                 
+                 
+                guard let self, productIsVisible else { return }
                 trafficFeed.traffic = trafficSnapshot(traffic)
             }
             .store(in: &cancellables)
@@ -3288,6 +3323,9 @@ extension HakoMacSceneModel {
     }
 
     private func makeStatusMenuSnapshot() -> HakoMacStatusMenuSnapshot {
+         
+         
+        let snapshot = latestSnapshot
         let listener = proxyShare.terminalListener
         return HakoMacStatusMenuSnapshot(
             phase: snapshot.connection.phase,
