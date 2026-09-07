@@ -278,5 +278,6 @@
 "Whether the packet tunnel is up. Everything else on this screen is read from it while it runs." = "Whether the packet tunnel is up. Everything else on this screen is read from it while it runs.";
 "Which copy of the GeoIP and GeoSite databases the tunnel is using." = "Which copy of the GeoIP and GeoSite databases the tunnel is using.";
 "Which copy of the GeoIP and GeoSite databases the tunnel loaded." = "Which copy of the GeoIP and GeoSite databases the tunnel loaded.";
+"Your iPhone or Mac keeps profiles in iCloud: restore them here, or add one by its address." = "Your iPhone or Mac keeps profiles in iCloud: restore them here, or add one by its address.";
 "download failed: %@" = "download failed: %@";
 "tvOS guarantees 500 KB of storage and may discard the rest. A link survives that; a file does not." = "tvOS guarantees 500 KB of storage and may discard the rest. A link survives that; a file does not.";

@@ -280,6 +280,15 @@ struct HakoTVSubscriptionStore: @unchecked Sendable {
      
      
      
+     
+     
+    static func emptyStage() -> HakoTVSubscriptionStore {
+        let suite = "hako.tv.stage.empty"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return HakoTVSubscriptionStore(defaults: defaults)
+    }
+
     static func stageFixture() -> HakoTVSubscriptionStore {
         let suite = "hako.tv.stage.subscriptions"
         let defaults = UserDefaults(suiteName: suite)!

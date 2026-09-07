@@ -141,23 +141,37 @@ final class HakoMacLineNumberRuler: NSRulerView {
      
      
      
+     
+     
+     
+     
+     
+     
+     
+     
     private var sizedDigits = 0
 
     private func scheduleThickness(deferred: Bool) {
         let digits = max(2, String(lineStarts.count).count)
         if digits == sizedDigits, !deferred { return }
-        sizedDigits = digits
         let width = (String(repeating: "8", count: digits) as NSString)
             .size(withAttributes: numberAttributes).width
         let thickness = ceil(width + padding * 2)
-        guard abs(thickness - ruleThickness) >= 1 else { return }
+        guard abs(thickness - ruleThickness) >= 1 else {
+            sizedDigits = digits
+            return
+        }
         if deferred || isDrawing {
-            DispatchQueue.main.async { [weak self] in
+             
+             
+            RunLoop.main.perform { [weak self] in
                 guard let self, abs(thickness - self.ruleThickness) >= 1 else { return }
                 self.ruleThickness = thickness
+                self.sizedDigits = digits
             }
         } else {
             ruleThickness = thickness
+            sizedDigits = digits
         }
     }
 

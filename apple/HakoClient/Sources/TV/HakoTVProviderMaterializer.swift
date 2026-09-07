@@ -84,6 +84,21 @@ enum HakoTVProviderMaterializer {
         }
     }
 
+     
+     
+     
+    struct DownloadKey: Hashable {
+        let url: String
+        let headers: [String: [String]]
+        let proxy: String
+
+        init(_ provider: RemoteResourcePlan.Provider) {
+            url = provider.url
+            headers = provider.headers
+            proxy = provider.proxy
+        }
+    }
+
     static func materialize(
         plan: RemoteResourcePlan,
         candidate: ConfigurationCandidate,
@@ -97,6 +112,16 @@ enum HakoTVProviderMaterializer {
         var readPaths: [String: String] = [:]
         var warnings: [String] = []
         var entries: [HakoTVProviderCatalog.Entry] = []
+         
+         
+         
+         
+         
+         
+         
+         
+         
+        var downloads: [DownloadKey: Result<Data, Error>] = [:]
         for provider in plan.providers {
             let key = Self.resourceKey(for: provider)
             let target = candidate.stagingProvidersDirectory.appendingPathComponent(provider.path)
@@ -114,7 +139,22 @@ enum HakoTVProviderMaterializer {
             let payload: Data
             var failure: String?
             do {
-                let rawPayload = try await download(provider, session: session, userAgent: userAgent, maximumBytes: maximumBytes)
+                let downloadKey = DownloadKey(provider)
+                let rawPayload: Data
+                if let shared = downloads[downloadKey] {
+                    rawPayload = try shared.get()
+                } else {
+                    do {
+                        rawPayload = try await download(provider, session: session, userAgent: userAgent, maximumBytes: maximumBytes)
+                        downloads[downloadKey] = .success(rawPayload)
+                    } catch {
+                         
+                         
+                         
+                        if !Task.isCancelled { downloads[downloadKey] = .failure(error) }
+                        throw error
+                    }
+                }
                 payload = Self.slimmedForRuntime(kind: provider.kind, payload: rawPayload)
                 do {
                     try inspect(provider.kind, provider.behavior, provider.format, payload)
@@ -130,14 +170,21 @@ enum HakoTVProviderMaterializer {
                  
                  
                 if Task.isCancelled { throw CancellationError() }
+                 
+                let failureReason: String
+                if case HakoTVBoundedDownload.Failure.tooLarge = error {
+                    failureReason = MaterializeError.tooLarge(name: provider.name).localizedDescription
+                } else {
+                    failureReason = error.localizedDescription
+                }
                 guard provider.kind == "rule" else {
                     throw MaterializeError.proxyProviderUnavailable(
                         name: provider.name,
-                        reason: error.localizedDescription
+                        reason: failureReason
                     )
                 }
-                warnings.append("\(provider.name): download failed: \(error.localizedDescription)")
-                failure = String(localized: "download failed: \(error.localizedDescription)")
+                warnings.append("\(provider.name): download failed: \(failureReason)")
+                failure = String(localized: "download failed: \(failureReason)")
                 payload = Data()
             }
             try payload.write(to: target, options: .atomic)
@@ -213,10 +260,6 @@ enum HakoTVProviderMaterializer {
                 request.addValue(value, forHTTPHeaderField: field)
             }
         }
-        do {
-            return try await HakoTVBoundedDownload.data(for: request, session: session, maximumBytes: maximumBytes)
-        } catch HakoTVBoundedDownload.Failure.tooLarge {
-            throw MaterializeError.tooLarge(name: provider.name)
-        }
+        return try await HakoTVBoundedDownload.data(for: request, session: session, maximumBytes: maximumBytes)
     }
 }

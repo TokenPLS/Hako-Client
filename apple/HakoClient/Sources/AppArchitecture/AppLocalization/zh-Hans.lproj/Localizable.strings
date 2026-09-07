@@ -379,6 +379,7 @@
 "Available Cards" = "可用卡片";
 "Available Proxies" = "可用代理";
 "Awaiting core probes" = "待内核打点";
+"Awaiting verified runtime identity; observations incomplete" = "正在等待运行实例确认；观测数据不完整";
 "BBR Profile" = "BBR 档位";
 "Back up now" = "立即备份";
 "Backed up to iCloud" = "已备份到 iCloud";
@@ -634,6 +635,7 @@
 "Connection Reuse" = "连接复用";
 "Connection Rule" = "连接规则";
 "Connection Rules" = "连接规则";
+"Connection decoder queue overflow" = "连接数据解码队列已满";
 "Connection failed" = "连接失败";
 "Connection refused" = "连接被拒绝";
 "Connection required" = "需要先连接";
@@ -1082,6 +1084,7 @@
 "For traffic that bypasses the proxy" = "用于绕过代理的流量";
 "Format" = "格式";
 "Forward Mode" = "转发模式";
+"Frame crossed a runtime confirmation boundary" = "连接快照跨越了运行实例确认边界";
 "From" = "来自";
 "From %@" = "来自 %@";
 "From File…" = "从文件导入…";
@@ -1284,6 +1287,7 @@
 "Interval" = "间隔";
 "Interval (seconds)" = "间隔（秒）";
 "Invalid JSON" = "JSON 无效";
+"Invalid connections snapshot" = "连接快照无效";
 "Invalid internal crash response" = "内部崩溃响应无效";
 "Invalid resource address" = "资源地址无效";
 "Invalid server response" = "服务器响应无效";
@@ -1983,6 +1987,7 @@
 "Query Error" = "查询出错";
 "Query Server Name" = "查询服务器名 (SNI)";
 "Query fallback only when needed" = "仅在需要时查询 fallback";
+"Queued frame predates runtime confirmation" = "排队中的连接快照早于运行实例确认";
 "Quick Fill from Source" = "从源码快速填充";
 "Quick Fill reads this profile's source and replaces everything you have built here. This cannot be undone." = "快速填充会读取本配置的源，并替换你在这里建立的全部内容。此操作无法撤销。";
 "Quit (Leave VPN Active)" = "退出（保留 VPN）";
@@ -2205,6 +2210,7 @@
 "Runtime Configuration" = "运行时配置";
 "Runtime and trust settings could not be prepared. The previous configuration remains unchanged." = "运行时与信任设置无法准备。先前的配置保持不变。";
 "Runtime health for this profile’s proxy sources and rule sets" = "此配置的代理来源与规则集的运行状态";
+"Runtime identity was not yet confirmed" = "运行实例尚未确认";
 "Runtime settings saved for all profiles" = "运行时设置已对所有配置保存";
 "SOCKS5 Demo" = "SOCKS5 Demo";
 "SOCKS5 upstream with optional authentication, TLS, and UDP relay." = "SOCKS5 上游，可选认证、TLS 与 UDP 转发。";

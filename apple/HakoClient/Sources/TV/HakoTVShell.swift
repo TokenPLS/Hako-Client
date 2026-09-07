@@ -97,7 +97,11 @@ struct HakoTVShell: View {
         case .nodesLongNames: .longNames
         default: .prototype
         }
-        _fixture = State(initialValue: HakoTVProductState(fixture: fixture))
+        var fixtureState = HakoTVProductState(fixture: fixture)
+         
+         
+        if stage == .welcome { fixtureState.iCloudRestoreLine = String(localized: "Restore from iCloud") }
+        _fixture = State(initialValue: fixtureState)
         _tunnel = StateObject(wrappedValue: HakoTVTunnelController())
          
          
@@ -117,12 +121,22 @@ struct HakoTVShell: View {
             state: state,
             service: live ? tunnel.iCloudRestore : nil,
             store: $store,
-            onDone: {
-                 
-                 
-                showsICloudRestore = false
-            }
+            onDone: closeICloudRestore
         )
+    }
+
+    private func closeICloudRestore() {
+        Self.finishICloudRestore(fromList: iCloudRestoreFromList,
+                                 restoreOpen: &showsICloudRestore,
+                                 subscriptionsOpen: &showsSubscriptions)
+    }
+
+     
+     
+    static func finishICloudRestore(fromList: Bool, restoreOpen: inout Bool,
+                                   subscriptionsOpen: inout Bool) {
+        restoreOpen = false
+        if fromList { subscriptionsOpen = true }
     }
 
     private var hasConfiguration: Bool {
@@ -613,11 +627,7 @@ struct HakoTVShell: View {
         case .edit: editDoor = nil
         case .subscriptionDetail: subscriptionDoor = nil
         case .addSubscription: showsAddSubscription = false
-        case .iCloudRestore:
-            showsICloudRestore = false
-             
-             
-            if iCloudRestoreFromList { showsSubscriptions = true }
+        case .iCloudRestore: closeICloudRestore()
         case .subscriptions: showsSubscriptions = false
         case .nodes: showsNodes = false
         case .outboundMode: showsOutboundMode = false

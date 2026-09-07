@@ -278,5 +278,6 @@
 "Whether the packet tunnel is up. Everything else on this screen is read from it while it runs." = "数据包隧道是否在运行。本屏其他内容都是在它运行时从它读出来的。";
 "Which copy of the GeoIP and GeoSite databases the tunnel is using." = "隧道正在使用哪一份 GeoIP 与 GeoSite 数据库。";
 "Which copy of the GeoIP and GeoSite databases the tunnel loaded." = "隧道加载了哪一份 GeoIP 与 GeoSite 数据库。";
+"Your iPhone or Mac keeps profiles in iCloud: restore them here, or add one by its address." = "你的 iPhone 或 Mac 在 iCloud 里存着配置：在这里恢复，或按地址添加一份。";
 "download failed: %@" = "下载失败：%@";
 "tvOS guarantees 500 KB of storage and may discard the rest. A link survives that; a file does not." = "tvOS 只保证 500 KB 的存储空间，其余随时可能被清掉。链接能挺过去；文件不能。";

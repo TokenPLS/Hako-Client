@@ -379,6 +379,7 @@
 "Available Cards" = "Available Cards";
 "Available Proxies" = "Available Proxies";
 "Awaiting core probes" = "Awaiting core probes";
+"Awaiting verified runtime identity; observations incomplete" = "Awaiting verified runtime identity; observations incomplete";
 "BBR Profile" = "BBR Profile";
 "Back up now" = "Back up now";
 "Backed up to iCloud" = "Backed up to iCloud";
@@ -634,6 +635,7 @@
 "Connection Reuse" = "Connection Reuse";
 "Connection Rule" = "Connection Rule";
 "Connection Rules" = "Connection Rules";
+"Connection decoder queue overflow" = "Connection decoder queue overflow";
 "Connection failed" = "Connection failed";
 "Connection refused" = "Connection refused";
 "Connection required" = "Connection required";
@@ -1082,6 +1084,7 @@
 "For traffic that bypasses the proxy" = "For traffic that bypasses the proxy";
 "Format" = "Format";
 "Forward Mode" = "Forward Mode";
+"Frame crossed a runtime confirmation boundary" = "Frame crossed a runtime confirmation boundary";
 "From" = "From";
 "From %@" = "From %@";
 "From File…" = "From File…";
@@ -1284,6 +1287,7 @@
 "Interval" = "Interval";
 "Interval (seconds)" = "Interval (seconds)";
 "Invalid JSON" = "Invalid JSON";
+"Invalid connections snapshot" = "Invalid connections snapshot";
 "Invalid internal crash response" = "Invalid internal crash response";
 "Invalid resource address" = "Invalid resource address";
 "Invalid server response" = "Invalid server response";
@@ -1983,6 +1987,7 @@
 "Query Error" = "Query Error";
 "Query Server Name" = "Query Server Name";
 "Query fallback only when needed" = "Query fallback only when needed";
+"Queued frame predates runtime confirmation" = "Queued frame predates runtime confirmation";
 "Quick Fill from Source" = "Quick Fill from Source";
 "Quick Fill reads this profile's source and replaces everything you have built here. This cannot be undone." = "Quick Fill reads this profile's source and replaces everything you have built here. This cannot be undone.";
 "Quit (Leave VPN Active)" = "Quit (Leave VPN Active)";
@@ -2205,6 +2210,7 @@
 "Runtime Configuration" = "Runtime Configuration";
 "Runtime and trust settings could not be prepared. The previous configuration remains unchanged." = "Runtime and trust settings could not be prepared. The previous configuration remains unchanged.";
 "Runtime health for this profile’s proxy sources and rule sets" = "Runtime health for this profile’s proxy sources and rule sets";
+"Runtime identity was not yet confirmed" = "Runtime identity was not yet confirmed";
 "Runtime settings saved for all profiles" = "Runtime settings saved for all profiles";
 "SOCKS5 Demo" = "SOCKS5 Demo";
 "SOCKS5 upstream with optional authentication, TLS, and UDP relay." = "SOCKS5 upstream with optional authentication, TLS, and UDP relay.";

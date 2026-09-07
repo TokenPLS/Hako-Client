@@ -17,11 +17,19 @@ struct HakoTVWelcomeView: View {
             HakoTVBrandMark()
             Text("Clash")
                 .font(.largeTitle)
+            if restoreLine != nil {
+                Text("Your iPhone or Mac keeps profiles in iCloud: restore them here, or add one by its address.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 900)
+            } else {
             Text("Add a profile to get started. Type its address here, or on your iPhone when the keyboard appears there.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 900)
+            }
             if let restoreLine, let onRestore {
                 Button(restoreLine, action: onRestore)
                     .padding(.top, 12)
