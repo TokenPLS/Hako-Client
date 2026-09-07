@@ -709,7 +709,16 @@ struct ProviderDefinitionMergeNotice: Codable, Equatable, Identifiable {
          
          
          
-        case legacyUnfrozen
+         
+         
+         
+         
+         
+         
+         
+         
+         
+        case legacyUnfrozen(differingKeys: [String])
          
          
         case baselineRemoved
@@ -745,7 +754,8 @@ struct ProviderDefinitionMergeReport: Equatable {
      
     var unfrozen: [ProfileProviderKind: Set<String>] {
         var result: [ProfileProviderKind: Set<String>] = [:]
-        for notice in notices where notice.reason == .legacyUnfrozen {
+        for notice in notices {
+            guard case .legacyUnfrozen = notice.reason else { continue }
             result[notice.kind, default: []].insert(notice.provider)
         }
         return result
@@ -1117,10 +1127,12 @@ struct ProfileProviderDefinitionSpec: Codable, Equatable {
                  
                  
                  
-                if theirs == nil {
-                    providers[mutation.name] = mine
+                if let theirs {
+                    note(.legacyUnfrozen(
+                        differingKeys: try legacyDifferences(mine: mine, theirs: theirs)
+                    ))
                 } else {
-                    note(.legacyUnfrozen)
+                    providers[mutation.name] = mine
                 }
             case ProfileProviderDefinitionMutation.addedBaseline?:
                 if let theirs {
@@ -1246,6 +1258,27 @@ struct ProfileProviderDefinitionSpec: Codable, Equatable {
             result.removeAll { ($0["name"] as? String).map(removed.contains) ?? false }
         }
         return result
+    }
+
+     
+     
+    private static func legacyDifferences(
+        mine: [String: Any], theirs: [String: Any]
+    ) throws -> [String] {
+        var keys: [String] = []
+        for key in Set(mine.keys).union(theirs.keys).sorted() where key != "payload" {
+            if try !jsonEqual(mine[key], theirs[key]) { keys.append(key) }
+        }
+        let mineNodes = (mine["payload"] as? [[String: Any]])?.compactMap { $0["name"] as? String } ?? []
+        let theirNodes = Set((theirs["payload"] as? [[String: Any]])?.compactMap { $0["name"] as? String } ?? [])
+        for name in mineNodes.sorted() where !theirNodes.contains(name) {
+            keys.append("payload.\(name)")
+        }
+        if mine["payload"] != nil || theirs["payload"] != nil,
+           mineNodes.isEmpty, try !jsonEqual(mine["payload"], theirs["payload"]) {
+            keys.append("payload")
+        }
+        return Array(keys.prefix(8))
     }
 
     private static func jsonEqual(_ lhs: Any?, _ rhs: Any?) throws -> Bool {

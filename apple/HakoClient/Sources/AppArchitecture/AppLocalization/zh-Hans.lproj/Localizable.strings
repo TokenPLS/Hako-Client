@@ -18,6 +18,7 @@
 "%@ active proxy and rule sources" = "%@ 个生效的代理与规则来源";
 "%@ active session" = "%@ 条活动会话";
 "%@ active sessions" = "%@ 条活动会话";
+"%@ affected." = "%@ 处受影响。";
 "%@ asked for the system resolver, which the tunnel cannot use; it was removed." = "%@ 要用系统解析器，隧道里用不了，已移除。";
 "%@ cannot be reached from inside the tunnel." = "%@ 在隧道内无法访问。";
 "%@ chain overrides" = "%@ 项链式覆写";
@@ -35,6 +36,7 @@
 "%@ files, %@ in total" = "%@ 个文件，共 %@";
 "%@ group" = "%@ 个分组";
 "%@ groups" = "%@ 个分组";
+"%@ had been held to an older copy of the subscription and now follows it again. Changed with that: %@. If any of these was your own edit, set it again." = "%@ 此前被冻结在订阅的一份旧副本上，现已改为跟随订阅。随之变化：%@。如果其中有你自己改过的，请重新设置一次。";
 "%@ is active" = "%@ 已生效";
 "%@ is decided by the platform, so what you wrote is not used." = "%@ 由平台决定，你写的值不会被采用。";
 "%@ is not a list of named definitions" = "%@ 不是一组带名字的定义";
@@ -1114,6 +1116,7 @@
 "Global Proxy" = "全局代理";
 "Go heap" = "Go 堆";
 "Goroutines" = "Goroutine 数";
+"Got It" = "知道了";
 "Green" = "绿色";
 "Group" = "分组";
 "Group Type" = "组类型";
@@ -2401,6 +2404,7 @@
 "Subscription Source" = "订阅来源";
 "Subscription Status" = "订阅状态";
 "Subscription already exists; syncing %@…" = "订阅已存在，正在同步 %@…";
+"Subscription changes touched your edits" = "订阅更新影响了你的设置";
 "Subscription link · config file · from scratch" = "订阅链接 · 配置文件 · 从零新建";
 "Subscription links and install links both work." = "订阅链接、安装链接都行。";
 "Subscription now: %@ · yours: %@" = "订阅现在：%@ · 你的：%@";
@@ -2721,6 +2725,9 @@
 "The stored source and effective comparison does not contain a known iOS rewrite." = "源文本与生效配置的对比中没有已知的 iOS 改写。";
 "The stored source and effective comparison does not contain a known macOS rewrite." = "源文本与生效配置的对比中没有已知的 macOS 改写。";
 "The subscription did not provide a source configuration." = "订阅未提供源配置。";
+"The subscription no longer has the node %@; the dialer you set on it was dropped." = "订阅里已没有节点 %@，你给它设的 dialer 已丢弃。";
+"The subscription no longer has this source; your edit of it was dropped." = "订阅里已没有这个来源，你对它的修改已丢弃。";
+"The subscription now has a source with this name too; your keys were merged over it." = "订阅里也有了同名来源，已把你的键合并进去。";
 "The subscription response is not UTF-8 configuration text." = "订阅响应不是 UTF-8 配置文本。";
 "The subscription was not modified, but this profile has no active revision." = "订阅未变化，但本配置没有激活版本。";
 "The subscription's own values come back; the edit is discarded." = "恢复为订阅里的值，本地修改作废。";
@@ -3081,6 +3088,7 @@
 "YAML syntax error" = "YAML 语法错误";
 "Yandex Basic" = "Yandex Basic";
 "You can start without a subscription: everything goes direct, and you add nodes and rules yourself." = "没有订阅也能先用起来：流量全部直连，节点和规则之后你自己加。";
+"You set %@ to %@; the subscription now says %@. Yours is kept." = "%@ 你改成了 %@，订阅改成了 %@，已按你的保留。";
 "You wrote %@" = "你写的是 %@";
 "You wrote %@ · running with %@" = "你写的是 %@ · 实际使用 %@";
 "Your own nodes and proxy chains" = "自建节点与链式代理";
@@ -3161,6 +3169,7 @@
 "never" = "从未";
 "never matches" = "永不匹配";
 "no reason was given" = "内核未给出原因";
+"node %@" = "节点 %@";
 "not available here" = "在此平台不可用";
 "not installed" = "未安装";
 "not present" = "没有这一项";

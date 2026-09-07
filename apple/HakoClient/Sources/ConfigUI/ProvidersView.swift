@@ -100,6 +100,31 @@ final class ProvidersModel: ObservableObject {
         HakoAppIdentifiers.appGroupContainer
     }
 
+     
+     
+    var providerNotices: [ProviderDefinitionMergeNotice] {
+        activeProfile?.providerDefinitionNotices ?? []
+    }
+
+     
+     
+    func acknowledgeProviderNotices() {
+        guard let container, let profile = activeProfile else { return }
+        let store = ProfileStore(
+            fileURL: container.appendingPathComponent("working/store/profiles.json"))
+        Self.acknowledgeProviderNotices(in: store, profileID: profile.id)
+        load()
+    }
+
+     
+     
+    static func acknowledgeProviderNotices(in store: ProfileStore, profileID: String) {
+        guard var latest = store.load().first(where: { $0.id == profileID }),
+              latest.providerDefinitionNotices != nil else { return }
+        latest.providerDefinitionNotices = nil
+        try? store.upsert(latest)
+    }
+
     func load() {
         runtimeTask?.cancel()
         runtimeGeneration &+= 1
@@ -643,6 +668,7 @@ enum ProviderDisplayScope: Equatable {
 }
 
 struct ProvidersView: View {
+    @Environment(\.locale) private var locale
     @StateObject private var model: ProvidersModel
     @ObservedObject private var command: ClashCommandClient
     private let scope: ProviderDisplayScope
@@ -665,6 +691,34 @@ struct ProvidersView: View {
     var body: some View {
         HakoMacSettingsContainer {
             if let profile = model.activeProfile {
+                if !model.providerNotices.isEmpty {
+                    Section {
+                        ForEach(model.providerNotices) { notice in
+                            VStack(alignment: .leading, spacing: HakoTheme.Spacing.tight) {
+                                Text(verbatim: notice.provider)
+                                    .font(.body)
+                                Text(hako: ProviderNoticeCopy.line(for: notice, locale: locale))
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .accessibilityIdentifier("providers.notice.\(notice.id)")
+                        }
+                        Button {
+                            model.acknowledgeProviderNotices()
+                        } label: {
+                            Text("Got It")
+                        }
+                        .accessibilityIdentifier("providers.notices.gotIt")
+                    } header: {
+                        Label(
+                            "Subscription changes touched your edits",
+                            systemImage: HakoSymbol.exclamationmarkTriangle.rawValue
+                        )
+                    } footer: {
+                        Text(hako: ProviderNoticeCopy.summary(count: model.providerNotices.count))
+                    }
+                    .accessibilityIdentifier("providers.notices")
+                }
                 Section {
                     Button {
                         model.refreshAll()

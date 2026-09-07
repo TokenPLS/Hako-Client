@@ -18,6 +18,7 @@
 "%@ active proxy and rule sources" = "%@ active proxy and rule sources";
 "%@ active session" = "%@ active session";
 "%@ active sessions" = "%@ active sessions";
+"%@ affected." = "%@ affected.";
 "%@ asked for the system resolver, which the tunnel cannot use; it was removed." = "%@ asked for the system resolver, which the tunnel cannot use; it was removed.";
 "%@ cannot be reached from inside the tunnel." = "%@ cannot be reached from inside the tunnel.";
 "%@ chain overrides" = "%@ chain overrides";
@@ -35,6 +36,7 @@
 "%@ files, %@ in total" = "%@ files, %@ in total";
 "%@ group" = "%@ group";
 "%@ groups" = "%@ groups";
+"%@ had been held to an older copy of the subscription and now follows it again. Changed with that: %@. If any of these was your own edit, set it again." = "%@ had been held to an older copy of the subscription and now follows it again. Changed with that: %@. If any of these was your own edit, set it again.";
 "%@ is active" = "%@ is active";
 "%@ is decided by the platform, so what you wrote is not used." = "%@ is decided by the platform, so what you wrote is not used.";
 "%@ is not a list of named definitions" = "%@ is not a list of named definitions";
@@ -1114,6 +1116,7 @@
 "Global Proxy" = "Global Proxy";
 "Go heap" = "Go heap";
 "Goroutines" = "Goroutines";
+"Got It" = "Got It";
 "Green" = "Green";
 "Group" = "Group";
 "Group Type" = "Group Type";
@@ -2401,6 +2404,7 @@
 "Subscription Source" = "Subscription Source";
 "Subscription Status" = "Subscription Status";
 "Subscription already exists; syncing %@…" = "Subscription already exists; syncing %@…";
+"Subscription changes touched your edits" = "Subscription changes touched your edits";
 "Subscription link · config file · from scratch" = "Subscription link · config file · from scratch";
 "Subscription links and install links both work." = "Subscription links and install links both work.";
 "Subscription now: %@ · yours: %@" = "Subscription now: %@ · yours: %@";
@@ -2721,6 +2725,9 @@
 "The stored source and effective comparison does not contain a known iOS rewrite." = "The stored source and effective comparison does not contain a known iOS rewrite.";
 "The stored source and effective comparison does not contain a known macOS rewrite." = "The stored source and effective comparison does not contain a known macOS rewrite.";
 "The subscription did not provide a source configuration." = "The subscription did not provide a source configuration.";
+"The subscription no longer has the node %@; the dialer you set on it was dropped." = "The subscription no longer has the node %@; the dialer you set on it was dropped.";
+"The subscription no longer has this source; your edit of it was dropped." = "The subscription no longer has this source; your edit of it was dropped.";
+"The subscription now has a source with this name too; your keys were merged over it." = "The subscription now has a source with this name too; your keys were merged over it.";
 "The subscription response is not UTF-8 configuration text." = "The subscription response is not UTF-8 configuration text.";
 "The subscription was not modified, but this profile has no active revision." = "The subscription was not modified, but this profile has no active revision.";
 "The subscription's own values come back; the edit is discarded." = "The subscription's own values come back; the edit is discarded.";
@@ -3081,6 +3088,7 @@
 "YAML syntax error" = "YAML syntax error";
 "Yandex Basic" = "Yandex Basic";
 "You can start without a subscription: everything goes direct, and you add nodes and rules yourself." = "You can start without a subscription: everything goes direct, and you add nodes and rules yourself.";
+"You set %@ to %@; the subscription now says %@. Yours is kept." = "You set %@ to %@; the subscription now says %@. Yours is kept.";
 "You wrote %@" = "You wrote %@";
 "You wrote %@ · running with %@" = "You wrote %@ · running with %@";
 "Your own nodes and proxy chains" = "Your own nodes and proxy chains";
@@ -3161,6 +3169,7 @@
 "never" = "never";
 "never matches" = "never matches";
 "no reason was given" = "no reason was given";
+"node %@" = "node %@";
 "not available here" = "not available here";
 "not installed" = "not installed";
 "not present" = "not present";
